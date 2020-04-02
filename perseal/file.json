@@ -1,0 +1,28 @@
+
+
+{
+
+    "additionalData": "string",
+  
+    "code": "OK",
+  
+    "error": "Invalid Token",
+  
+    "sessionData": {
+  
+      "sessionId": "14344",
+  
+      "sessionVariables": {
+  
+          "googleDrive": "ya29.a0Adw1xeWLYmeaPVN_qzL8B_wXxMtoC198Sndms809WcwOm43K1H6422I00go7J-jm8V5YyfbZ-jZ5Czqldt8fsJPSDEZQjXESfgjHEszJN2YQ_H8eVRMBgKVxZpl_CHBIs1BDhjr-Zpwd-fSXEFI49Mw-RKg04-29dNc",
+  
+          "oneDriveClient": "e9a0a734-a883-4dd9-b3a2-4b2ebd68c563",
+
+          "oneDriveScopes" : "offline_access files.read files.read.all files.readwrite files.readwrite.all"
+      }
+  
+    }
+  
+  }
+  
+  

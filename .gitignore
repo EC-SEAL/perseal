@@ -1,0 +1,3 @@
+.env
+pkg/mod/cloud.google.com/go@v0.38.0/dataproc/apiv1beta2/longrunning.go
+pkg/

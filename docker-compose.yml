@@ -1,0 +1,15 @@
+version: '3'
+services:
+    perseal:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: perseal
+        env_file: .env
+        command: /go/bin/perseal
+        # volumes:
+        #    - config:/config
+        #     - ${EWP_MT_CERTS}:/go/certs/:ro
+        #     - ${EWP_MT_DATA}:/data/:rw
+        ports:
+            - "${PERSEAL_EXT_PORT}:${PERSEAL_INT_PORT}"
