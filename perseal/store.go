@@ -21,7 +21,7 @@ func persistenceStore(w http.ResponseWriter, r *http.Request) {
 	msToken := r.FormValue("msToken")
 	platform := mux.Vars(r)["type"]
 	sessionData, err := sm.ValidateToken(msToken)
-	log.Println("Validated token and got sessionData: ", sessionData.SessionData)
+	fmt.Println("Validated token and got sessionData: ", sessionData.SessionData)
 	if err != nil {
 		http.Error(w, err.Error(), 404)
 		return
@@ -52,8 +52,8 @@ func persistenceStore(w http.ResponseWriter, r *http.Request) {
 		//Validates if the session data contains the google drive authentication token
 		if data.SessionData.SessionVariables.OneDriveClient == "" {
 			sessionData.Error = "Session Data Not Correctly Set - One Drive Oauth Missing"
-			http.Error(w, sessionData.Error, 401)
-			log.Fatalln(sessionData.Error)
+			//	http.Error(w, sessionData.Error, 401)
+			//	log.Fatalln(sessionData.Error)
 			data.SessionData.SessionVariables.OneDriveClient = os.Getenv("ONE_DRIVE_CLIENT")
 			data.SessionData.SessionVariables.OneDriveScopes = os.Getenv("ONE_DRIVE_SCOPES")
 			//	return

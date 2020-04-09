@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // const sm_endpoint = "https://sm"
@@ -26,30 +28,27 @@ var (
 
 func main() {
 	// load systemOpts
-	opts := &systemOpts{
-		Port: ":" + os.Getenv("PERSEAL_INT_PORT"),
-	}
-	//	fmt.Println(os.Getenv("AUTH_URL"))
-	//	fmt.Println(os.Getenv("AUTH_URL"))
-	//	fmt.Println(os.Getenv("REDIRECT_URL"))
-	//	fmt.Println(os.Getenv("FETCH_TOKEN_URL"))
-	//	fmt.Println(os.Getenv("CREATE_FOLDER_URL"))
-	//	fmt.Println(os.Getenv("GET_FOLDER_URL"))
-	//	fmt.Println(os.Getenv("SM_ENDPOINT"))
 
-	//	fmt.Println(os.Getenv("GOOGLE_DRIVE_CLIENT"))
-	//	fmt.Println(os.Getenv("ONE_DRIVE_CLIENT"))
-	//	fmt.Println(os.Getenv("ONE_DRIVE_SCOPES"))
-	//	fmt.Println(os.Getenv("GOOGLE_DRIVE"))
-	//	fmt.Println(os.Getenv("ONE_DRIVE"))
-
-	//	fmt.Println(os.Getenv("PERSEAL_INT_PORT"))
-	//	fmt.Println(os.Getenv("PERSEAL_EXT_PORT"))
-	//	fmt.Println(os.Getenv("PERSEAL_EMAIL")
-	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_INT_PORT"))
 	r := newRouter()
-	err := http.ListenAndServe(opts.Port, r)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+
+	tlsConfig := &tls.Config{
+		ClientAuth:         tls.RequestClientCert,
+		InsecureSkipVerify: true,
 	}
+
+	tlsConfig.BuildNameToCertificate()
+
+	server := &http.Server{
+		TLSConfig:    tlsConfig,
+		Addr:         os.Getenv("HOST"),
+		Handler:      r,
+		WriteTimeout: 60 * time.Second,
+		ReadTimeout:  60 * time.Second,
+	}
+
+	//start listening on port 8082
+
+	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_INT_PORT"))
+	log.Fatal(server.ListenAndServeTLS("./certificate.crt", "./private.key"))
+
 }

@@ -1,4 +1,4 @@
-FROM golang:1.13.6-buster AS build-env
+FROM golang:latest AS build-env
 
 WORKDIR /app
 
@@ -26,7 +26,12 @@ ARG PERSEAL_EMAIL
 EXPOSE $PERSEAL_INT_PORT
 LABEL maintainer=$PERSEAL_EMAIL
 
+FROM alpine:latest as alpine
+RUN apk add -U --no-cache ca-certificates
+
 COPY --from=build-env /go/bin/perseal /go/bin/perseal
 # Run the executable
+
+ADD keys .
 
 #ENTRYPOINT ["/go/bin/perseal"]

@@ -95,7 +95,6 @@ func ValidateToken(token string) (smResp SessionMngrResponse, err error) {
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
 func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err error) {
-	// TODO handle variable name input
 	url := os.Getenv("SM_ENDPOINT") + "/getSessionData?sessionId=" + sessionID
 	req, _ := http.NewRequest("GET", url, nil)
 	req = prepareRequestHeaders(req, url)

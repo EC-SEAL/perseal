@@ -158,11 +158,14 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte) (file
 	fileExists := getFolder(oauthToken, folderName)
 
 	if fileExists.StatusCode == 404 {
+		log.Println("eieieiie")
 		folderID := createFolder(oauthToken)
 		createFile(oauthToken, folderID, data)
 	} else {
+		log.Println("eieieiie!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
 		folderID := getFolderID(fileExists)
 		createFile(oauthToken, folderID, data)
+		log.Println("yes")
 	}
 	return
 }
@@ -186,7 +189,7 @@ func storeSessionData(data interface{}, uuid, cipherPassword string) (dataStore 
 
 func storeSessionDataGoogleDrive(data interface{}, uuid, cipherPassword string) (datastore *DataStore, err error) {
 	datastore, err = storeSessionData(data, uuid, cipherPassword)
-	oauthToken, _ := gdrive.TokenFromSessionData(data) //TODO
+	oauthToken, _ := gdrive.TokenFromSessionData() //TODO
 	_, err = datastore.UploadGoogleDrive(oauthToken)
 	return
 }

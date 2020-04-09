@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,11 +22,10 @@ type GoogleDrive struct {
 
 // Retrieves a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
-	tokFile := "token.json"
-	tok, err := TokenFromFile(tokFile)
+	tok, err := TokenFromSessionData()
+	log.Println(err)
 	if err != nil {
 		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
 	}
 	return config.Client(context.Background(), tok)
 }
@@ -50,18 +48,6 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	return tok
 }
 
-// Retrieves a token from a local file.
-func TokenFromFile(file string) (*oauth2.Token, error) {
-	f, err := os.Open(file)
-	defer f.Close()
-	if err != nil {
-		return nil, err
-	}
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(tok)
-	return tok, err
-}
-
 // Saves a token to a file path.
 func saveToken(path string, token *oauth2.Token) {
 	fmt.Printf("Saving credential file to: %s\n", path)
@@ -74,14 +60,9 @@ func saveToken(path string, token *oauth2.Token) {
 }
 
 func getService(oauthToken *oauth2.Token) (*drive.Service, error) {
-	b, err := ioutil.ReadFile(`./config/credentials.json`)
-	if err != nil {
-		fmt.Printf("Unable to read credentials.json file. Err: %v\n", err)
-		return nil, err
-	}
-
+	b := os.Getenv("GOOGLE_DRIVE_CREDENTIALS")
 	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, drive.DriveFileScope)
+	config, err := google.ConfigFromJSON([]byte(b), drive.DriveFileScope)
 
 	// Testing
 	// x := getTokenFromWeb(config)
@@ -90,7 +71,6 @@ func getService(oauthToken *oauth2.Token) (*drive.Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	client := getClient(config)
 	//client := config.Client(context.Background(), oauthToken)
 
@@ -126,7 +106,6 @@ func createDir(service *drive.Service, name string, parentId string) (*drive.Fil
 	}
 
 	file, err := service.Files.Create(d).Do()
-
 	if err != nil {
 		log.Println("Could not create dir: " + err.Error())
 		return nil, err
@@ -176,8 +155,7 @@ type FileProps struct {
 	ContentType string
 }
 
-//
-func TokenFromSessionData(sd interface{}) (outhToken *oauth2.Token, err error) {
+func TokenFromSessionData() (outhToken *oauth2.Token, err error) {
 	tok := &oauth2.Token{}
 	err = json.NewDecoder(strings.NewReader(os.Getenv("GOOGLE_DRIVE_CLIENT"))).Decode(tok)
 	return tok, err

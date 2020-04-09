@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -96,10 +94,19 @@ func getFolderID(resp *http.Response) string {
 
 // Returns Oauth Token used for authorization of OneDrive requests
 func getToken(clientID string, scopes string) *oauth2.Token {
+	currentOneDriveToken := oauth2.Token{
+		AccessToken:  os.Getenv("TOK"),
+		RefreshToken: os.Getenv("RTOK"),
+		TokenType:    "Bearer",
+		Expiry:       time.Now().Local().Add(time.Second * time.Duration(3600)),
+	}
 
 	//if it's the first request after running the program
-	if currentOneDriveToken.Expiry.IsZero() {
-		return getCodeFromWeb(clientID, scopes)
+	if os.Getenv("TOK") == "" {
+		c = make(chan string)
+		log.Println(getCodeFromWeb(clientID, scopes))
+		log.Println("")
+		return requestToken(<-c, clientID)
 	}
 
 	now := time.Now()
@@ -119,10 +126,7 @@ func getToken(clientID string, scopes string) *oauth2.Token {
 // Afterwards, makes a POST request to retrive the new access_token, given necessary parameters
 // In order to use the One Drive API, the client needs the clientID, the redirect_uri and the scopes of the application in the Microsfot Graph
 // For more information, follow this link: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online
-func getCodeFromWeb(clientID string, scopes string) *oauth2.Token {
-
-	client := http.Client{}
-	c = make(chan string)
+func getCodeFromWeb(clientID string, scopes string) string {
 
 	//Retrieve the code
 	u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
@@ -135,29 +139,14 @@ func getCodeFromWeb(clientID string, scopes string) *oauth2.Token {
 	q := req.URL.Query()
 	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
-	q.Add("response_type", "code")
 	q.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
 
-	_, err = client.Do(req)
-
-	//Opens tab in browser to make the request
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "linux":
-		cmd = exec.Command("xdg-open", req.URL.String())
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", req.URL.String())
-	case "darwin":
-		cmd = exec.Command("open", req.URL.String())
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-	cmd.Start()
-	code := <-c
+	log.Println("Click this link in order to sign in with your Microsoft Account:")
+	return req.URL.String()
+}
+func requestToken(code string, clientID string) *oauth2.Token {
 
 	//Retrieve the access token
 	values := url.Values{}
@@ -166,9 +155,9 @@ func getCodeFromWeb(clientID string, scopes string) *oauth2.Token {
 	values.Add("grant_type", "authorization_code")
 	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
 
-	u, err = url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-	urlStr = u.String()
-	req, _ = http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
+	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	urlStr := u.String()
+	req, _ := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	return tokenRequest(req)
@@ -187,7 +176,7 @@ func requestRefreshToken(clientID string, token *oauth2.Token) *oauth2.Token {
 	values.Add("client_id", clientID)
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
-	values.Add("redirect_uri", "https://login.live.com/oauth20_desktop.srf")
+	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
 
 	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
 	urlStr := u.String()
