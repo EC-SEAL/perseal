@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
 )
 
@@ -32,6 +33,13 @@ type TokenRequestResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type OneDriveCreds struct {
+	OneDriveClientID     string `json:"oneDriveClient"`
+	OneDriveScopes       string `json:"oneDriveScopes"`
+	OneDriveAccessToken  string `json:"oneDrivetAccessToken"`
+	OneDriveRefreshToken string `json:"oneDrivetRefreshToken"`
+}
+
 // FolderProps - The properties of the One Drive folder
 type FolderProps struct {
 	ID string `json:"id"`
@@ -40,26 +48,27 @@ type FolderProps struct {
 // Used to control token expiration
 var currentOneDriveToken oauth2.Token
 
-// Channel to pass information of the OneDrive code to fetch Access Token
-var c chan string
+var creds *OneDriveCreds
 
 // POST request to create a folder in the root
-func createFolder(token *oauth2.Token) string {
+func createOneDriveFolder(token *oauth2.Token) string {
 	createfolderjson := []byte(`{"name":"` + folderName + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
-	req, _ := http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
+	//	req, _ := http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
+	req, _ := http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, _ := client.Do(req)
-	folderID := getFolderID(resp)
+	folderID := getOneDriveFolderID(resp)
 	return folderID
 }
 
 // PUT request to create a file in a given folder
-func createFile(token *oauth2.Token, folderID string, blob []byte) {
-	url := os.Getenv("CREATE_FILE_URL") + folderID + ":/" + dataStoreFile + ":/content"
+func createOneDriveFile(token *oauth2.Token, folderID string, blob []byte) {
+	//	url := os.Getenv("CREATE_FILE_URL") + folderID + ":/" + dataStoreFile + ":/content"
+	url := "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + dataStoreFile + ":/content"
 	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(blob))
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
@@ -72,8 +81,9 @@ func createFile(token *oauth2.Token, folderID string, blob []byte) {
 }
 
 // GET request to fetch information of a given folder
-func getFolder(token *oauth2.Token, folder string) *http.Response {
-	url := os.Getenv("GET_FOLDER_URL") + ":/" + folder
+func getOneDriveFolder(token *oauth2.Token, folder string) *http.Response {
+	//url := os.Getenv("GET_FOLDER_URL") + ":/" + folder
+	url := "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
 	req, _ := http.NewRequest("GET", url, nil)
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
@@ -85,7 +95,7 @@ func getFolder(token *oauth2.Token, folder string) *http.Response {
 }
 
 // Auxiliary method: returns ID of a given folder (from previous http response)
-func getFolderID(resp *http.Response) string {
+func getOneDriveFolderID(resp *http.Response) string {
 	var folderprops FolderProps
 	body, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal([]byte(body), &folderprops)
@@ -93,20 +103,26 @@ func getFolderID(resp *http.Response) string {
 }
 
 // Returns Oauth Token used for authorization of OneDrive requests
-func getToken(clientID string, scopes string) *oauth2.Token {
+func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
+
 	currentOneDriveToken := oauth2.Token{
-		AccessToken:  os.Getenv("TOK"),
-		RefreshToken: os.Getenv("RTOK"),
+		AccessToken:  creds.OneDriveAccessToken,
+		RefreshToken: creds.OneDriveRefreshToken,
 		TokenType:    "Bearer",
 		Expiry:       time.Now().Local().Add(time.Second * time.Duration(3600)),
 	}
 
-	//if it's the first request after running the program
-	if os.Getenv("TOK") == "" {
-		c = make(chan string)
-		log.Println(getCodeFromWeb(clientID, scopes))
-		log.Println("")
-		return requestToken(<-c, clientID)
+	if currentOneDriveToken.AccessToken == "" {
+		url := getCodeFromWeb(creds.OneDriveClientID, creds.OneDriveScopes)
+		desc := `Go to the following link ` + url + `"and login to your Account"`
+
+		redirect = &Redirect{
+			Description: desc,
+			Link:        url,
+			Module:      "oneDrive",
+		}
+
+		return redirect, nil
 	}
 
 	now := time.Now()
@@ -114,11 +130,11 @@ func getToken(clientID string, scopes string) *oauth2.Token {
 
 	//if the access token hasn't expired yet
 	if end.Sub(now) > 10 {
-		return &currentOneDriveToken
+		return nil, &currentOneDriveToken
 	}
 
 	//if the access token has expired. Makes a refresh token request
-	return requestRefreshToken(clientID, &currentOneDriveToken)
+	return nil, requestRefreshToken(creds.OneDriveClientID, &currentOneDriveToken)
 }
 
 // Requests a token from the web, then returns the retrieved token.
@@ -129,7 +145,8 @@ func getToken(clientID string, scopes string) *oauth2.Token {
 func getCodeFromWeb(clientID string, scopes string) string {
 
 	//Retrieve the code
-	u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
+	//u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
+	u, err := url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
 	if err != nil {
 		log.Fatalf("Unable to read url: %v", err)
 	}
@@ -137,43 +154,40 @@ func getCodeFromWeb(clientID string, scopes string) string {
 
 	req, _ := http.NewRequest("GET", urlStr, nil)
 	q := req.URL.Query()
-	q.Add("client_id", clientID)
+	q.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
 	q.Add("scope", scopes)
-	q.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	q.Add("redirect_uri", "https://localhost:8082/per/code")
 	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
 
-	log.Println("Click this link in order to sign in with your Microsoft Account:")
+	log.Println("fff1cba9-7597-479d-b653-fd96c5d56b43")
+
 	return req.URL.String()
 }
 func requestToken(code string, clientID string) *oauth2.Token {
 
 	//Retrieve the access token
 	values := url.Values{}
-	values.Add("client_id", clientID)
+	values.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	//	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	values.Add("redirect_uri", "https://localhost:8082/per/code")
 
-	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	//	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	u, _ := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	urlStr := u.String()
 	req, _ := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
+	log.Println(req.Body)
 	return tokenRequest(req)
-}
-
-// Recieve Code from the redirect url in browser
-func getCodeFromResponseURL(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query()["code"]
-	log.Println(code)
-	c <- code[0]
 }
 
 // POST request to retrieve a new access and refresh tokens
 func requestRefreshToken(clientID string, token *oauth2.Token) *oauth2.Token {
 	values := url.Values{}
-	values.Add("client_id", clientID)
+	values.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
 	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
@@ -216,4 +230,15 @@ func tokenRequest(req *http.Request) *oauth2.Token {
 	currentOneDriveToken = *tok
 
 	return tok
+}
+
+func setOneDriveCreds(data interface{}) {
+	creds = &OneDriveCreds{}
+	smr := &sm.SessionMngrResponse{}
+	jsonM, _ := json.Marshal(data)
+	json.Unmarshal(jsonM, smr)
+	creds.OneDriveClientID = smr.SessionData.SessionVariables["OneDriveClientID"]
+	creds.OneDriveScopes = smr.SessionData.SessionVariables["OneDriveScopes"]
+	creds.OneDriveAccessToken = smr.SessionData.SessionVariables["OneDriveAccessToken"]
+	creds.OneDriveRefreshToken = smr.SessionData.SessionVariables["OneDriveRefreshToken"]
 }

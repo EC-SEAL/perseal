@@ -32,31 +32,37 @@ var perRoutes = routes{
 	route{
 		"Setup a persistence mechanism and load a secure storage into session.",
 		"POST",
-		"/load/{type}",
+		"/load",
 		persistenceLoad,
 	},
 	route{
 		"Save session data to the configured persistence mechanism (front channel).",
 		"POST",
-		"/store/{type}",
+		"/store",
 		persistenceStore,
 	},
-	route{
+	/*route{
 		"Silent setup of a persistence mechanism by loading a user-provided secure storage into session. (back channel).",
 		"POST",
-		"/load/{type}/{sessionToken}",
+		"/load/{sessionToken}",
 		persistenceLoadWithToken,
-	},
+	},*/
 	route{
 		"Save session data to the configured persistence mechanism (back channel). Might return the signed and possibly encrypted datastore",
 		"GET",
-		"/store/{type}/{sessionToken}",
+		"/store/{sessionToken}",
 		persistenceStoreWithToken,
 	},
 	route{
-		"Fetches Code for OneDrive Access Token",
+		"Fetches Code for Access Token",
 		"GET",
 		"/code",
-		getCodeFromResponseURL,
+		getCodeFromDashboard,
+	},
+	route{
+		"Mocks a Dashboard behaviour to send the code to persistence module",
+		"GET",
+		"/dashboardMock",
+		dashboardMock,
 	},
 }

@@ -53,7 +53,6 @@ func signRequest(r *http.Request, headers map[string]string) string {
 	if err != nil {
 		log.Printf("Signature failed: %s", err)
 	}
-	log.Println(newReq)
 	return newReq.Header.Get("Authorization")
 }
 
@@ -63,7 +62,16 @@ func prepareRequestHeaders(req *http.Request, url string) *http.Request {
 	reqTarget := method + " /" + strings.SplitN(strings.SplitN(url, "://", 2)[1], "/", 2)[1]
 	host := strings.SplitN(strings.SplitN(url, "://", 2)[1], "/", 2)[0]
 
-	sha256value := sha256.Sum256([]byte{})
+	var sha256value [32]byte
+	//verifies request method to fomrulate Digest
+	if req.Method == "POST" {
+		y, _ := req.GetBody()
+		x, _ := ioutil.ReadAll(y)
+		sha256value = sha256.Sum256(x)
+	} else if req.Method == "GET" {
+		sha256value = sha256.Sum256([]byte{})
+	}
+
 	slicedSHA := sha256value[:]
 	slicedSHAbase64 := base64.StdEncoding.EncodeToString(slicedSHA)
 	const longForm = "Mon, 2 Jan 2006 15:04:05 MST"

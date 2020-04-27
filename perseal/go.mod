@@ -22,6 +22,6 @@ require (
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	google.golang.org/api v0.15.0
+	google.golang.org/api v0.22.0
 	gopkg.in/headzoo/surf.v1 v1.0.0
 )

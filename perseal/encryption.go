@@ -9,8 +9,13 @@ import (
 	"errors"
 	"io"
 	"log"
+	"os"
 
 	"golang.org/x/crypto/pbkdf2"
+)
+
+var (
+	PBKDF2SALT string = os.Getenv("PBKDF2SALT") // to make
 )
 
 // Pbkdf2 Fixes key length for AES Usage

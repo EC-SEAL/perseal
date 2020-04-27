@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net/http"
 	"regexp"
 
-	"github.com/EC-SEAL/perseal/gdrive"
-	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 )
@@ -45,6 +44,47 @@ import (
 // 	} `json:"clearData"`
 // }
 
+/*  Mock dataStore value
+{
+  "id": "6c0f70a8-f32b-4535-b5f6-0d596c52813a",
+  "encryptedData": "string",
+  "signature": "string",
+  "signatureAlgorithm": "string",
+  "encryptionAlgorithm": "string",
+  "clearData": [
+    {
+      "id": "6c0f70a8-f32b-4535-b5f6-0d596c52813a",
+      "type": "string",
+      "categories": [
+        "string"
+      ],
+      "issuerId": "string",
+      "subjectId": "string",
+      "loa": "string",
+      "issued": "2018-12-06T19:40:16Z",
+      "expiration": "2018-12-06T19:45:16Z",
+      "attributes": [
+        {
+          "name": "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName",
+          "friendlyName": "CurrentGivenName",
+          "encoding": "plain",
+          "language": "ES_es",
+          "isMandatory": true,
+          "values": [
+            "JOHN"
+          ]
+        }
+      ],
+      "properties": {
+        "additionalProp1": "string",
+        "additionalProp2": "string",
+        "additionalProp3": "string"
+      }
+    }
+  ]
+}
+*/
+
 // DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
 type DataStore struct {
 	ID                  string      `json:"id"`
@@ -53,6 +93,13 @@ type DataStore struct {
 	SignatureAlgorithm  string      `json:"signatureAlgorithm"`
 	EncryptionAlgorithm string      `json:"encryptionAlgorithm"`
 	ClearData           interface{} `json:"clearData,omitempty"`
+}
+
+type Redirect struct {
+	SessionID   string `json:"sessionId"`
+	Description string `json:"description"`
+	Link        string `json:"link"`
+	Module      string `json:"module"`
 }
 
 // NewDataStore creates a new DataStore object
@@ -122,7 +169,7 @@ func (ds *DataStore) marshalWithoutClearText() (res []byte, err error) {
 }
 
 // Upload the DataStore given the user's oauthToken
-func (ds *DataStore) Upload(oauthToken *oauth2.Token) (data []byte, err error) {
+func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err error) {
 	log.Println("Uploading Blob ", ds.ID)
 	if ds.EncryptedData != "" {
 		data, err = ds.marshalWithoutClearText()
@@ -138,16 +185,16 @@ func (ds *DataStore) Upload(oauthToken *oauth2.Token) (data []byte, err error) {
 }
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func (ds *DataStore) UploadGoogleDrive(oauthToken *oauth2.Token) (file *drive.File, err error) {
-	data, _ := ds.Upload(oauthToken)
-	fp := &gdrive.FileProps{
+func (ds *DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
+	data, _ := ds.UploadingBlob(oauthToken)
+	fp := &FileProps{
 		Id:          ds.ID,
 		Name:        ds.ID, //TODO what should the name of the Blob be in Gdrive???
 		Path:        gdriveRootFolder,
 		Blob:        data,
 		ContentType: "application/octet-stream",
 	}
-	file, err = gdrive.SendFile(fp, oauthToken)
+	file, err = SendFile(fp, client)
 	return
 }
 
@@ -155,17 +202,14 @@ func (ds *DataStore) UploadGoogleDrive(oauthToken *oauth2.Token) (file *drive.Fi
 func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte) (file *drive.File, err error) {
 
 	//if the folder exists, only creats the datastore file
-	fileExists := getFolder(oauthToken, folderName)
+	fileExists := getOneDriveFolder(oauthToken, folderName)
 
 	if fileExists.StatusCode == 404 {
-		log.Println("eieieiie")
-		folderID := createFolder(oauthToken)
-		createFile(oauthToken, folderID, data)
+		folderID := createOneDriveFolder(oauthToken)
+		createOneDriveFile(oauthToken, folderID, data)
 	} else {
-		log.Println("eieieiie!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1")
-		folderID := getFolderID(fileExists)
-		createFile(oauthToken, folderID, data)
-		log.Println("yes")
+		folderID := getOneDriveFolderID(fileExists)
+		createOneDriveFile(oauthToken, folderID, data)
 	}
 	return
 }
@@ -184,28 +228,5 @@ func storeSessionData(data interface{}, uuid, cipherPassword string) (dataStore 
 		}
 		log.Println("Encrypted blob: ", dataStore.EncryptedData)
 	}
-	return
-}
-
-func storeSessionDataGoogleDrive(data interface{}, uuid, cipherPassword string) (datastore *DataStore, err error) {
-	datastore, err = storeSessionData(data, uuid, cipherPassword)
-	oauthToken, _ := gdrive.TokenFromSessionData() //TODO
-	_, err = datastore.UploadGoogleDrive(oauthToken)
-	return
-}
-
-func storeSessionDataOneDrive(data sm.SessionMngrResponse, uuid, cipherPassword string) (datastore *DataStore, err error) {
-	datastore, _ = storeSessionData(data, uuid, cipherPassword)
-	oauthToken := getToken(data.SessionData.SessionVariables.OneDriveClient, data.SessionData.SessionVariables.OneDriveScopes)
-	contents, _ := datastore.Upload(oauthToken)
-	_, err = datastore.UploadOneDrive(oauthToken, contents)
-	return
-}
-
-func storeFileOneDriveClearText(data sm.SessionMngrResponse, uuid, cipherPassword string, contents interface{}) (datastore *DataStore, err error) {
-	datastore, _ = storeSessionData(data, uuid, cipherPassword)
-	oauthToken := getToken(data.SessionData.SessionVariables.OneDriveClient, data.SessionData.SessionVariables.OneDriveScopes)
-	b, _ := json.Marshal(contents)
-	_, err = datastore.UploadOneDrive(oauthToken, b)
 	return
 }

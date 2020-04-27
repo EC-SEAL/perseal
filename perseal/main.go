@@ -22,10 +22,6 @@ type systemOpts struct {
 	Port string
 }
 
-var (
-	PBKDF2SALT string = os.Getenv("PBKDF2SALT") // to make
-)
-
 func main() {
 	// load systemOpts
 
@@ -39,8 +35,9 @@ func main() {
 	tlsConfig.BuildNameToCertificate()
 
 	server := &http.Server{
-		TLSConfig:    tlsConfig,
-		Addr:         os.Getenv("HOST"),
+		TLSConfig: tlsConfig,
+		//Addr:      os.Getenv("HOST"),
+		Addr:         "localhost:8082",
 		Handler:      r,
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
