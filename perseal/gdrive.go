@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/EC-SEAL/perseal/sm"
@@ -32,8 +33,8 @@ var googleCreds *GoogleDriveCreds
 
 // Requests a token from the web, then returns the retrieved token.
 func getGoogleLinkForDashboardRedirect(config *oauth2.Config) (string, string) {
-	//	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "https://localhost:8082/per/code"))
+	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
+	//	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "https://perseal.seal.eu:8082/per/code"))
 
 	desc := `Go to the following link ` + authURL + `"and login to your Account"`
 

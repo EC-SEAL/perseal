@@ -36,8 +36,8 @@ func main() {
 
 	server := &http.Server{
 		TLSConfig: tlsConfig,
-		//Addr:      os.Getenv("HOST"),
-		Addr:         "localhost:8082",
+		Addr:      os.Getenv("HOST"),
+		//Addr:         "localhost:8082",
 		Handler:      r,
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,

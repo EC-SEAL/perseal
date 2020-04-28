@@ -16,7 +16,7 @@ func persistenceStore(w http.ResponseWriter, r *http.Request) {
 	msToken := r.FormValue("msToken")
 	smResp, err := sm.ValidateToken(msToken)
 	sessionData, err := sm.GetSessionData(smResp.SessionData.SessionID, "")
-	if err != nil {
+	if err != nil || sessionData.SessionData.SessionID == "" {
 		http.Error(w, err.Error(), 404)
 		return
 	}

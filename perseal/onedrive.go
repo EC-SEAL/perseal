@@ -145,8 +145,8 @@ func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
 func getCodeFromWeb(clientID string, scopes string) string {
 
 	//Retrieve the code
-	//u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
-	u, err := url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
+	u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
+	//u, err := url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
 	if err != nil {
 		log.Fatalf("Unable to read url: %v", err)
 	}
@@ -154,13 +154,12 @@ func getCodeFromWeb(clientID string, scopes string) string {
 
 	req, _ := http.NewRequest("GET", urlStr, nil)
 	q := req.URL.Query()
-	q.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
+	//q.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
+	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
-	q.Add("redirect_uri", "https://localhost:8082/per/code")
+	q.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
 	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
-
-	log.Println("fff1cba9-7597-479d-b653-fd96c5d56b43")
 
 	return req.URL.String()
 }
@@ -168,14 +167,14 @@ func requestToken(code string, clientID string) *oauth2.Token {
 
 	//Retrieve the access token
 	values := url.Values{}
-	values.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
+	values.Add("client_id", clientID)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	//	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
-	values.Add("redirect_uri", "https://localhost:8082/per/code")
+	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	//values.Add("redirect_uri", "https://perseal.seal.eu:8082/per/code")
 
-	//	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-	u, _ := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	//	u, _ := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	urlStr := u.String()
 	req, _ := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -187,7 +186,7 @@ func requestToken(code string, clientID string) *oauth2.Token {
 // POST request to retrieve a new access and refresh tokens
 func requestRefreshToken(clientID string, token *oauth2.Token) *oauth2.Token {
 	values := url.Values{}
-	values.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
+	values.Add("client_id", clientID)
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
 	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))

@@ -10,16 +10,18 @@ import (
 
 func persistenceLoad(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistanceLoad")
+
 	msToken := r.FormValue("msToken")
 	smResp, err := sm.ValidateToken(msToken)
-	smResp, err = sm.GetSessionData(smResp.SessionData.SessionID, "")
+	smResp2, err := sm.GetSessionData(smResp.SessionData.SessionID, "")
+
 	if err != nil {
 		http.Error(w, err.Error(), 401)
 		return
 	} else {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(200)
-		t, _ := json.MarshalIndent(smResp, "", "\t")
+		t, _ := json.MarshalIndent(smResp2, "", "\t")
 		w.Write(t)
 	}
 }
