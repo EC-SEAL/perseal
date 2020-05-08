@@ -1,10 +1,8 @@
-package main
+package externaldrive
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -32,38 +30,26 @@ var AccessCreds string
 var googleCreds *GoogleDriveCreds
 
 // Requests a token from the web, then returns the retrieved token.
-func getGoogleLinkForDashboardRedirect(config *oauth2.Config) (string, string) {
-	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
-	//	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "https://perseal.seal.eu:8082/per/code"))
+func GetGoogleLinkForDashboardRedirect(config *oauth2.Config) (string, string) {
+	var authURL string
+	/*
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"))
+	*/
+	authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
 
 	desc := `Go to the following link ` + authURL + `"and login to your Account"`
 
 	return desc, authURL
 }
 
-// Saves a token to a file path.
-func saveToken(path string, token *oauth2.Token) {
-
-}
-
-func getService(client *http.Client) (*drive.Service, error) {
-	service, err := drive.New(client)
-	if err != nil {
-		fmt.Printf("Cannot create the Google Drive service: %v\n", err)
-		return nil, err
-	}
-
-	return service, err
-}
-
 func isFolder(file *drive.File) bool {
 	return file.MimeType == "application/vnd.google-apps.folder"
 }
 
-func createGoogleDriveDir(service *drive.Service, name string, parentId string) (*drive.File, error) {
+func createGoogleDriveDir(service *drive.Service, name string, parentId string) (file *drive.File, err error) {
 	files, err := service.Files.List().Do()
 	if err != nil {
-		return nil, err
+		return
 	}
 	for _, f := range files.Files {
 		// service.Files.Delete(f.Id).Do()
@@ -78,19 +64,34 @@ func createGoogleDriveDir(service *drive.Service, name string, parentId string) 
 		Parents:  []string{parentId},
 	}
 
-	file, err := service.Files.Create(d).Do()
-	if err != nil {
-		log.Println("Could not create dir: " + err.Error())
-		return nil, err
-	}
-
-	return file, nil
+	file, err = service.Files.Create(d).Do()
+	return
 }
 
-func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
+func GetGoogleDriveFile(filename string, client *http.Client) (file *http.Response, err error) {
+	service, err := drive.New(client)
+	if err != nil {
+		return
+	}
+
+	list, err := service.Files.List().Do()
+	if err != nil {
+		return
+	}
+	var fileId string
+	for _, v := range list.Files {
+		if v.Name == filename {
+			fileId = v.Id
+		}
+	}
+	file, err = service.Files.Get(fileId).Download()
+	return
+}
+
+func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (file *drive.File, err error) {
 	files, err := service.Files.List().Do()
 	if err != nil {
-		return nil, errors.New("Could not list")
+		return
 	}
 	log.Println(files)
 	// TODO check if already exists and if so - update file
@@ -109,13 +110,7 @@ func createGoogleDriveFile(service *drive.Service, name string, mimeType string,
 		}
 	}
 
-	file, err := service.Files.Create(f).Media(content).Do()
-
-	if err != nil {
-		log.Println("Could not create file: " + err.Error())
-		return nil, err
-	}
-
+	file, err = service.Files.Create(f).Media(content).Do()
 	return file, nil
 }
 
@@ -128,16 +123,10 @@ type FileProps struct {
 	ContentType string
 }
 
-func TokenFromSessionData() (outhToken *oauth2.Token, err error) {
-	tok := &oauth2.Token{}
-	err = json.NewDecoder(strings.NewReader(AccessCreds)).Decode(tok)
-	return tok, err
-}
-
 //SendFile gdrive file given encrypted blob and oauth token
 func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err error) {
 
-	service, err := getService(client)
+	service, err := drive.New(client)
 	if err != nil {
 		return
 	}
@@ -158,13 +147,7 @@ func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err 
 	return file, err
 }
 
-func GetGoogleDriveFile(fileName string, oauthToken *http.Client) (file *drive.File, err error) {
-	service, err := getService(oauthToken)
-	file, err = service.Files.Get(fileName).Do()
-	return file, err
-}
-
-func setGoogleDriveCreds(data interface{}) {
+func SetGoogleDriveCreds(data interface{}) GoogleDriveCreds {
 	googleCreds = &GoogleDriveCreds{}
 	jsonM, _ := json.Marshal(data)
 	smr := &sm.SessionMngrResponse{}
@@ -178,4 +161,5 @@ func setGoogleDriveCreds(data interface{}) {
 	googleCreds.Web.ClientSecret = smr.SessionData.SessionVariables["GoogleDriveClientSecret"]
 	googleCreds.Web.RedirectURIS = strings.Split([]string{smr.SessionData.SessionVariables["GoogleDriveRedirectUris"]}[0], ",")
 	AccessCreds = smr.SessionData.SessionVariables["GoogleDriveAccessCreds"]
+	return *googleCreds
 }

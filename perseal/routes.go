@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"github.com/EC-SEAL/perseal/controller"
 	"github.com/gorilla/mux"
 )
 
@@ -33,36 +34,36 @@ var perRoutes = routes{
 		"Setup a persistence mechanism and load a secure storage into session.",
 		"POST",
 		"/load",
-		persistenceLoad,
+		controller.PersistenceLoad,
 	},
 	route{
 		"Save session data to the configured persistence mechanism (front channel).",
 		"POST",
 		"/store",
-		persistenceStore,
+		controller.PersistenceStore,
 	},
-	/*route{
+	route{
 		"Silent setup of a persistence mechanism by loading a user-provided secure storage into session. (back channel).",
 		"POST",
 		"/load/{sessionToken}",
-		persistenceLoadWithToken,
-	},*/
+		controller.PersistenceLoadWithToken,
+	},
 	route{
 		"Save session data to the configured persistence mechanism (back channel). Might return the signed and possibly encrypted datastore",
 		"GET",
 		"/store/{sessionToken}",
-		persistenceStoreWithToken,
+		controller.PersistenceStoreWithToken,
 	},
 	route{
 		"Fetches Code for Access Token",
 		"GET",
 		"/code",
-		getCodeFromDashboard,
+		controller.GetCodeFromDashboard,
 	},
 	route{
-		"Mocks a Dashboard behaviour to send the code to persistence module",
+		"Reset",
 		"GET",
-		"/dashboardMock",
-		dashboardMock,
+		"/reset",
+		controller.Reset,
 	},
 }

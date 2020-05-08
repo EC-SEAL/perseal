@@ -6,9 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -17,9 +15,12 @@ import (
 	"github.com/spacemonkeygo/httpsig"
 )
 
-func signRequest(r *http.Request, headers map[string]string) string {
+func signRequest(r *http.Request, headers map[string]string) (string, error) {
 	//https://www.digitalocean.com/community/tutorials/openssl-essentials-working-with-ssl-certificates-private-keys-and-csrs#private-keys
 	newReq, err := http.NewRequest(r.Method, r.URL.String(), nil)
+	if err != nil {
+		return "", err
+	}
 
 	heads := []string{}
 
@@ -27,36 +28,41 @@ func signRequest(r *http.Request, headers map[string]string) string {
 		newReq.Header.Set(k, v)
 		heads = append(heads, strings.ToLower(k))
 	}
+	_, err = ioutil.ReadFile("./private.key")
+
 	privContent, err := ioutil.ReadFile("./private.key")
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	privBlock, _ := pem.Decode(privContent)
-	key, err := x509.ParsePKCS1PrivateKey(privBlock.Bytes)
+	key, err := x509.ParsePKCS8PrivateKey(privBlock.Bytes)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	rsaPubKey, err := ioutil.ReadFile("./public.pub")
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
+
 	b64dec, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(rsaPubKey)))
 	if err != nil {
-		fmt.Println(err)
+		return "", err
 	}
+
 	sha256sum := sha256.Sum256(b64dec)
 	shahex := hex.EncodeToString(sha256sum[:])
 
 	signer := httpsig.NewSigner(shahex, key, httpsig.RSASHA256, heads)
 	err = signer.Sign(newReq)
 	if err != nil {
-		log.Printf("Signature failed: %s", err)
+		return "", err
 	}
-	return newReq.Header.Get("Authorization")
+
+	return newReq.Header.Get("Authorization"), nil
 }
 
-func prepareRequestHeaders(req *http.Request, url string) *http.Request {
+func prepareRequestHeaders(req *http.Request, url string) (*http.Request, error) {
 	headers := map[string]string{}
 	method := req.Method
 	reqTarget := method + " /" + strings.SplitN(strings.SplitN(url, "://", 2)[1], "/", 2)[1]
@@ -65,8 +71,18 @@ func prepareRequestHeaders(req *http.Request, url string) *http.Request {
 	var sha256value [32]byte
 	//verifies request method to fomrulate Digest
 	if req.Method == "POST" {
-		y, _ := req.GetBody()
-		x, _ := ioutil.ReadAll(y)
+		y, err := req.GetBody()
+
+		if err != nil {
+			return nil, err
+		}
+
+		x, err := ioutil.ReadAll(y)
+
+		if err != nil {
+			return nil, err
+		}
+
 		sha256value = sha256.Sum256(x)
 	} else if req.Method == "GET" {
 		sha256value = sha256.Sum256([]byte{})
@@ -87,8 +103,14 @@ func prepareRequestHeaders(req *http.Request, url string) *http.Request {
 	headers["digest"] = "SHA-256=" + slicedSHAbase64
 	headers["X-Request-ID"] = req.Header.Get("X-Request-ID")
 	headers["(request-target)"] = reqTarget
-	headers["Authorization"] = signRequest(req, headers)
+
+	signature, err := signRequest(req, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	headers["Authorization"] = signature
 
 	req.Header.Set("Authorization", headers["Authorization"])
-	return req
+	return req, nil
 }

@@ -1,4 +1,4 @@
-package main
+package externaldrive
 
 import (
 	"encoding/base64"
@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/EC-SEAL/perseal/utils"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 )
@@ -85,7 +86,6 @@ import (
 }
 */
 
-// DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
 type DataStore struct {
 	ID                  string      `json:"id"`
 	EncryptedData       string      `json:"encryptedData"`
@@ -95,12 +95,7 @@ type DataStore struct {
 	ClearData           interface{} `json:"clearData,omitempty"`
 }
 
-type Redirect struct {
-	SessionID   string `json:"sessionId"`
-	Description string `json:"description"`
-	Link        string `json:"link"`
-	Module      string `json:"module"`
-}
+// DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
 
 // NewDataStore creates a new DataStore object
 func NewDataStore(ID string, data interface{}) (ds *DataStore, err error) {
@@ -127,7 +122,7 @@ func (ds *DataStore) Encrypt(cipherPassword string) (err error) {
 		return
 	}
 	// blob, err = AESEncrypt(Pbkdf2([]byte(cipherPassword)), data)
-	blob, err := AESEncrypt(Padding([]byte(cipherPassword), 16), data)
+	blob, err := utils.AESEncrypt(utils.Padding([]byte(cipherPassword), 16), data)
 	// blob, err = AESEncrypt([]byte(cipherPassword), data)
 	if err != nil {
 		return
@@ -146,7 +141,7 @@ func (ds *DataStore) Sign(privateKey []byte) (err error) { //TODO
 
 // Decrypt decrypts `EncryptedData` stored in the DataStore into `ClearData`
 func (ds *DataStore) Decrypt(cipherPassword string) (err error) {
-	data, err := AESDecrypt(Padding([]byte(cipherPassword), 16), ds.EncryptedData)
+	data, err := utils.AESDecrypt(utils.Padding([]byte(cipherPassword), 16), ds.EncryptedData)
 	if err != nil {
 		return
 	}
@@ -185,11 +180,12 @@ func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err e
 }
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func (ds *DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
-	data, _ := ds.UploadingBlob(oauthToken)
+func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
+	data, err := ds.UploadingBlob(oauthToken)
+
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        ds.ID, //TODO what should the name of the Blob be in Gdrive???
+		Name:        "datastore.txt", //TODO what should the name of the Blob be in Gdrive???
 		Path:        gdriveRootFolder,
 		Blob:        data,
 		ContentType: "application/octet-stream",
@@ -199,23 +195,36 @@ func (ds *DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cl
 }
 
 // UploadOneDrive - Uploads file to One Drive
-func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte) (file *drive.File, err error) {
+func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, folderName string) (file *drive.File, err error) {
 
 	//if the folder exists, only creats the datastore file
-	fileExists := getOneDriveFolder(oauthToken, folderName)
+	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
+	if err != nil {
+		return
+	}
 
+	var folderID string
 	if fileExists.StatusCode == 404 {
-		folderID := createOneDriveFolder(oauthToken)
-		createOneDriveFile(oauthToken, folderID, data)
+		folderID, err = CreateOneDriveFolder(oauthToken)
+		if err != nil {
+			return
+		}
+		err = CreateOneDriveFile(oauthToken, folderID, data)
+		if err != nil {
+			return
+		}
 	} else {
-		folderID := getOneDriveFolderID(fileExists)
-		createOneDriveFile(oauthToken, folderID, data)
+		folderID, err = GetOneDriveFolderID(fileExists)
+		if err != nil {
+			return
+		}
+		err = CreateOneDriveFile(oauthToken, folderID, data)
 	}
 	return
 }
 
 // data = sessionData
-func storeSessionData(data interface{}, uuid, cipherPassword string) (dataStore *DataStore, err error) {
+func StoreSessionData(data interface{}, uuid, cipherPassword string) (dataStore *DataStore, err error) {
 	dataStore, err = NewDataStore(uuid, data)
 	if err != nil {
 		return

@@ -5,6 +5,7 @@ WORKDIR /app
 # Copy go mod and sum files
 COPY perseal/go.mod .
 COPY perseal/go.sum .
+
 # Download all dependancies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
@@ -29,9 +30,20 @@ LABEL maintainer=$PERSEAL_EMAIL
 FROM alpine:latest as alpine
 RUN apk add -U --no-cache ca-certificates
 
+FROM tomcat:8.0.47-jre7
+ARG KEYSTORE=keystore.jks
+ARG ALIAS=perseal
+ARG KEYSTOREPASS=keystorepass
+ARG INTER=inter.p12
+
+COPY perseal/keystore.jks .
+COPY perseal/public.pub .
+RUN keytool -importkeystore -srckeystore ./$KEYSTORE -srcstorepass $KEYSTOREPASS -srcalias $ALIAS -destalias $ALIAS -destkeystore $INTER -deststoretype PKCS12 -deststorepass $KEYSTOREPASS
+RUN openssl pkcs12 -in $INTER -nodes -nocerts -out private.key -passin pass:$KEYSTOREPASS
+RUN ls .
+
 COPY --from=build-env /go/bin/perseal /go/bin/perseal
 # Run the executable
 
-ADD keys .
 
 #ENTRYPOINT ["/go/bin/perseal"]

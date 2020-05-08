@@ -1,6 +1,6 @@
 // Package onedrive implements the OAuth2 protocol for authenticating users through onedrive.
 // This package can be used as a reference implementation of an OAuth2 provider for Goth.
-package main
+package externaldrive
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
 )
@@ -51,60 +52,97 @@ var currentOneDriveToken oauth2.Token
 var creds *OneDriveCreds
 
 // POST request to create a folder in the root
-func createOneDriveFolder(token *oauth2.Token) string {
+func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 	createfolderjson := []byte(`{"name":"` + folderName + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
 	//	req, _ := http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
-	req, _ := http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
+	req, err := http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
+	if err != nil {
+		return
+	}
+
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
-	folderID := getOneDriveFolderID(resp)
-	return folderID
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	folderID, err = GetOneDriveFolderID(resp)
+	return
 }
 
 // PUT request to create a file in a given folder
-func createOneDriveFile(token *oauth2.Token, folderID string, blob []byte) {
+func CreateOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
 	//	url := os.Getenv("CREATE_FILE_URL") + folderID + ":/" + dataStoreFile + ":/content"
 	url := "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + dataStoreFile + ":/content"
-	req, _ := http.NewRequest("PUT", url, bytes.NewBuffer(blob))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(blob))
+	if err != nil {
+		return
+	}
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
 	req.Header.Add("Content-Type", "application/json")
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
-
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
 	fmt.Println(resp)
+	return
 }
 
 // GET request to fetch information of a given folder
-func getOneDriveFolder(token *oauth2.Token, folder string) *http.Response {
+func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response, err error) {
 	//url := os.Getenv("GET_FOLDER_URL") + ":/" + folder
 	url := "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
 
 	client := &http.Client{}
-	resp, _ := client.Do(req)
+	resp, err = client.Do(req)
+	return
+}
 
-	return resp
+func GetOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err error) {
+
+	//url := os.Getenv("GET_ITEM_URL") + ":/" + folder
+	url := "https://graph.microsoft.com/v1.0/me/drive/root:/SEAL/" + item + ":/content"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+	auth := "Bearer " + token.AccessToken
+	req.Header.Add("Authorization", auth)
+
+	client := &http.Client{}
+	resp, err = client.Do(req)
+	return
 }
 
 // Auxiliary method: returns ID of a given folder (from previous http response)
-func getOneDriveFolderID(resp *http.Response) string {
+func GetOneDriveFolderID(resp *http.Response) (id string, err error) {
 	var folderprops FolderProps
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
 	json.Unmarshal([]byte(body), &folderprops)
-	return folderprops.ID
+	id = folderprops.ID
+	return
 }
 
 // Returns Oauth Token used for authorization of OneDrive requests
-func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
+func GetOneDriveToken(creds *OneDriveCreds) (redirect *model.Redirect, token *oauth2.Token, err error) {
 
+	log.Println("entrando")
 	currentOneDriveToken := oauth2.Token{
 		AccessToken:  creds.OneDriveAccessToken,
 		RefreshToken: creds.OneDriveRefreshToken,
@@ -112,17 +150,24 @@ func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
 		Expiry:       time.Now().Local().Add(time.Second * time.Duration(3600)),
 	}
 
+	log.Println("yes")
 	if currentOneDriveToken.AccessToken == "" {
-		url := getCodeFromWeb(creds.OneDriveClientID, creds.OneDriveScopes)
+
+		log.Println("the spot")
+		var url string
+		url, err = getCodeFromWeb(creds.OneDriveClientID, creds.OneDriveScopes)
+		if err != nil {
+			return
+		}
+
 		desc := `Go to the following link ` + url + `"and login to your Account"`
 
-		redirect = &Redirect{
+		redirect = &model.Redirect{
 			Description: desc,
 			Link:        url,
 			Module:      "oneDrive",
 		}
-
-		return redirect, nil
+		return
 	}
 
 	now := time.Now()
@@ -130,11 +175,13 @@ func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
 
 	//if the access token hasn't expired yet
 	if end.Sub(now) > 10 {
-		return nil, &currentOneDriveToken
+		token = &currentOneDriveToken
+		return
 	}
 
+	token, err = requestRefreshToken(creds.OneDriveClientID, &currentOneDriveToken)
 	//if the access token has expired. Makes a refresh token request
-	return nil, requestRefreshToken(creds.OneDriveClientID, &currentOneDriveToken)
+	return
 }
 
 // Requests a token from the web, then returns the retrieved token.
@@ -142,64 +189,99 @@ func getOneDriveToken() (redirect *Redirect, token *oauth2.Token) {
 // Afterwards, makes a POST request to retrive the new access_token, given necessary parameters
 // In order to use the One Drive API, the client needs the clientID, the redirect_uri and the scopes of the application in the Microsfot Graph
 // For more information, follow this link: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online
-func getCodeFromWeb(clientID string, scopes string) string {
+func getCodeFromWeb(clientID string, scopes string) (code string, err error) {
 
+	var u *url.URL
 	//Retrieve the code
-	u, err := url.ParseRequestURI(os.Getenv("AUTH_URL"))
-	//u, err := url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
+	/*
+		u, err = url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
+	*/
+	u, err = url.ParseRequestURI(os.Getenv("AUTH_URL"))
+
 	if err != nil {
-		log.Fatalf("Unable to read url: %v", err)
+		return
 	}
 	urlStr := u.String()
 
-	req, _ := http.NewRequest("GET", urlStr, nil)
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		return
+	}
+
 	q := req.URL.Query()
 	//q.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
 	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
-	q.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
+	/*
+		q.Add("redirect_uri", "http://localhost:8082/per/code")
+	*/
+	q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
+
 	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
 
-	return req.URL.String()
+	code = req.URL.String()
+
+	return code, nil
 }
-func requestToken(code string, clientID string) *oauth2.Token {
+func RequestToken(code string, clientID string) (token *oauth2.Token, err error) {
 
 	//Retrieve the access token
 	values := url.Values{}
 	values.Add("client_id", clientID)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
-	//values.Add("redirect_uri", "https://perseal.seal.eu:8082/per/code")
+	/*
+		values.Add("redirect_uri", "http://localhost:8082/per/code")
+		u, err := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+	*/
+	values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
+	u, err := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
 
-	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-	//	u, _ := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+	if err != nil {
+		return
+	}
+
 	urlStr := u.String()
-	req, _ := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
+	req, err := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
+	if err != nil {
+		return
+	}
+
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	log.Println(req.Body)
-	return tokenRequest(req)
+	token, err = tokenRequest(req)
+	return
 }
 
 // POST request to retrieve a new access and refresh tokens
-func requestRefreshToken(clientID string, token *oauth2.Token) *oauth2.Token {
+func requestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.Token, err error) {
 	values := url.Values{}
 	values.Add("client_id", clientID)
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
 	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
 
-	u, _ := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	u, err := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	if err != nil {
+		return
+	}
+
 	urlStr := u.String()
-	req, _ := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
+	req, err := http.NewRequest("POST", urlStr, strings.NewReader(values.Encode()))
+	if err != nil {
+		return
+	}
+
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	return tokenRequest(req)
+
+	token, err = tokenRequest(req)
+	return
 }
 
 //Auxiliary method: performs a token-related http request
-func tokenRequest(req *http.Request) *oauth2.Token {
+func tokenRequest(req *http.Request) (tok *oauth2.Token, err error) {
 
 	client := &http.Client{}
 	var respo TokenRequestResponse
@@ -207,19 +289,20 @@ func tokenRequest(req *http.Request) *oauth2.Token {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		log.Fatalf("Request Failed")
+		return
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("Couldn't read response body")
-	}
-	err = json.Unmarshal([]byte(body), &respo)
-	if err != nil {
-		log.Fatalf("Unable to unmarshall JSON content")
+		return
 	}
 
-	tok := &oauth2.Token{
+	err = json.Unmarshal([]byte(body), &respo)
+	if err != nil {
+		return
+	}
+
+	tok = &oauth2.Token{
 		AccessToken:  respo.AccessToken,
 		RefreshToken: respo.RefreshToken,
 		TokenType:    respo.TokenType,
@@ -228,16 +311,21 @@ func tokenRequest(req *http.Request) *oauth2.Token {
 
 	currentOneDriveToken = *tok
 
-	return tok
+	return
 }
 
-func setOneDriveCreds(data interface{}) {
-	creds = &OneDriveCreds{}
+func SetOneDriveCreds(data interface{}) (creds *OneDriveCreds, err error) {
 	smr := &sm.SessionMngrResponse{}
-	jsonM, _ := json.Marshal(data)
+	jsonM, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	creds = &OneDriveCreds{}
+
 	json.Unmarshal(jsonM, smr)
 	creds.OneDriveClientID = smr.SessionData.SessionVariables["OneDriveClientID"]
 	creds.OneDriveScopes = smr.SessionData.SessionVariables["OneDriveScopes"]
 	creds.OneDriveAccessToken = smr.SessionData.SessionVariables["OneDriveAccessToken"]
 	creds.OneDriveRefreshToken = smr.SessionData.SessionVariables["OneDriveRefreshToken"]
+	return
 }

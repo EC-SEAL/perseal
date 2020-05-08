@@ -22,6 +22,8 @@ type systemOpts struct {
 	Port string
 }
 
+var local = false
+
 func main() {
 	// load systemOpts
 
@@ -45,7 +47,6 @@ func main() {
 
 	//start listening on port 8082
 
-	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_INT_PORT"))
-	log.Fatal(server.ListenAndServeTLS("./certificate.crt", "./private.key"))
-
+	log.Fatal(server.ListenAndServe())
+	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
 }
