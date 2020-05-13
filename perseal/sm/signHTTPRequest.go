@@ -28,8 +28,6 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 		newReq.Header.Set(k, v)
 		heads = append(heads, strings.ToLower(k))
 	}
-	_, err = ioutil.ReadFile("./private.key")
-
 	privContent, err := ioutil.ReadFile("./private.key")
 	if err != nil {
 		return "", err

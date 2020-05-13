@@ -21,7 +21,7 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreData(data sm.SessionMngrResponse, pds string, clientID string, cipherPassword string) (dataStore *externaldrive.DataStore, redirect *model.Redirect, err *model.DashboardResponse) {
+func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, cipherPassword string) (dataStore *externaldrive.DataStore, redirect *model.Redirect, err *model.DashboardResponse) {
 	uuid := mockUUID
 
 	if pds == "googleDrive" {
@@ -58,6 +58,30 @@ func StoreData(data sm.SessionMngrResponse, pds string, clientID string, cipherP
 	return
 }
 
+// Back-channel store may only be used for local Browser storing
+func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+	uuid := mockUUID
+	if pds == "Browser" {
+		var erro error
+		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
+		if erro != nil {
+			err = &model.DashboardResponse{
+				Code:         500,
+				Message:      "Couldn't Create New DataStore and Encrypt It",
+				ErrorMessage: erro.Error(),
+			}
+			return
+		}
+		return
+	} else {
+		err = &model.DashboardResponse{
+			Code:    404,
+			Message: "Bad PDS Variable",
+		}
+		return
+	}
+}
+
 // Given the Code Retrieved from the Dashboard, Stores the Data and Generates a Cloud Token for the User
 func PersistenceStoreWithCode(code string, sessionId string, module string) (err *model.DashboardResponse) {
 	sessionData, err := sm.GetSessionData(sessionId, "")
@@ -68,13 +92,21 @@ func PersistenceStoreWithCode(code string, sessionId string, module string) (err
 	uuid := mockUUID
 	var dataStore *externaldrive.DataStore
 	if module == "googleDrive" {
-		dataStore, err = storeSessionDataGoogleDriveWithCode(sessionData, uuid, "", sessionId, code)
+		if model.Local {
+			dataStore, err = storeSessionDataGoogleDriveWithCode(sessionData, uuid, "qwerty", sessionId, code)
+		} else {
+			dataStore, err = storeSessionDataGoogleDriveWithCode(sessionData, uuid, os.Getenv("PASS"), sessionId, code)
+		}
 		fmt.Println(dataStore)
 		if err != nil {
 			return
 		}
 	} else if module == "oneDrive" {
-		dataStore, err = storeSessionDataOneDriveWithCode(sessionData, uuid, "", sessionId, code)
+		if model.Local {
+			dataStore, err = storeSessionDataOneDriveWithCode(sessionData, uuid, "qwerty", sessionId, code)
+		} else {
+			dataStore, err = storeSessionDataOneDriveWithCode(sessionData, uuid, os.Getenv("PASS"), sessionId, code)
+		}
 		fmt.Println(dataStore)
 		if err != nil {
 			return
@@ -114,16 +146,16 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPasswo
 		return
 	}
 
-	var oauthToken *oauth2.Token
+	var oauthToken *oauth2.Token = &oauth2.Token{}
 	erro = json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(oauthToken)
-
+	log.Println(erro)
 	if erro == nil {
 		fmt.Println(oauthToken.AccessToken)
 		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
 		if erro != nil {
 			err = &model.DashboardResponse{
 				Code:         500,
-				Message:      "Couldn't Parse the Google Drive Access Token to byte array",
+				Message:      "Couldn't Create New DataStore and Encrypt It",
 				ErrorMessage: erro.Error(),
 			}
 			return
@@ -148,7 +180,6 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPasswo
 			Description: desc,
 			Link:        authURL,
 			Module:      "googleDrive",
-			//Module:    os.Getenv("GOOGLE_DRIVE")
 		}
 	}
 	return
@@ -200,6 +231,7 @@ func storeSessionDataGoogleDriveWithCode(data interface{}, uuid string, cipherPa
 		return
 	}
 
+	fmt.Println(string(b))
 	_, err = sm.UpdateSessionData(sessionId, string(b), "GoogleDriveAccessCreds")
 	if err != nil {
 		return
@@ -358,7 +390,7 @@ func storeSessionDataOneDriveWithCode(data interface{}, uuid, cipherPassword, se
 }
 
 func establishGoogleCredentials(clientID string) {
-	/*
+	if model.Local {
 		sm.UpdateSessionData(clientID, "425112724933-9o8u2rk49pfurq9qo49903lukp53tbi5.apps.googleusercontent.com", "GoogleDriveClientID")
 		sm.UpdateSessionData(clientID, "seal-274215", "GoogleDriveClientProject")
 		sm.UpdateSessionData(clientID, "https://accounts.google.com/o/oauth2/auth", "GoogleDriveAuthURI")
@@ -366,25 +398,25 @@ func establishGoogleCredentials(clientID string) {
 		sm.UpdateSessionData(clientID, "https://www.googleapis.com/oauth2/v1/certs", "GoogleDriveAuthProviderx509CertUrl")
 		sm.UpdateSessionData(clientID, "0b3WtqfasYfWDmk31xa8UAht", "GoogleDriveClientSecret")
 		sm.UpdateSessionData(clientID, "https://localhost:8082/per/code,https://vm.project-seal.eu:8082/per/code,https://perseal.seal.eu:8082/per/code", "GoogleDriveRedirectUris")
-	*/
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_ID"), "GoogleDriveClientID")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT"), "GoogleDriveClientProject")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_AUTH_URI"), "GoogleDriveAuthURI")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_TOKEN_URI"), "GoogleDriveTokenURI")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_AUTH_PROVIDER"), "GoogleDriveAuthProviderx509CertUrl")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_SECRET"), "GoogleDriveClientSecret")
-	sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_REDIRECT_URIS"), "GoogleDriveRedirectUris")
-
+	} else {
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_ID"), "GoogleDriveClientID")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT"), "GoogleDriveClientProject")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_AUTH_URI"), "GoogleDriveAuthURI")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_TOKEN_URI"), "GoogleDriveTokenURI")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_AUTH_PROVIDER"), "GoogleDriveAuthProviderx509CertUrl")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_SECRET"), "GoogleDriveClientSecret")
+		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_REDIRECT_URIS"), "GoogleDriveRedirectUris")
+	}
 }
 
 func establishOneDriveCredentials(clientID string) {
-	/*
+	if model.Local {
 		sm.UpdateSessionData(clientID, "fff1cba9-7597-479d-b653-fd96c5d56b43", "OneDriveClientID")
 		sm.UpdateSessionData(clientID, "offline_access files.read files.read.all files.readwrite files.readwrite.all", "OneDriveScopes")
-	*/
-	sm.UpdateSessionData(clientID, "", "OneDriveAccessToken")
-	sm.UpdateSessionData(clientID, "", "OneDriveRefreshToken")
-	sm.UpdateSessionData(clientID, os.Getenv("ONE_DRIVE_CLIENT_ID"), "OneDriveClientID")
-	sm.UpdateSessionData(clientID, os.Getenv("ONE_DRIVE_SCOPES"), "OneDriveScopes")
-
+	} else {
+		sm.UpdateSessionData(clientID, "", "OneDriveAccessToken")
+		sm.UpdateSessionData(clientID, "", "OneDriveRefreshToken")
+		sm.UpdateSessionData(clientID, os.Getenv("ONE_DRIVE_CLIENT_ID"), "OneDriveClientID")
+		sm.UpdateSessionData(clientID, os.Getenv("ONE_DRIVE_SCOPES"), "OneDriveScopes")
+	}
 }

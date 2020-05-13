@@ -2,8 +2,10 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
@@ -11,6 +13,8 @@ import (
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/gorilla/mux"
 )
+
+// see https://github.com/EC-SEAL/interface-specs/blob/master/images/UC8_06_SP_Attribute_Retrieval_from_Browser_PDS_v2.png how does generateToken works
 
 func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistanceLoad")
@@ -55,7 +59,16 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	pds := smResp2.SessionData.SessionVariables["PDS"]
 	log.Println(smResp2)
 
-	ds, err := services.FetchDataStore(pds, smResp2)
+	var ds *externaldrive.DataStore
+	var msTokenResp string
+	if pds == "googleDrive" || pds == "oneDrive" {
+		ds, err = services.FetchCloudDataStore(pds, smResp2)
+		fmt.Println(err)
+	} else if pds == "googleDrive" || pds == "oneDrive" {
+		services.FetchLocalDataStore(pds, smResp2)
+	}
+
+	smRes, err := sm.GenerateToken("", "PERms001", "PERms001", id)
 	if err != nil {
 		w.WriteHeader(err.Code)
 		t, err := json.MarshalIndent(err, "", "\t")
@@ -63,29 +76,43 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 500)
 		}
 		w.Write(t)
-	} else if ds == nil {
-		errorToDash := &model.DashboardResponse{
-			Code:    404,
-			Message: "dataStore not Found",
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(404)
-		t, err := json.MarshalIndent(errorToDash, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
+	}
+
+	msTokenResp = smRes.AdditionalData
+	if model.Local {
+		err = services.DecryptAndMarshallDataStore(ds, id, "qwerty")
 	} else {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(200)
-		t, err := json.MarshalIndent(ds, "", "\t")
+		err = services.DecryptAndMarshallDataStore(ds, id, os.Getenv("PASS"))
+	}
+	if err != nil {
+		w.WriteHeader(err.Code)
+		t, err := json.MarshalIndent(err, "", "\t")
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 		}
 		w.Write(t)
 	}
+	if ds == nil {
+		w.WriteHeader(200)
+		msTokenResp2 := msTokenResp + " DataStore Not Found"
+		t, err := json.MarshalIndent(msTokenResp2, "", "\t")
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		w.Write(t)
+	} else {
+		t, err := json.MarshalIndent(ds, "", "\t")
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(200)
+		w.Write(t)
+	}
 
 }
+
+//see https://github.com/EC-SEAL/interface-specs/blob/master/images/UC8_03_SP_Attribute_Retrieval_from_Mobile_PDS_v5.png confusing
 
 func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistenceLoadWithToken")
@@ -134,7 +161,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 	if erro != nil {
 		err := &model.DashboardResponse{
 			Code:    400,
-			Message: "Couldn't find Session Token",
+			Message: "Couldn't Unmarshal DataStore",
 		}
 		t, erro := json.MarshalIndent(err, "", "\t")
 		if erro != nil {
@@ -159,38 +186,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(cipherPassword)
-	erro = dataStore.Decrypt(cipherPassword)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         404,
-			Message:      "Couldn't Decrypt DataStore",
-			ErrorMessage: erro.Error(),
-		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
-		return
-	}
-
-	jsonM, erro := json.Marshal(dataStore)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         404,
-			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
-			ErrorMessage: erro.Error(),
-		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
-		return
-	}
-
-	_, err = sm.UpdateSessionData(sessionToken, string(jsonM), "dataStore")
+	err = services.DecryptAndMarshallDataStore(&dataStore, sessionToken, cipherPassword)
 	if err != nil {
 		t, erro := json.MarshalIndent(err, "", "\t")
 		if erro != nil {
@@ -199,7 +195,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 		w.Write(t)
 		return
 	}
-
+	w.Write([]byte(sessionToken))
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(200)
 }

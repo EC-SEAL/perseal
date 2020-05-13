@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
@@ -73,7 +75,14 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		log.Println(clientId)
 	}
 
-	dataStore, redirect, err := services.StoreData(sessionData, pds, clientId, "")
+	var dataStore *externaldrive.DataStore
+	var redirect *model.Redirect
+
+	if model.Local {
+		dataStore, redirect, err = services.StoreCloudData(sessionData, pds, clientId, "qwerty")
+	} else {
+		dataStore, redirect, err = services.StoreCloudData(sessionData, pds, clientId, os.Getenv("PASS"))
+	}
 	fmt.Println(dataStore)
 	fmt.Println(redirect)
 	fmt.Println(err)
@@ -140,21 +149,13 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cipherPassword string
-	var clientId string
 	pds := sessionData.SessionData.SessionVariables["PDS"]
-	if pds == "googleDrive" {
-		clientId = sessionData.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		log.Println(clientId)
-	} else if pds == "oneDrive" {
-		clientId = sessionData.SessionData.SessionVariables["OneDriveAccessToken"]
-		log.Println(clientId)
-	}
 
 	if keys, ok := r.URL.Query()["cipherPassword"]; ok {
 		cipherPassword = keys[0]
 	}
 
-	dataStore, redirect, err := services.StoreData(sessionData, pds, clientId, cipherPassword)
+	dataStore, err := services.StoreLocalData(sessionData, pds, cipherPassword)
 
 	if err != nil {
 		t, erro := json.MarshalIndent(err, "", "\t")
@@ -165,14 +166,6 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 		w.Write(t)
 		return
 	}
-
-	if redirect != nil {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(302)
-		t, _ := json.MarshalIndent(redirect, "", "\t")
-		w.Write(t)
-	}
-
 	if dataStore != nil {
 		t, err := json.MarshalIndent(dataStore, "", "\t")
 		if err != nil {

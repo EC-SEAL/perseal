@@ -3,9 +3,11 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/EC-SEAL/perseal/externaldrive"
@@ -17,17 +19,18 @@ import (
 )
 
 // Service Method to Fetch the DataStore according to the PDS variable
-func FetchDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
 	var file *http.Response
 	if pds == "googleDrive" {
 		googleCreds := externaldrive.SetGoogleDriveCreds(smResp)
-		var token *oauth2.Token
+		var token *oauth2.Token = &oauth2.Token{}
 		erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(token)
 		if err != nil {
 			return
 		}
 
+		fmt.Println(googleCreds)
 		b2, erro := json.Marshal(googleCreds)
 		if erro != nil {
 			err = &model.DashboardResponse{
@@ -48,26 +51,25 @@ func FetchDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *exter
 				}
 				return
 			}
+		}
 
-			client := config.Client(context.Background(), token)
-
+		client := config.Client(context.Background(), token)
+		if model.Local {
 			file, erro = externaldrive.GetGoogleDriveFile("datastore.txt", client)
-			if erro != nil {
-				err = &model.DashboardResponse{
-					Code:         500,
-					Message:      "Couldn't Get Google Drive File",
-					ErrorMessage: erro.Error(),
-				}
-				return
+		} else {
+			file, erro = externaldrive.GetGoogleDriveFile(os.Getenv("DATA_STORE_FILENAME"), client)
+		}
+		log.Println(file)
+		if erro != nil {
+			err = &model.DashboardResponse{
+				Code:         500,
+				Message:      "Couldn't Get Google Drive File",
+				ErrorMessage: erro.Error(),
 			}
-			dataStore, err = readBody(file, smResp.SessionData.SessionID)
-
 			return
 		}
-	}
-
-	if pds == "oneDrive" {
-		log.Println("yapppppp")
+		dataStore, err = readBody(file, smResp.SessionData.SessionID)
+	} else if pds == "oneDrive" {
 		creds, erro := externaldrive.SetOneDriveCreds(smResp)
 		if erro != nil {
 			err = &model.DashboardResponse{
@@ -88,7 +90,11 @@ func FetchDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *exter
 			return
 		}
 		log.Println(oauthToken)
-		file, erro = externaldrive.GetOneDriveItem(oauthToken, "datastore.txt")
+		if model.Local {
+			file, erro = externaldrive.GetOneDriveItem(oauthToken, "datastore.txt")
+		} else {
+			file, erro = externaldrive.GetOneDriveItem(oauthToken, os.Getenv("DATA_STORE_FILENAME"))
+		}
 		if erro != nil {
 			err = &model.DashboardResponse{
 				Code:         500,
@@ -101,9 +107,46 @@ func FetchDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *exter
 		log.Println(file)
 		dataStore, err = readBody(file, smResp.SessionData.SessionID)
 		log.Println(dataStore)
+	}
+	return
+}
 
+func FetchLocalDataStore(pds string, smResp sm.SessionMngrResponse) {
+	if pds == "Mobile" {
+		//Request PDS with SessionId & CallBackURL in QRCODE
+	} else if pds == "Browser" {
+		//Asks SEAL ENCRYPTED PERSONAL DATASTORE
+	}
+	return
+}
+
+func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToken string, cipherPassword string) (err *model.DashboardResponse) {
+
+	erro := dataStore.Decrypt(cipherPassword)
+	dataStore.EncryptedData = ""
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Decrypt DataStore",
+			ErrorMessage: erro.Error(),
+		}
+		json.MarshalIndent(err, "", "\t")
 		return
 	}
+
+	jsonM, erro := json.Marshal(dataStore)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
+			ErrorMessage: erro.Error(),
+		}
+		json.MarshalIndent(err, "", "\t")
+		return
+	}
+
+	_, err = sm.UpdateSessionData(sessionToken, string(jsonM), "dataStore")
+
 	return
 }
 
@@ -135,6 +178,6 @@ func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err 
 
 	json.Unmarshal(jsonM, &ds)
 
-	_, err = sm.UpdateSessionData(id, string(jsonM), "DataStore")
+	_, err = sm.UpdateSessionData(id, string(jsonM), "dataStore")
 	return
 }

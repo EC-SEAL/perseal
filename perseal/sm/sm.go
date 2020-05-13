@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/EC-SEAL/perseal/model"
 )
@@ -100,11 +101,85 @@ var (
 	client http.Client
 )
 
+func GenerateToken(data string, receiver string, sender string, sessionId string) (tokenResp SessionMngrResponse, err *model.DashboardResponse) {
+	var url string
+	if model.Local {
+		url = "http://vm.project-seal.eu:9090/sm/generateToken?receiver=" + receiver + "&sender=" + sender + "&sessionId=" + sessionId
+	} else {
+		url = os.Getenv("SM_ENDPOINT") + "/generateToken?receiver=" + receiver + "&sender=" + sender + "&sessionId=" + sessionId
+	}
+	req, erro := http.NewRequest("GET", url, nil)
+
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Generate URL to Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+	req, erro = prepareRequestHeaders(req, url)
+
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Sign Request",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	fmt.Println(req.URL)
+	resp, erro := client.Do(req)
+	fmt.Println("\n", resp)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Execute Request to Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	body, erro := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Read Response from Request to  Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	var dat interface{}
+	json.Unmarshal([]byte(body), &dat)
+	fmt.Println("\n", dat)
+	jsonM, erro := json.Marshal(dat)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	tokenResp = SessionMngrResponse{}
+	json.Unmarshal(jsonM, &tokenResp)
+	fmt.Println(tokenResp)
+	return
+}
+
 // ValidateToken - SessionManager function where the passed security token’s signature will be validated, as well as the validity as well as other validation measuresResponds by code: OK,
 // sessionData.sessionId the sessionId used to gen. the jwt, and additionalData: extraData that were used to generate the jwt
 func ValidateToken(token string) (sessionId string, err *model.DashboardResponse) {
-	url := "http://vm.project-seal.eu:9090/sm/validateToken?token=" + token
-	//url := os.Getenv("SM_ENDPOINT") + "/validateToken?token=" + token
+	var url string
+	if model.Local {
+		url = "http://vm.project-seal.eu:9090/sm/validateToken?token=" + token
+	} else {
+		url = os.Getenv("SM_ENDPOINT") + "/validateToken?token=" + token
+	}
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
@@ -171,9 +246,12 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
 func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err *model.DashboardResponse) {
-
-	//url := os.Getenv("SM_ENDPOINT") + "/getSessionData?sessionId=" + sessionID
-	url := "http://vm.project-seal.eu:9090/sm/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
+	var url string
+	if model.Local {
+		url = "http://vm.project-seal.eu:9090/sm/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
+	} else {
+		url = os.Getenv("SM_ENDPOINT") + "/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
+	}
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
@@ -254,8 +332,12 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.Dashboa
 
 //Updates a Session Variable, by providind the sessionID, the new value of the variable and the the variable name
 func UpdateSessionData(sessionId string, dataObject string, variableName string) (body string, err *model.DashboardResponse) {
-	url := "http://vm.project-seal.eu:9090/sm/updateSessionData"
-	//url := os.Getenv("SM_ENDPOINT") + "/updateSessionData"
+	var url string
+	if model.Local {
+		url = "http://vm.project-seal.eu:9090/sm/updateSessionData"
+	} else {
+		url = os.Getenv("SM_ENDPOINT") + "/updateSessionData"
+	}
 	up := &UpdateDataRequest{
 		SessionId:    sessionId,
 		DataObject:   dataObject,

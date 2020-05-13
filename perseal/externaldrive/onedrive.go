@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	dataStoreFile string = "datastore.txt"
-	folderName    string = "SEAL"
+	folderName string = "SEAL"
 )
 
 // TokenRequestResponse - The http response after token request to One Drive API
@@ -54,8 +53,12 @@ var creds *OneDriveCreds
 // POST request to create a folder in the root
 func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 	createfolderjson := []byte(`{"name":"` + folderName + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
-	//	req, _ := http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
-	req, err := http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
+	var req *http.Request
+	if model.Local {
+		req, err = http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
+	} else {
+		req, _ = http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
+	}
 	if err != nil {
 		return
 	}
@@ -76,8 +79,13 @@ func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 
 // PUT request to create a file in a given folder
 func CreateOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
-	//	url := os.Getenv("CREATE_FILE_URL") + folderID + ":/" + dataStoreFile + ":/content"
-	url := "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + dataStoreFile + ":/content"
+	var url string
+	if model.Local {
+		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/datastore.txt:/content"
+	} else {
+		url = os.Getenv("CREATE_FILE_URL") + folderID + ":/" + os.Getenv("DATA_STORE_FILENAME") + ":/content"
+	}
+
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(blob))
 	if err != nil {
 		return
@@ -97,8 +105,14 @@ func CreateOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err 
 
 // GET request to fetch information of a given folder
 func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response, err error) {
-	//url := os.Getenv("GET_FOLDER_URL") + ":/" + folder
-	url := "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
+
+	var url string
+	if model.Local {
+		url = "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
+	} else {
+		url = os.Getenv("GET_FOLDER_URL") + ":/" + folder
+	}
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return
@@ -113,8 +127,12 @@ func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response,
 
 func GetOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err error) {
 
-	//url := os.Getenv("GET_ITEM_URL") + ":/" + folder
-	url := "https://graph.microsoft.com/v1.0/me/drive/root:/SEAL/" + item + ":/content"
+	var url string
+	if model.Local {
+		url = "https://graph.microsoft.com/v1.0/me/drive/root:/SEAL/" + item + ":/content"
+	} else {
+		url = os.Getenv("GET_ITEM_URL") + ":/" + folderName + "/" + item + ":/content"
+	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return
@@ -193,11 +211,11 @@ func getCodeFromWeb(clientID string, scopes string) (code string, err error) {
 
 	var u *url.URL
 	//Retrieve the code
-	/*
+	if model.Local {
 		u, err = url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
-	*/
-	u, err = url.ParseRequestURI(os.Getenv("AUTH_URL"))
-
+	} else {
+		u, err = url.ParseRequestURI(os.Getenv("AUTH_URL"))
+	}
 	if err != nil {
 		return
 	}
@@ -209,14 +227,13 @@ func getCodeFromWeb(clientID string, scopes string) (code string, err error) {
 	}
 
 	q := req.URL.Query()
-	//q.Add("client_id", "fff1cba9-7597-479d-b653-fd96c5d56b43")
 	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
-	/*
-		q.Add("redirect_uri", "http://localhost:8082/per/code")
-	*/
-	q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
-
+	if model.Local {
+		q.Add("redirect_uri", "https://localhost:8082/per/code")
+	} else {
+		q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
+	}
 	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
 
@@ -231,13 +248,14 @@ func RequestToken(code string, clientID string) (token *oauth2.Token, err error)
 	values.Add("client_id", clientID)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	/*
-		values.Add("redirect_uri", "http://localhost:8082/per/code")
-		u, err := url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
-	*/
-	values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
-	u, err := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-
+	var u *url.URL
+	if model.Local {
+		values.Add("redirect_uri", "https://localhost:8082/per/code")
+		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+	} else {
+		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
+		u, err = url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	}
 	if err != nil {
 		return
 	}
@@ -261,9 +279,15 @@ func requestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.To
 	values.Add("client_id", clientID)
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
-	values.Add("redirect_uri", os.Getenv("REDIRECT_URL"))
 
-	u, err := url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	var u *url.URL
+	if model.Local {
+		values.Add("redirect_uri", "https://localhost:8082/per/code")
+		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+	} else {
+		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
+		u, err = url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
+	}
 	if err != nil {
 		return
 	}

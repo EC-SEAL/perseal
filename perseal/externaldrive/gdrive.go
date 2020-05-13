@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
@@ -32,11 +33,11 @@ var googleCreds *GoogleDriveCreds
 // Requests a token from the web, then returns the retrieved token.
 func GetGoogleLinkForDashboardRedirect(config *oauth2.Config) (string, string) {
 	var authURL string
-	/*
+	if model.Local {
 		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"))
-	*/
-	authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
-
+	} else {
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
+	}
 	desc := `Go to the following link ` + authURL + `"and login to your Account"`
 
 	return desc, authURL

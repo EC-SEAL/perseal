@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/EC-SEAL/perseal/model"
 )
 
 // const sm_endpoint = "https://sm"
@@ -35,11 +37,15 @@ func main() {
 	}
 
 	tlsConfig.BuildNameToCertificate()
-
+	var addr string
+	if model.Local {
+		addr = "localhost:8082"
+	} else {
+		addr = os.Getenv("HOST")
+	}
 	server := &http.Server{
-		TLSConfig: tlsConfig,
-		Addr:      os.Getenv("HOST"),
-		//Addr:         "localhost:8082",
+		TLSConfig:    tlsConfig,
+		Addr:         addr,
 		Handler:      r,
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
@@ -47,6 +53,6 @@ func main() {
 
 	//start listening on port 8082
 
-	log.Fatal(server.ListenAndServe())
 	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
+	log.Fatal(server.ListenAndServe())
 }

@@ -12,3 +12,5 @@ type Redirect struct {
 	Link        string `json:"link"`
 	Module      string `json:"module"`
 }
+
+var Local = true
