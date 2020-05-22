@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/EC-SEAL/perseal/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -24,40 +24,24 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't find msToken",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	sessionId, err := sm.ValidateToken(msToken)
 	if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	sessionData, err := sm.GetSessionData(sessionId, "")
 	if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	if err := sm.ValidateSessionMngrResponse(sessionData); err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
@@ -76,37 +60,29 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var dataStore *externaldrive.DataStore
-	var redirect *model.Redirect
+	var redirect string
 
-	if model.Local {
-		dataStore, redirect, err = services.StoreCloudData(sessionData, pds, clientId, "qwerty")
-	} else {
-		dataStore, redirect, err = services.StoreCloudData(sessionData, pds, clientId, os.Getenv("PASS"))
-	}
+	model.Password = make(chan string)
+	password := <-model.Password
+	log.Println(password)
+	close(model.Password)
+	dataStore, err = services.StoreCloudData(sessionData, pds, clientId, password, sessionData.SessionData.SessionID)
+
 	fmt.Println(dataStore)
 	fmt.Println(redirect)
 	fmt.Println(err)
-	if redirect != nil {
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(302)
-		t, err := json.MarshalIndent(redirect, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
+
+	if redirect != "" {
+		w = utils.WriteResponseMessage(w, redirect, 302)
 		return
 	} else if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	} else if dataStore != nil {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(201)
 	}
-
+	return
 }
 
 // Handles /per/store/{sessionToken} request
@@ -119,32 +95,19 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't find Session Token",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
-
 	}
 
 	sessionData, err := sm.GetSessionData(sessionToken, "")
 	log.Println(sessionData)
 	if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	if err := sm.ValidateSessionMngrResponse(sessionData); err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
@@ -158,84 +121,27 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 	dataStore, err := services.StoreLocalData(sessionData, pds, cipherPassword)
 
 	if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.WriteHeader(err.Code)
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 	if dataStore != nil {
-		t, err := json.MarshalIndent(dataStore, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(201)
+		w = utils.WriteResponseMessage(w, dataStore, 201)
+		return
 	}
 
 }
 
-// Recieve Request From Dashboard To Retreive a Cloud Token by providing with a code
-func GetCodeFromDashboard(w http.ResponseWriter, r *http.Request) {
+func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
 	if code == "" {
 		err := &model.DashboardResponse{
 			Code:    400,
 			Message: "Couldn't find Code",
 		}
-		w.WriteHeader(err.Code)
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
-
-	sessionID := r.FormValue("sessionId")
-	if sessionID == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find Session Id",
-		}
-		w.WriteHeader(err.Code)
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
-		return
-	}
-
-	module := r.FormValue("module")
-	if module == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find Module",
-		}
-		w.WriteHeader(err.Code)
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
-		return
-	}
-	err := services.PersistenceStoreWithCode(code, sessionID, module)
-	if err != nil {
-		w.WriteHeader(err.Code)
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(201)
+	model.C <- code
 }
 
 //Auxiliary Method for Development: Resets Session Variables of a given SessionId
@@ -246,14 +152,10 @@ func Reset(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't find Session Token",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
-
 	}
+
 	sm.UpdateSessionData(sessionToken, "{}", "")
 	ti, _ := sm.GetSessionData(sessionToken, "")
 	w.WriteHeader(200)

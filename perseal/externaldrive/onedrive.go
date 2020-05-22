@@ -158,9 +158,8 @@ func GetOneDriveFolderID(resp *http.Response) (id string, err error) {
 }
 
 // Returns Oauth Token used for authorization of OneDrive requests
-func GetOneDriveToken(creds *OneDriveCreds) (redirect *model.Redirect, token *oauth2.Token, err error) {
+func GetOneDriveToken(creds *OneDriveCreds) (url string, token *oauth2.Token, err error) {
 
-	log.Println("entrando")
 	currentOneDriveToken := oauth2.Token{
 		AccessToken:  creds.OneDriveAccessToken,
 		RefreshToken: creds.OneDriveRefreshToken,
@@ -168,23 +167,9 @@ func GetOneDriveToken(creds *OneDriveCreds) (redirect *model.Redirect, token *oa
 		Expiry:       time.Now().Local().Add(time.Second * time.Duration(3600)),
 	}
 
-	log.Println("yes")
 	if currentOneDriveToken.AccessToken == "" {
 
-		log.Println("the spot")
-		var url string
 		url, err = getCodeFromWeb(creds.OneDriveClientID, creds.OneDriveScopes)
-		if err != nil {
-			return
-		}
-
-		desc := `Go to the following link ` + url + `"and login to your Account"`
-
-		redirect = &model.Redirect{
-			Description: desc,
-			Link:        url,
-			Module:      "oneDrive",
-		}
 		return
 	}
 
@@ -207,7 +192,7 @@ func GetOneDriveToken(creds *OneDriveCreds) (redirect *model.Redirect, token *oa
 // Afterwards, makes a POST request to retrive the new access_token, given necessary parameters
 // In order to use the One Drive API, the client needs the clientID, the redirect_uri and the scopes of the application in the Microsfot Graph
 // For more information, follow this link: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online
-func getCodeFromWeb(clientID string, scopes string) (code string, err error) {
+func getCodeFromWeb(clientID string, scopes string) (link string, err error) {
 
 	var u *url.URL
 	//Retrieve the code
@@ -230,16 +215,16 @@ func getCodeFromWeb(clientID string, scopes string) (code string, err error) {
 	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
 	if model.Local {
-		q.Add("redirect_uri", "https://localhost:8082/per/code")
+		q.Add("redirect_uri", "http://localhost:8082/per/code")
 	} else {
 		q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
 	}
 	q.Add("response_type", "code")
 	req.URL.RawQuery = q.Encode()
 
-	code = req.URL.String()
+	link = req.URL.String()
 
-	return code, nil
+	return link, nil
 }
 func RequestToken(code string, clientID string) (token *oauth2.Token, err error) {
 
@@ -250,7 +235,7 @@ func RequestToken(code string, clientID string) (token *oauth2.Token, err error)
 	values.Add("grant_type", "authorization_code")
 	var u *url.URL
 	if model.Local {
-		values.Add("redirect_uri", "https://localhost:8082/per/code")
+		values.Add("redirect_uri", "http://localhost:8082/per/code")
 		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	} else {
 		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))

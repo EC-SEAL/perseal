@@ -6,11 +6,12 @@ type DashboardResponse struct {
 	ErrorMessage string `json:"error"`
 }
 
-type Redirect struct {
-	SessionID   string `json:"sessionId"`
-	Description string `json:"description"`
-	Link        string `json:"link"`
-	Module      string `json:"module"`
+type RedirectStruct struct {
+	Redirect bool   `json:"redirect"`
+	URL      string `json:"url"`
 }
 
 var Local = true
+
+var C, Filename, Password, CloudLogin chan string
+var Redirect chan RedirectStruct

@@ -31,16 +31,14 @@ var AccessCreds string
 var googleCreds *GoogleDriveCreds
 
 // Requests a token from the web, then returns the retrieved token.
-func GetGoogleLinkForDashboardRedirect(config *oauth2.Config) (string, string) {
+func GetGoogleLinkForDashboardRedirect(config *oauth2.Config) string {
 	var authURL string
 	if model.Local {
 		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"))
 	} else {
 		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
 	}
-	desc := `Go to the following link ` + authURL + `"and login to your Account"`
-
-	return desc, authURL
+	return authURL
 }
 
 func isFolder(file *drive.File) bool {
@@ -86,6 +84,24 @@ func GetGoogleDriveFile(filename string, client *http.Client) (file *http.Respon
 		}
 	}
 	file, err = service.Files.Get(fileId).Download()
+	return
+}
+
+func GetGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
+	service, err := drive.New(client)
+	if err != nil {
+		return
+	}
+
+	list, err := service.Files.List().Do()
+	if err != nil {
+		return
+	}
+	fileList = make([]string, 0)
+	for _, v := range list.Files {
+		fileList = append(fileList, v.Name)
+	}
+	fileList = fileList[:len(fileList)-1]
 	return
 }
 
@@ -154,6 +170,7 @@ func SetGoogleDriveCreds(data interface{}) GoogleDriveCreds {
 	smr := &sm.SessionMngrResponse{}
 	json.Unmarshal(jsonM, smr)
 
+	log.Println("the smr ", smr)
 	googleCreds.Web.ClientId = smr.SessionData.SessionVariables["GoogleDriveClientID"]
 	googleCreds.Web.ProjectId = smr.SessionData.SessionVariables["GoogleDriveProject"]
 	googleCreds.Web.AuthURI = smr.SessionData.SessionVariables["GoogleDriveAuthURI"]

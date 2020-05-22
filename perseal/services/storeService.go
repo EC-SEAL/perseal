@@ -21,7 +21,7 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, cipherPassword string) (dataStore *externaldrive.DataStore, redirect *model.Redirect, err *model.DashboardResponse) {
+func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, cipherPassword string, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	uuid := mockUUID
 
 	if pds == "googleDrive" {
@@ -30,12 +30,11 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, ci
 			data.Error = "Session Data Not Correctly Set - Google Drive Client Missing"
 			establishGoogleCredentials(data.SessionData.SessionID)
 		}
-		id := data.SessionData.SessionID
 		data, err = sm.GetSessionData(id, "")
 		if err != nil {
 			return
 		}
-		dataStore, redirect, err = storeSessionDataGoogleDrive(data, uuid, clientID, cipherPassword) // No password
+		dataStore, err = storeSessionDataGoogleDrive(data, uuid, id, cipherPassword) // No password
 		return
 	} else if pds == "oneDrive" {
 		if data.SessionData.SessionVariables["OneDriveClientID"] == "" {
@@ -47,7 +46,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, ci
 		if err != nil {
 			return
 		}
-		dataStore, redirect, err = storeSessionDataOneDrive(data, uuid, cipherPassword) // No password
+		dataStore, err = storeSessionDataOneDrive(data, uuid, cipherPassword, id) // No password
 	} else {
 		err = &model.DashboardResponse{
 			Code:    404,
@@ -61,7 +60,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, ci
 // Back-channel store may only be used for local Browser storing
 func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	uuid := mockUUID
-	if pds == "Browser" {
+	if pds == "googleDrive" || pds != "oneDrive" {
 		var erro error
 		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
 		if erro != nil {
@@ -82,134 +81,66 @@ func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword stri
 	}
 }
 
-// Given the Code Retrieved from the Dashboard, Stores the Data and Generates a Cloud Token for the User
-func PersistenceStoreWithCode(code string, sessionId string, module string) (err *model.DashboardResponse) {
-	sessionData, err := sm.GetSessionData(sessionId, "")
-	if err != nil {
-		return
-	}
-
-	uuid := mockUUID
-	var dataStore *externaldrive.DataStore
-	if module == "googleDrive" {
-		if model.Local {
-			dataStore, err = storeSessionDataGoogleDriveWithCode(sessionData, uuid, "qwerty", sessionId, code)
-		} else {
-			dataStore, err = storeSessionDataGoogleDriveWithCode(sessionData, uuid, os.Getenv("PASS"), sessionId, code)
-		}
-		fmt.Println(dataStore)
-		if err != nil {
-			return
-		}
-	} else if module == "oneDrive" {
-		if model.Local {
-			dataStore, err = storeSessionDataOneDriveWithCode(sessionData, uuid, "qwerty", sessionId, code)
-		} else {
-			dataStore, err = storeSessionDataOneDriveWithCode(sessionData, uuid, os.Getenv("PASS"), sessionId, code)
-		}
-		fmt.Println(dataStore)
-		if err != nil {
-			return
-		}
-	} else {
-		err = &model.DashboardResponse{
-			Code:    404,
-			Message: "Wrong Module",
-		}
-	}
-	return
-}
+// GOOGLE DRIVE SERVICE METHODS
 
 //Attempts to Store the Session Data On Google Drive
 //May not find a token, in which it throws a redirect link for user login to the dashboard
-func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPassword string) (dataStore *externaldrive.DataStore, redirect *model.Redirect, err *model.DashboardResponse) {
-	googleCreds := externaldrive.SetGoogleDriveCreds(data)
+func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
-	fmt.Println(googleCreds)
-	b2, erro := json.Marshal(googleCreds)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Parse the Google Drive Credentials to byte array",
-			ErrorMessage: erro.Error(),
+	config, err := refreshGoogleDriveCreds(data)
+	if externaldrive.AccessCreds == "" {
+		var authURL string
+		authURL = externaldrive.GetGoogleLinkForDashboardRedirect(config)
+		modelRedirect := model.RedirectStruct{
+			Redirect: true,
+			URL:      authURL,
 		}
-		return
-	}
-
-	config, erro := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Get Config from Google Creds",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var oauthToken *oauth2.Token = &oauth2.Token{}
-	erro = json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(oauthToken)
-	log.Println(erro)
-	if erro == nil {
-		fmt.Println(oauthToken.AccessToken)
-		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Create New DataStore and Encrypt It",
-				ErrorMessage: erro.Error(),
-			}
+		model.Redirect <- modelRedirect
+		model.C = make(chan string)
+		code := <-model.C
+		err = updateNewGoogleDriveTokenFromCode(config, id, code)
+		if err != nil {
 			return
 		}
 
-		client := config.Client(context.Background(), oauthToken)
-		file, erro := dataStore.UploadGoogleDrive(oauthToken, client)
-		fmt.Println(file)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Generate Uploading Blob",
-				ErrorMessage: erro.Error(),
-			}
+		data, err = sm.GetSessionData(id, "")
+		if err != nil {
+			return
 		}
-	} else {
-		log.Println(googleCreds)
-		desc, authURL := externaldrive.GetGoogleLinkForDashboardRedirect(config)
-		log.Println(desc)
-		redirect = &model.Redirect{
-			SessionID:   id,
-			Description: desc,
-			Link:        authURL,
-			Module:      "googleDrive",
+		config, err = refreshGoogleDriveCreds(data)
+		if err != nil {
+			return
+		}
+	}
+	var oauthToken *oauth2.Token = &oauth2.Token{}
+	erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(oauthToken)
+	log.Println(erro)
+
+	fmt.Println(oauthToken.AccessToken)
+	dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Create New DataStore and Encrypt It",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	client := config.Client(context.Background(), oauthToken)
+	file, erro := dataStore.UploadGoogleDrive(oauthToken, client)
+	fmt.Println(file)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Generate Uploading Blob",
+			ErrorMessage: erro.Error(),
 		}
 	}
 	return
 }
 
-func storeSessionDataGoogleDriveWithCode(data interface{}, uuid string, cipherPassword string, sessionId string, code string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	googleCreds := externaldrive.SetGoogleDriveCreds(data)
-
-	log.Println(googleCreds.Web.RedirectURIS[0])
-	b2, erro := json.Marshal(googleCreds)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Parse the Google Drive Credentials to byte array",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	config, erro := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Get Config from Google Creds",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	log.Println(config)
+func updateNewGoogleDriveTokenFromCode(config *oauth2.Config, sessionId string, code string) (err *model.DashboardResponse) {
 
 	tok, erro := config.Exchange(oauth2.NoContext, code)
 	if erro != nil {
@@ -231,15 +162,74 @@ func storeSessionDataGoogleDriveWithCode(data interface{}, uuid string, cipherPa
 		return
 	}
 
-	fmt.Println(string(b))
 	_, err = sm.UpdateSessionData(sessionId, string(b), "GoogleDriveAccessCreds")
-	if err != nil {
+	return
+}
+
+func refreshGoogleDriveCreds(data interface{}) (config *oauth2.Config, err *model.DashboardResponse) {
+
+	googleCreds := externaldrive.SetGoogleDriveCreds(data)
+
+	fmt.Println(googleCreds)
+	b2, erro := json.Marshal(googleCreds)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Parse the Google Drive Credentials to byte array",
+			ErrorMessage: erro.Error(),
+		}
 		return
 	}
 
-	log.Println(string(b))
-	if err != nil {
+	config, erro = google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Get Config from Google Creds",
+			ErrorMessage: erro.Error(),
+		}
+	}
+
+	log.Println(googleCreds)
+	log.Println(externaldrive.AccessCreds)
+	return
+
+}
+
+// ONE DRIVE SERVICE METHODS
+
+//Attempts to Store the Session Data On OneDrive
+//May not find a token, in which it throws a redirect link for user login to the dashboard
+func storeSessionDataOneDrive(data interface{}, uuid, cipherPassword string, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+	creds, err := setOneDriveCreds(data)
+	link, oauthToken, erro := externaldrive.GetOneDriveToken(creds)
+
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Get One Drive Token",
+			ErrorMessage: erro.Error(),
+		}
 		return
+	}
+	log.Println(oauthToken)
+
+	if link != "" {
+		model.C = make(chan string)
+		code := <-model.C
+		err = updateNewOneDriveTokenFromCode(id, code, creds.OneDriveClientID)
+
+		data, err = sm.GetSessionData(id, "")
+		if err != nil {
+			return
+		}
+		creds, err = setOneDriveCreds(data)
+		if err != nil {
+			return
+		}
+
+		link, oauthToken, erro = externaldrive.GetOneDriveToken(creds)
+		log.Println("TOKEN ", oauthToken)
 	}
 
 	dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
@@ -251,102 +241,33 @@ func storeSessionDataGoogleDriveWithCode(data interface{}, uuid string, cipherPa
 		}
 		return
 	}
-	client := config.Client(context.Background(), tok)
-	file, erro := dataStore.UploadGoogleDrive(tok, client)
+
+	var contents []byte
+	contents, erro = dataStore.UploadingBlob(oauthToken)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
-			Message:      "Couldn't Generate Uploading Blob",
+			Message:      "Couldn't Generate Blob",
 			ErrorMessage: erro.Error(),
 		}
 		return
 	}
+	var file *drive.File
+	file, erro = dataStore.UploadOneDrive(oauthToken, contents, "SEAL")
 	fmt.Println(file)
-
-	return
-}
-
-//Attempts to Store the Session Data On OneDrive
-//May not find a token, in which it throws a redirect link for user login to the dashboard
-func storeSessionDataOneDrive(data interface{}, uuid, cipherPassword string) (dataStore *externaldrive.DataStore, redirect *model.Redirect, err *model.DashboardResponse) {
-	dataStore, erro := externaldrive.StoreSessionData(data, uuid, cipherPassword)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
-			Message:      "Couldn't Generate DataStore to be saved",
+			Message:      "Couldn't Upload DataStore One Drive",
 			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	creds, erro := externaldrive.SetOneDriveCreds(data)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Set One Drive Credentials",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-	redirect, oauthToken, erro := externaldrive.GetOneDriveToken(creds)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Get One Drive Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-	log.Println(oauthToken)
-
-	if redirect != nil {
-		return nil, redirect, nil
-	} else {
-		var contents []byte
-		contents, erro = dataStore.UploadingBlob(oauthToken)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Generate Blob",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
-		var file *drive.File
-		file, erro = dataStore.UploadOneDrive(oauthToken, contents, "SEAL")
-		fmt.Println(file)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Upload DataStore One Drive",
-				ErrorMessage: erro.Error(),
-			}
 		}
 	}
 	return
 }
 
-func storeSessionDataOneDriveWithCode(data interface{}, uuid, cipherPassword, sessionId, code string) (datastore *externaldrive.DataStore, err *model.DashboardResponse) {
-	datastore, erro := externaldrive.StoreSessionData(data, uuid, cipherPassword)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Generate DataStore to be saved",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
+func updateNewOneDriveTokenFromCode(sessionId string, code string, id string) (err *model.DashboardResponse) {
 
-	creds, erro := externaldrive.SetOneDriveCreds(data)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Set One Drive Credentials",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-	oauthToken, erro := externaldrive.RequestToken(code, creds.OneDriveClientID)
+	oauthToken, erro := externaldrive.RequestToken(code, id)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -362,27 +283,15 @@ func storeSessionDataOneDriveWithCode(data interface{}, uuid, cipherPassword, se
 	}
 
 	_, err = sm.UpdateSessionData(sessionId, oauthToken.RefreshToken, "OneDriveRefreshToken")
-	if err != nil {
-		return
-	}
+	return
+}
 
-	contents, erro := datastore.UploadingBlob(oauthToken)
+func setOneDriveCreds(data interface{}) (creds *externaldrive.OneDriveCreds, err *model.DashboardResponse) {
+	creds, erro := externaldrive.SetOneDriveCreds(data)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
-			Message:      "Couldn't Generate Blob",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var file *drive.File
-	file, erro = datastore.UploadOneDrive(oauthToken, contents, "SEAL")
-	fmt.Println(file)
-	if erro != nil {
-		err = &model.DashboardResponse{
-			Code:         500,
-			Message:      "Couldn't Upload DataStore One Drive",
+			Message:      "Couldn't Set One Drive Credentials",
 			ErrorMessage: erro.Error(),
 		}
 	}
@@ -397,7 +306,7 @@ func establishGoogleCredentials(clientID string) {
 		sm.UpdateSessionData(clientID, "https://oauth2.googleapis.com/token", "GoogleDriveTokenURI")
 		sm.UpdateSessionData(clientID, "https://www.googleapis.com/oauth2/v1/certs", "GoogleDriveAuthProviderx509CertUrl")
 		sm.UpdateSessionData(clientID, "0b3WtqfasYfWDmk31xa8UAht", "GoogleDriveClientSecret")
-		sm.UpdateSessionData(clientID, "https://localhost:8082/per/code,https://vm.project-seal.eu:8082/per/code,https://perseal.seal.eu:8082/per/code", "GoogleDriveRedirectUris")
+		sm.UpdateSessionData(clientID, "http://localhost:8082/per/code,https://vm.project-seal.eu:8082/per/code,https://perseal.seal.eu:8082/per/code", "GoogleDriveRedirectUris")
 	} else {
 		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_ID"), "GoogleDriveClientID")
 		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT"), "GoogleDriveClientProject")

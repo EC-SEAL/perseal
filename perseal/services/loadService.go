@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -23,42 +25,13 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *
 
 	var file *http.Response
 	if pds == "googleDrive" {
-		googleCreds := externaldrive.SetGoogleDriveCreds(smResp)
-		var token *oauth2.Token = &oauth2.Token{}
-		erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(token)
-		if err != nil {
-			return
-		}
-
-		fmt.Println(googleCreds)
-		b2, erro := json.Marshal(googleCreds)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Google Creds JSON Malformed",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
-
-		config, erro := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-		if err != nil {
-			if erro != nil {
-				err = &model.DashboardResponse{
-					Code:         500,
-					Message:      "Couldn't retrieve config from Google Creds JSON",
-					ErrorMessage: erro.Error(),
-				}
-				return
-			}
-		}
-
-		client := config.Client(context.Background(), token)
-		if model.Local {
-			file, erro = externaldrive.GetGoogleDriveFile("datastore.txt", client)
-		} else {
-			file, erro = externaldrive.GetGoogleDriveFile(os.Getenv("DATA_STORE_FILENAME"), client)
-		}
+		var client *http.Client
+		client, err = getGoogleDriveClient(smResp)
+		model.Filename = make(chan string)
+		filename := <-model.Filename
+		log.Println(filename)
+		close(model.Filename)
+		file, erro := externaldrive.GetGoogleDriveFile(filename, client)
 		log.Println(file)
 		if erro != nil {
 			err = &model.DashboardResponse{
@@ -90,11 +63,10 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *
 			return
 		}
 		log.Println(oauthToken)
-		if model.Local {
-			file, erro = externaldrive.GetOneDriveItem(oauthToken, "datastore.txt")
-		} else {
-			file, erro = externaldrive.GetOneDriveItem(oauthToken, os.Getenv("DATA_STORE_FILENAME"))
-		}
+		model.Filename = make(chan string)
+		filename := <-model.Filename
+		log.Println(filename)
+		close(model.Filename)
 		if erro != nil {
 			err = &model.DashboardResponse{
 				Code:         500,
@@ -111,13 +83,16 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *
 	return
 }
 
-func FetchLocalDataStore(pds string, smResp sm.SessionMngrResponse) {
-	if pds == "Mobile" {
-		//Request PDS with SessionId & CallBackURL in QRCODE
+func FetchLocalDataStore(pds string, clientCallback string, smResp sm.SessionMngrResponse) bool {
+	if pds == "Mobile" || pds == "Browser" {
+		qr, _ := qrcode.New(clientCallback+"/cl/persistence/"+pds+"/load?sessionID="+smResp.SessionData.SessionID, qrcode.Medium)
+		im := qr.Image(256)
+		out, _ := os.Create("./QRImg.png")
+		_ = png.Encode(out, im)
 	} else if pds == "Browser" {
 		//Asks SEAL ENCRYPTED PERSONAL DATASTORE
 	}
-	return
+	return true
 }
 
 func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToken string, cipherPassword string) (err *model.DashboardResponse) {
@@ -147,6 +122,69 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 
 	_, err = sm.UpdateSessionData(sessionToken, string(jsonM), "dataStore")
 
+	return
+}
+
+func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []string, err *model.DashboardResponse) {
+	if pds == "googleDrive" {
+		var client *http.Client
+		client, err = getGoogleDriveClient(smResp)
+
+		if err != nil {
+			return
+		}
+
+		var erro error
+		files, erro = externaldrive.GetGoogleDriveFiles(client)
+		if erro != nil {
+			err = &model.DashboardResponse{
+				Code:         500,
+				Message:      "Could not Get GoogleDrive Files",
+				ErrorMessage: erro.Error(),
+			}
+			return
+		}
+	}
+	return
+}
+
+func getGoogleDriveClient(smResp sm.SessionMngrResponse) (client *http.Client, err *model.DashboardResponse) {
+	googleCreds := externaldrive.SetGoogleDriveCreds(smResp)
+	var token *oauth2.Token = &oauth2.Token{}
+	erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(token)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Could not Decode Credentials to Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	fmt.Println(googleCreds)
+	b2, erro := json.Marshal(googleCreds)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Google Creds JSON Malformed",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	config, erro := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
+	if err != nil {
+		if erro != nil {
+			err = &model.DashboardResponse{
+				Code:         500,
+				Message:      "Couldn't retrieve config from Google Creds JSON",
+				ErrorMessage: erro.Error(),
+			}
+			return
+		}
+	}
+
+	client = config.Client(context.Background(), token)
 	return
 }
 

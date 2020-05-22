@@ -55,10 +55,28 @@ var perRoutes = routes{
 		controller.PersistenceStoreWithToken,
 	},
 	route{
-		"Fetches Code for Access Token",
+		"Test",
+		"POST",
+		"/insertDataStoreFilename",
+		controller.RecieveDataStoreFile,
+	},
+	route{
+		"Test",
+		"POST",
+		"/insertPassword",
+		controller.RecievePassword,
+	},
+	route{
+		"Test",
+		"GET",
+		"/fetchCloudFiles",
+		controller.FetchCloudFiles,
+	},
+	route{
+		"Code",
 		"GET",
 		"/code",
-		controller.GetCodeFromDashboard,
+		controller.RetrieveCode,
 	},
 	route{
 		"Reset",

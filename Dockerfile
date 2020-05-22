@@ -36,14 +36,15 @@ ARG ALIAS=perseal
 ARG KEYSTOREPASS=keystorepass
 ARG INTER=inter.p12
 
+RUN apt-get update && apt-get install -y xdg-utils
+
+
 COPY perseal/keystore.jks .
 COPY perseal/public.pub .
 RUN keytool -importkeystore -srckeystore ./$KEYSTORE -srcstorepass $KEYSTOREPASS -srcalias $ALIAS -destalias $ALIAS -destkeystore $INTER -deststoretype PKCS12 -deststorepass $KEYSTOREPASS
 RUN openssl pkcs12 -in $INTER -nodes -nocerts -out private.key -passin pass:$KEYSTOREPASS
 RUN ls .
 
+
 COPY --from=build-env /go/bin/perseal /go/bin/perseal
 # Run the executable
-
-
-#ENTRYPOINT ["/go/bin/perseal"]

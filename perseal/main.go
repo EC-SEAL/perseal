@@ -24,8 +24,6 @@ type systemOpts struct {
 	Port string
 }
 
-var local = false
-
 func main() {
 	// load systemOpts
 
@@ -40,8 +38,10 @@ func main() {
 	var addr string
 	if model.Local {
 		addr = "localhost:8082"
+		fmt.Println("local development")
 	} else {
 		addr = os.Getenv("HOST")
+		fmt.Println("container development")
 	}
 	server := &http.Server{
 		TLSConfig:    tlsConfig,

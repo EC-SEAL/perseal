@@ -11,6 +11,7 @@ import (
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/EC-SEAL/perseal/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -25,91 +26,85 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 			Code:    404,
 			Message: "msToken not Found",
 		}
-		t, err := json.MarshalIndent(errorToDash, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
-		w.WriteHeader(errorToDash.Code)
+		w = utils.WriteResponseMessage(w, errorToDash, errorToDash.Code)
 		return
 	}
+
+	smRes, err := sm.GenerateToken("", "PERms001", "PERms001", "70e26ae7-2687-4cc4-a3f2-ae1ab7ff1f6e")
+	msToken = smRes.AdditionalData
 
 	id, err := sm.ValidateToken(msToken)
 	if err != nil {
 		w.WriteHeader(err.Code)
-		t, err := json.MarshalIndent(err, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	smResp2, err := sm.GetSessionData(id, "")
 	if err != nil {
-		w.WriteHeader(err.Code)
-		t, err := json.MarshalIndent(err, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	pds := smResp2.SessionData.SessionVariables["PDS"]
+	clientCallBack := smResp2.SessionData.SessionVariables["ClientCallbackAddr"]
 	log.Println(smResp2)
 
 	var ds *externaldrive.DataStore
-	var msTokenResp string
+	var fetchedFromLocalData bool
+
 	if pds == "googleDrive" || pds == "oneDrive" {
 		ds, err = services.FetchCloudDataStore(pds, smResp2)
 		fmt.Println(err)
-	} else if pds == "googleDrive" || pds == "oneDrive" {
-		services.FetchLocalDataStore(pds, smResp2)
+	} else if pds == "Browser" || pds == "Mobile" {
+		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp2)
 	}
 
-	smRes, err := sm.GenerateToken("", "PERms001", "PERms001", id)
 	if err != nil {
-		w.WriteHeader(err.Code)
-		t, err := json.MarshalIndent(err, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
+		return
 	}
 
-	msTokenResp = smRes.AdditionalData
+	var clientCallBackVerify string
 	if model.Local {
-		err = services.DecryptAndMarshallDataStore(ds, id, "qwerty")
+		clientCallBackVerify = "https://vm.project-seal.eu:9053"
 	} else {
-		err = services.DecryptAndMarshallDataStore(ds, id, os.Getenv("PASS"))
-	}
-	if err != nil {
-		w.WriteHeader(err.Code)
-		t, err := json.MarshalIndent(err, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
-	}
-	if ds == nil {
-		w.WriteHeader(200)
-		msTokenResp2 := msTokenResp + " DataStore Not Found"
-		t, err := json.MarshalIndent(msTokenResp2, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Write(t)
-	} else {
-		t, err := json.MarshalIndent(ds, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(200)
-		w.Write(t)
+		clientCallBackVerify = os.Getenv("CLIENT_CALLBACK_VERIFY")
 	}
 
+	if fetchedFromLocalData && clientCallBack == clientCallBackVerify {
+		w = utils.WriteResponseMessage(w, smResp2.SessionData.SessionID, 200)
+		return
+
+	} else if fetchedFromLocalData && clientCallBack != clientCallBackVerify {
+		smRes, err := sm.GenerateToken("", "PERms001", "PERms001", id)
+		if err != nil {
+			w = utils.WriteResponseMessage(w, err, err.Code)
+			return
+		}
+		w = utils.WriteResponseMessage(w, smRes.AdditionalData, 200)
+		return
+	} else {
+		if err != nil {
+			w = utils.WriteResponseMessage(w, err, err.Code)
+			return
+		}
+
+		model.Password = make(chan string)
+		password := <-model.Password
+		log.Println(password)
+		close(model.Password)
+		err = services.DecryptAndMarshallDataStore(ds, id, password)
+
+		if err != nil {
+			w = utils.WriteResponseMessage(w, err, err.Code)
+			return
+		}
+
+		w.Header().Set("content-type", "application/json")
+		w = utils.WriteResponseMessage(w, ds, 200)
+	}
+	return
 }
 
 //see https://github.com/EC-SEAL/interface-specs/blob/master/images/UC8_03_SP_Attribute_Retrieval_from_Mobile_PDS_v5.png confusing
@@ -122,21 +117,14 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't find Session Token",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	sessionData, err := sm.GetSessionData(sessionToken, "")
 	if err != nil {
-		t, err := json.MarshalIndent(err, "", "\t")
-		if err != nil {
-			http.Error(w, err.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
+		return
 	}
 
 	dataSstr := r.PostFormValue("dataStore")
@@ -145,11 +133,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't find DataStore",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 400)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
@@ -163,11 +147,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 			Code:    400,
 			Message: "Couldn't Unmarshal DataStore",
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
@@ -178,21 +158,13 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
 			ErrorMessage: erro.Error(),
 		}
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
 	err = services.DecryptAndMarshallDataStore(&dataStore, sessionToken, cipherPassword)
 	if err != nil {
-		t, erro := json.MarshalIndent(err, "", "\t")
-		if erro != nil {
-			http.Error(w, erro.Error(), 404)
-		}
-		w.Write(t)
+		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 	w.Write([]byte(sessionToken))

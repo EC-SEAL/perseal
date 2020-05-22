@@ -1,1 +1,7 @@
 .env
+perseal/keystore.jks
+perseal/private.key
+perseal/public.pub
+pkg
+perseal/perseal.exe
+bin/perseal.exe

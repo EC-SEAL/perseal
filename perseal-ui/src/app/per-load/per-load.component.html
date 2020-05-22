@@ -1,0 +1,21 @@
+<style>
+  p.ex1 {
+    margin-left: 320px;
+  }
+</style>
+<div *ngIf="this.files!=null">
+
+  <h2>Files In Storage</h2>
+  <li *ngFor="let file of files">
+    {{ file }}
+  </li>
+
+
+ <p class="p.ex1"><label> Data Store File</label></p>
+ <p class="p.ex1"><input id="dataStoreFile" type="text" [(ngModel)]="dataStoreFile"></p>
+
+
+<div *ngIf="this.dataStoreFile!=''">
+    <button class="botao" (click)='sendDataStoreFile(dataStoreFile)'>Send</button>
+
+</div>

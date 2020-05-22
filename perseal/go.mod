@@ -15,9 +15,12 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/headzoo/surf v1.0.0 // indirect
 	github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca // indirect
+	github.com/lestrrat/go-libxml2 v0.0.0-20180221004755-bb78334e2019
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/siongui/godom v0.0.0-20200413172552-63506b972722
+	github.com/skip2/go-qrcode v0.0.0-20191027152451-9434209cb086
 	github.com/spacemonkeygo/httpsig v0.0.0-20181218213338-2605ae379e47
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
