@@ -6,10 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 
-	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/utils"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
@@ -182,18 +180,12 @@ func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err e
 }
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
+func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client, filename string) (file *drive.File, err error) {
 	data, err := ds.UploadingBlob(oauthToken)
 
-	var name string
-	if model.Local {
-		name = "datastore.txt"
-	} else {
-		name = os.Getenv("DATA_STORE_FILENAME")
-	}
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        name, //TODO what should the name of the Blob be in Gdrive???
+		Name:        filename, //TODO what should the name of the Blob be in Gdrive???
 		Path:        gdriveRootFolder,
 		Blob:        data,
 		ContentType: "application/octet-stream",

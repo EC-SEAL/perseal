@@ -14,7 +14,7 @@ export class GoPersistence {
 
   sendDataStore(filename: string): Promise<any>{
     return new Promise<any> ((resolve, reject) => {
-      this.http.sendDataStore(filename).subscribe(data => {
+      this.http.sendDataStoreFile(filename, "stroe").subscribe(data => {
         resolve(data as any);
       });
     });

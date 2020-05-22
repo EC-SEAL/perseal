@@ -70,11 +70,11 @@ var perRoutes = routes{
 		"Test",
 		"GET",
 		"/fetchCloudFiles",
-		controller.FetchCloudFiles,
+		controller.ShowCloudFiles,
 	},
 	route{
 		"Code",
-		"GET",
+		"POST",
 		"/code",
 		controller.RetrieveCode,
 	},

@@ -62,11 +62,11 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	var dataStore *externaldrive.DataStore
 	var redirect string
 
-	model.Password = make(chan string)
-	password := <-model.Password
-	log.Println(password)
-	close(model.Password)
-	dataStore, err = services.StoreCloudData(sessionData, pds, clientId, password, sessionData.SessionData.SessionID)
+	model.Filename = make(chan model.File)
+	filename := <-model.Filename
+	log.Println(filename)
+
+	_, dataStore, err = services.StoreCloudData(sessionData, pds, clientId, sessionData.SessionData.SessionID, filename.Filename)
 
 	fmt.Println(dataStore)
 	fmt.Println(redirect)
@@ -129,19 +129,6 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-}
-
-func RetrieveCode(w http.ResponseWriter, r *http.Request) {
-	code := r.FormValue("code")
-	if code == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find Code",
-		}
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-	model.C <- code
 }
 
 //Auxiliary Method for Development: Resets Session Variables of a given SessionId

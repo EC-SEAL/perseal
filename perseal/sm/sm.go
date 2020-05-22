@@ -98,7 +98,8 @@ type TokenResponse struct {
 }
 
 var (
-	client http.Client
+	client      http.Client
+	CurrentUser chan SessionMngrResponse
 )
 
 func GenerateToken(data string, receiver string, sender string, sessionId string) (tokenResp SessionMngrResponse, err *model.DashboardResponse) {

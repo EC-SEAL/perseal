@@ -21,7 +21,7 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, cipherPassword string, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	uuid := mockUUID
 
 	if pds == "googleDrive" {
@@ -34,7 +34,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, ci
 		if err != nil {
 			return
 		}
-		dataStore, err = storeSessionDataGoogleDrive(data, uuid, id, cipherPassword) // No password
+		password, dataStore, err = storeSessionDataGoogleDrive(data, uuid, id, filename) // No password
 		return
 	} else if pds == "oneDrive" {
 		if data.SessionData.SessionVariables["OneDriveClientID"] == "" {
@@ -46,7 +46,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, ci
 		if err != nil {
 			return
 		}
-		dataStore, err = storeSessionDataOneDrive(data, uuid, cipherPassword, id) // No password
+		dataStore, err = storeSessionDataOneDrive(data, uuid, id) // No password
 	} else {
 		err = &model.DashboardResponse{
 			Code:    404,
@@ -85,9 +85,11 @@ func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword stri
 
 //Attempts to Store the Session Data On Google Drive
 //May not find a token, in which it throws a redirect link for user login to the dashboard
-func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
+	log.Println("entered")
 	config, err := refreshGoogleDriveCreds(data)
+
 	if externaldrive.AccessCreds == "" {
 		var authURL string
 		authURL = externaldrive.GetGoogleLinkForDashboardRedirect(config)
@@ -95,9 +97,12 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPasswo
 			Redirect: true,
 			URL:      authURL,
 		}
+
+		log.Println("working on redirect")
 		model.Redirect <- modelRedirect
-		model.C = make(chan string)
-		code := <-model.C
+		log.Println("modelredirect ", model.Redirect)
+		model.Code = make(chan string)
+		code := <-model.Code
 		err = updateNewGoogleDriveTokenFromCode(config, id, code)
 		if err != nil {
 			return
@@ -117,7 +122,13 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPasswo
 	log.Println(erro)
 
 	fmt.Println(oauthToken.AccessToken)
-	dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
+
+	model.Password = make(chan string)
+	password = <-model.Password
+	log.Println(password)
+	close(model.Password)
+
+	dataStore, erro = externaldrive.StoreSessionData(data, uuid, password)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -128,7 +139,7 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, cipherPasswo
 	}
 
 	client := config.Client(context.Background(), oauthToken)
-	file, erro := dataStore.UploadGoogleDrive(oauthToken, client)
+	file, erro := dataStore.UploadGoogleDrive(oauthToken, client, filename)
 	fmt.Println(file)
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -200,7 +211,7 @@ func refreshGoogleDriveCreds(data interface{}) (config *oauth2.Config, err *mode
 
 //Attempts to Store the Session Data On OneDrive
 //May not find a token, in which it throws a redirect link for user login to the dashboard
-func storeSessionDataOneDrive(data interface{}, uuid, cipherPassword string, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func storeSessionDataOneDrive(data interface{}, uuid, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	creds, err := setOneDriveCreds(data)
 	link, oauthToken, erro := externaldrive.GetOneDriveToken(creds)
 
@@ -214,9 +225,14 @@ func storeSessionDataOneDrive(data interface{}, uuid, cipherPassword string, id 
 	}
 	log.Println(oauthToken)
 
+	model.Password = make(chan string)
+	password := <-model.Password
+	log.Println(password)
+	close(model.Password)
+
 	if link != "" {
-		model.C = make(chan string)
-		code := <-model.C
+		model.Code = make(chan string)
+		code := <-model.Code
 		err = updateNewOneDriveTokenFromCode(id, code, creds.OneDriveClientID)
 
 		data, err = sm.GetSessionData(id, "")
@@ -232,7 +248,7 @@ func storeSessionDataOneDrive(data interface{}, uuid, cipherPassword string, id 
 		log.Println("TOKEN ", oauthToken)
 	}
 
-	dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
+	dataStore, erro = externaldrive.StoreSessionData(data, uuid, password)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -306,7 +322,7 @@ func establishGoogleCredentials(clientID string) {
 		sm.UpdateSessionData(clientID, "https://oauth2.googleapis.com/token", "GoogleDriveTokenURI")
 		sm.UpdateSessionData(clientID, "https://www.googleapis.com/oauth2/v1/certs", "GoogleDriveAuthProviderx509CertUrl")
 		sm.UpdateSessionData(clientID, "0b3WtqfasYfWDmk31xa8UAht", "GoogleDriveClientSecret")
-		sm.UpdateSessionData(clientID, "http://localhost:8082/per/code,https://vm.project-seal.eu:8082/per/code,https://perseal.seal.eu:8082/per/code", "GoogleDriveRedirectUris")
+		sm.UpdateSessionData(clientID, "http://localhost:4200/code,https://vm.project-seal.eu:4200/code,https://perseal.seal.eu:4200/code", "GoogleDriveRedirectUris")
 	} else {
 		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_ID"), "GoogleDriveClientID")
 		sm.UpdateSessionData(clientID, os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT"), "GoogleDriveClientProject")

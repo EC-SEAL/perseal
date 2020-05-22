@@ -34,7 +34,7 @@ var googleCreds *GoogleDriveCreds
 func GetGoogleLinkForDashboardRedirect(config *oauth2.Config) string {
 	var authURL string
 	if model.Local {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"))
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:4200/code"))
 	} else {
 		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")))
 	}

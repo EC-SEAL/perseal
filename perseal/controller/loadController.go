@@ -53,11 +53,32 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	var ds *externaldrive.DataStore
 	var fetchedFromLocalData bool
 
+	sm.CurrentUser = make(chan sm.SessionMngrResponse)
+	sm.CurrentUser <- smResp2
+
+	var clientId string
+	model.Filename = make(chan model.File)
+	filename := <-model.Filename
+	log.Println(filename)
+
 	if pds == "googleDrive" || pds == "oneDrive" {
-		ds, err = services.FetchCloudDataStore(pds, smResp2)
+		ds, err = services.FetchCloudDataStore(pds, smResp2, &filename)
+		clientId = smResp2.SessionData.SessionVariables["GoogleDriveAccessCreds"]
 		fmt.Println(err)
 	} else if pds == "Browser" || pds == "Mobile" {
 		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp2)
+		clientId = smResp2.SessionData.SessionVariables["OneDriveAccessToken"]
+	}
+	var password string
+	if err != nil {
+		if err.Code == 302 {
+
+			log.Println("vamos la")
+			password, ds, err = services.StoreCloudData(smResp2, pds, clientId, id, filename.Filename)
+
+			log.Println(ds)
+			log.Println(err)
+		}
 	}
 
 	if err != nil {
@@ -90,10 +111,15 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		model.Password = make(chan string)
-		password := <-model.Password
-		log.Println(password)
-		close(model.Password)
+		if password != "" {
+			log.Println("ja tens")
+		} else {
+			model.Password = make(chan string)
+			password = <-model.Password
+			log.Println(password)
+			close(model.Password)
+		}
+
 		err = services.DecryptAndMarshallDataStore(ds, id, password)
 
 		if err != nil {

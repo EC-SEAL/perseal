@@ -11,7 +11,13 @@ type RedirectStruct struct {
 	URL      string `json:"url"`
 }
 
+type File struct {
+	Filename string
+	Method   string
+}
+
 var Local = true
 
-var C, Filename, Password, CloudLogin chan string
+var Code, Password, CloudLogin chan string
 var Redirect chan RedirectStruct
+var Filename chan File

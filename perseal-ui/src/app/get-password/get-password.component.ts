@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { HttpService } from 'src/Utils/httpService';
 import { Component, OnInit } from '@angular/core';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
@@ -10,25 +11,21 @@ import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
 export class GetPasswordComponent implements OnInit {
 
   password: string;
-  redirectUrl: HttpErrorResponse;
+  method: string;
 
 
-  constructor(private server: HttpService) { }
+  constructor(private server: HttpService,private route: ActivatedRoute) { }
 
    ngOnInit() {
+    this.route.queryParams.subscribe(params =>
+      this.method = params['method']
+    )
   }
 
   sendPassword(password: string) {
-    this.server.sendPassword(this.password, "store").subscribe((data: HttpErrorResponse) => {
+    this.server.sendPassword(this.password, this.method).subscribe((data: HttpErrorResponse) => {
 
       }, error => {
-        this.redirectUrl = error
-        if(this.redirectUrl != null) {
-
-          console.log(this.redirectUrl.error)
-          console.log(this.redirectUrl.status)
-          window.location.href=this.redirectUrl.error
-          }
       });
 
     }

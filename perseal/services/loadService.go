@@ -21,17 +21,22 @@ import (
 )
 
 // Service Method to Fetch the DataStore according to the PDS variable
-func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse, filename *model.File) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
 	var file *http.Response
 	if pds == "googleDrive" {
 		var client *http.Client
 		client, err = getGoogleDriveClient(smResp)
-		model.Filename = make(chan string)
-		filename := <-model.Filename
-		log.Println(filename)
-		close(model.Filename)
-		file, erro := externaldrive.GetGoogleDriveFile(filename, client)
+		log.Println(filename.Method)
+		if filename.Method == "store" {
+			err = &model.DashboardResponse{
+				Code:    302,
+				Message: "New Store Method",
+			}
+			log.Println(filename.Method)
+			return
+		}
+		file, erro := externaldrive.GetGoogleDriveFile(filename.Filename, client)
 		log.Println(file)
 		if erro != nil {
 			err = &model.DashboardResponse{
@@ -63,7 +68,7 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse) (dataStore *
 			return
 		}
 		log.Println(oauthToken)
-		model.Filename = make(chan string)
+		model.Filename = make(chan model.File)
 		filename := <-model.Filename
 		log.Println(filename)
 		close(model.Filename)

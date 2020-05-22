@@ -8,12 +8,14 @@ import { FormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { PerLoadComponent } from './per-load/per-load.component';
+import { PerCodeComponent } from './per-code/per-code.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     GetPasswordComponent,
     PerLoadComponent,
+    PerCodeComponent,
 
   ],
   imports: [

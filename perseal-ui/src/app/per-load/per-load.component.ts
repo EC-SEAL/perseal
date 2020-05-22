@@ -1,5 +1,5 @@
 import { HttpService } from 'src/Utils/httpService';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, Inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -12,27 +12,42 @@ export class PerLoadComponent implements OnInit {
 
   dataStoreFile: string;
   files: any;
-  _sessionToken: string
+  method: string;
+  redirectUrl: HttpErrorResponse ;
 
   constructor(private server: HttpService, private route: ActivatedRoute) {
 
    }
 
   ngOnInit(): void {
+
     this.route.queryParams.subscribe(params =>
-        this._sessionToken = params['sessionToken']
+        this.method = params['method']
       )
-    this.server.requestDataCloudFiles(this._sessionToken).subscribe(files =>
+    if(this.method === "load"){
+    this.server.requestDataCloudFiles().subscribe(files =>
       this.files = files
     );
+    }
   }
 
   sendDataStoreFile(password: string) {
-    this.server.sendDataStoreFile(this.dataStoreFile).subscribe(data => {
+    console.log(this.dataStoreFile)
+    this.server.sendDataStoreFile(this.dataStoreFile, this.method).subscribe(data => {
 
+      window.location.href= 'http://localhost:4200/insertPassword'
       }, error => {
-        console.log(error);
+
+        this.redirectUrl = error
+        if(this.redirectUrl != null) {
+
+          console.log(this.redirectUrl.error)
+          console.log(this.redirectUrl.status)
+          window.location.href=this.redirectUrl.error
+          }
       });
-    window.location.href = 'http://localhost:4200/insertPassword';
 }
+  storeFile(){
+    this.method = "store"
+  }
 }

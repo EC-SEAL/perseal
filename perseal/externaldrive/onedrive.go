@@ -215,7 +215,7 @@ func getCodeFromWeb(clientID string, scopes string) (link string, err error) {
 	q.Add("client_id", clientID)
 	q.Add("scope", scopes)
 	if model.Local {
-		q.Add("redirect_uri", "http://localhost:8082/per/code")
+		q.Add("redirect_uri", "http://localhost:4200/code")
 	} else {
 		q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
 	}
@@ -235,7 +235,7 @@ func RequestToken(code string, clientID string) (token *oauth2.Token, err error)
 	values.Add("grant_type", "authorization_code")
 	var u *url.URL
 	if model.Local {
-		values.Add("redirect_uri", "http://localhost:8082/per/code")
+		values.Add("redirect_uri", "http://localhost:4200/code")
 		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	} else {
 		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
@@ -267,7 +267,7 @@ func requestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.To
 
 	var u *url.URL
 	if model.Local {
-		values.Add("redirect_uri", "https://localhost:8082/per/code")
+		values.Add("redirect_uri", "https://localhost:4200/code")
 		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	} else {
 		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
