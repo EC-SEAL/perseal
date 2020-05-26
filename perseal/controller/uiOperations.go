@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +16,8 @@ import (
 
 func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 	log.Println("showCloudFiles")
+
+	//Recieves Current User
 	smResp := <-sm.CurrentUser
 	pds := smResp.SessionData.SessionVariables["PDS"]
 
@@ -24,7 +29,8 @@ func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 		clientId = smResp.SessionData.SessionVariables["OneDriveAccessToken"]
 		log.Println(clientId)
 	}
-	log.Println(clientId)
+
+	// If the Token doesn't exist, then the files don't exist as well
 	if clientId == "" {
 		var files []string
 
@@ -33,6 +39,7 @@ func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 		w = utils.WriteResponseMessage(w, files, 200)
 		return
 	}
+
 	files, err := services.GetCloudFileNames(pds, smResp)
 	if err != nil {
 		log.Println(err)
@@ -50,6 +57,8 @@ func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 func RecieveDataStoreFile(w http.ResponseWriter, r *http.Request) {
 	log.Println("recieveDataStoreFile")
 	log.Println(r.Body)
+
+	model.Redirect = make(chan model.RedirectStruct)
 	bodybytes, erro := ioutil.ReadAll(r.Body)
 	if erro != nil {
 		err := &model.DashboardResponse{
@@ -62,41 +71,31 @@ func RecieveDataStoreFile(w http.ResponseWriter, r *http.Request) {
 	}
 	methods := r.URL.Query()["method"]
 	method := methods[0]
-
-	model.Redirect = make(chan model.RedirectStruct)
-
 	filename := string(bodybytes)
-	log.Println(filename)
-	log.Println(method)
+
 	file := model.File{
 		Filename: filename,
 		Method:   method,
 	}
-	log.Println(file)
 	model.Filename <- file
 	close(model.Filename)
 
-	log.Println("eu on redirect")
-	log.Println("a ir ")
 	if method == "store" {
-
 		var redirect model.RedirectStruct
 		log.Println(model.Redirect)
 		redirect = <-model.Redirect
-
-		log.Println("oeste")
-		close(model.Redirect)
-		log.Println("este")
-		log.Println(&redirect)
 		if redirect.Redirect {
-			if redirect.Redirect {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w = utils.WriteResponseMessage(w, redirect.URL, 302)
-				return
-			}
+			fmt.Println(redirect)
+			close(model.Redirect)
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w = utils.WriteResponseMessage(w, redirect.URL, 302)
+			return
+		} else {
 
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w = utils.WriteResponseMessage(w, "", 200)
+			return
 		}
-
 	} else if method == "load" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, "", 200)
@@ -120,38 +119,11 @@ func RecievePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	password := string(bodybytes)
-	log.Println(password)
-	model.Password <- password
-}
-
-func FetchCloudFiles(w http.ResponseWriter, r *http.Request) {
-	log.Println("fetchCloudFiles")
-	sessionTokens := r.URL.Query()["sessionToken"]
-	sessionToken := sessionTokens[0]
-	log.Println(sessionToken)
-	smResp, err := sm.GetSessionData(sessionToken, "")
-
-	if err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	log.Println(smResp)
-	pds := smResp.SessionData.SessionVariables["PDS"]
-
-	if pds == "googleDrive" {
-		clientId := smResp.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		log.Println(clientId)
-	} else if pds == "oneDrive" {
-		clientId := smResp.SessionData.SessionVariables["OneDriveAccessToken"]
-		log.Println(clientId)
-	}
-	files, _ := services.GetCloudFileNames(pds, smResp)
-	log.Println(files)
-	w.Header().Set("content-type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, files, 200)
-	return
+	hasher := sha1.New()
+	hasher.Write([]byte(password))
+	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	log.Println(sha)
+	model.Password <- sha
 }
 
 func RetrieveCode(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +142,6 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	}
 	code := string(bodybytes)
 
-	log.Println("e agr pass")
 	model.Password = make(chan string)
 	model.Code <- code
 }

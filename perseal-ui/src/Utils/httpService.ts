@@ -12,7 +12,7 @@ export class  HttpService {
   constructor(private http: HttpClient) { }
 
 
-  url = 'http://localhost:8082/per/';
+  url = 'http://vm.project-seal.eu:8082/per/';
 
   sendPassword(password: string, method: string){
     return this.http.post(this.url + 'insertPassword?method=' + method, password);

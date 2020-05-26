@@ -195,7 +195,7 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 }
 
 // UploadOneDrive - Uploads file to One Drive
-func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, folderName string) (file *drive.File, err error) {
+func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filename string, folderName string) (file *drive.File, err error) {
 
 	//if the folder exists, only creats the datastore file
 	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
@@ -209,7 +209,7 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, folde
 		if err != nil {
 			return
 		}
-		err = CreateOneDriveFile(oauthToken, folderID, data)
+		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
 		if err != nil {
 			return
 		}
@@ -218,7 +218,7 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, folde
 		if err != nil {
 			return
 		}
-		err = CreateOneDriveFile(oauthToken, folderID, data)
+		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
 	}
 	return
 }

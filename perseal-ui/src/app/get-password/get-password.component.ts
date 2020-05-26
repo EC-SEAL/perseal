@@ -13,7 +13,6 @@ export class GetPasswordComponent implements OnInit {
   password: string;
   method: string;
 
-
   constructor(private server: HttpService,private route: ActivatedRoute) { }
 
    ngOnInit() {
@@ -23,7 +22,7 @@ export class GetPasswordComponent implements OnInit {
   }
 
   sendPassword(password: string) {
-    this.server.sendPassword(this.password, this.method).subscribe((data: HttpErrorResponse) => {
+    this.server.sendPassword(password, this.method).subscribe((data: HttpErrorResponse) => {
 
       }, error => {
       });

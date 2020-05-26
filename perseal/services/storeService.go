@@ -21,10 +21,11 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func StoreCloudData(data sm.SessionMngrResponse, pds string, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	uuid := mockUUID
 
 	if pds == "googleDrive" {
+		clientID := data.SessionData.SessionVariables["GoogleDriveAccessCreds"]
 		// Validates if the session data contains the google drive authentication token
 		if clientID == "" {
 			data.Error = "Session Data Not Correctly Set - Google Drive Client Missing"
@@ -37,7 +38,10 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, id
 		password, dataStore, err = storeSessionDataGoogleDrive(data, uuid, id, filename) // No password
 		return
 	} else if pds == "oneDrive" {
-		if data.SessionData.SessionVariables["OneDriveClientID"] == "" {
+
+		clientID := data.SessionData.SessionVariables["OneDriveAccessToken"]
+
+		if clientID == "" {
 			data.Error = "Session Data Not Correctly Set - One Drive Client Missing"
 			establishOneDriveCredentials(data.SessionData.SessionID)
 		}
@@ -46,7 +50,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, id
 		if err != nil {
 			return
 		}
-		dataStore, err = storeSessionDataOneDrive(data, uuid, id) // No password
+		password, dataStore, err = storeSessionDataOneDrive(data, uuid, id, filename) // No password
 	} else {
 		err = &model.DashboardResponse{
 			Code:    404,
@@ -60,7 +64,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, clientID string, id
 // Back-channel store may only be used for local Browser storing
 func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	uuid := mockUUID
-	if pds == "googleDrive" || pds != "oneDrive" {
+	if pds != "googleDrive" && pds != "oneDrive" {
 		var erro error
 		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
 		if erro != nil {
@@ -87,9 +91,9 @@ func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword stri
 //May not find a token, in which it throws a redirect link for user login to the dashboard
 func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
-	log.Println("entered")
 	config, err := refreshGoogleDriveCreds(data)
 
+	// If no Token was Found
 	if externaldrive.AccessCreds == "" {
 		var authURL string
 		authURL = externaldrive.GetGoogleLinkForDashboardRedirect(config)
@@ -101,6 +105,8 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename str
 		log.Println("working on redirect")
 		model.Redirect <- modelRedirect
 		log.Println("modelredirect ", model.Redirect)
+
+		// Request Code From UI
 		model.Code = make(chan string)
 		code := <-model.Code
 		err = updateNewGoogleDriveTokenFromCode(config, id, code)
@@ -116,18 +122,27 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename str
 		if err != nil {
 			return
 		}
+	} else {
+		modelRedirect := model.RedirectStruct{
+			Redirect: false,
+			URL:      "",
+		}
+		log.Println("working on redirect")
+		model.Redirect <- modelRedirect
+		log.Println("modelredirect ", model.Redirect)
 	}
+
 	var oauthToken *oauth2.Token = &oauth2.Token{}
 	erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(oauthToken)
 	log.Println(erro)
 
 	fmt.Println(oauthToken.AccessToken)
 
+	// Request Password From UI
 	model.Password = make(chan string)
 	password = <-model.Password
 	log.Println(password)
 	close(model.Password)
-
 	dataStore, erro = externaldrive.StoreSessionData(data, uuid, password)
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -211,7 +226,7 @@ func refreshGoogleDriveCreds(data interface{}) (config *oauth2.Config, err *mode
 
 //Attempts to Store the Session Data On OneDrive
 //May not find a token, in which it throws a redirect link for user login to the dashboard
-func storeSessionDataOneDrive(data interface{}, uuid, id string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func storeSessionDataOneDrive(data interface{}, uuid, id string, filename string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 	creds, err := setOneDriveCreds(data)
 	link, oauthToken, erro := externaldrive.GetOneDriveToken(creds)
 
@@ -225,14 +240,20 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string) (dataStore *ext
 	}
 	log.Println(oauthToken)
 
-	model.Password = make(chan string)
-	password := <-model.Password
-	log.Println(password)
-	close(model.Password)
-
+	// If no Token was Found
 	if link != "" {
+		modelRedirect := model.RedirectStruct{
+			Redirect: true,
+			URL:      link,
+		}
+		log.Println("working on redirect")
+		model.Redirect <- modelRedirect
+		log.Println("modelredirect ", model.Redirect)
+
+		// Request Code From UI
 		model.Code = make(chan string)
 		code := <-model.Code
+
 		err = updateNewOneDriveTokenFromCode(id, code, creds.OneDriveClientID)
 
 		data, err = sm.GetSessionData(id, "")
@@ -247,6 +268,12 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string) (dataStore *ext
 		link, oauthToken, erro = externaldrive.GetOneDriveToken(creds)
 		log.Println("TOKEN ", oauthToken)
 	}
+
+	// Request Password From UI
+	model.Password = make(chan string)
+	password = <-model.Password
+	log.Println(password)
+	close(model.Password)
 
 	dataStore, erro = externaldrive.StoreSessionData(data, uuid, password)
 	if erro != nil {
@@ -269,7 +296,7 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string) (dataStore *ext
 		return
 	}
 	var file *drive.File
-	file, erro = dataStore.UploadOneDrive(oauthToken, contents, "SEAL")
+	file, erro = dataStore.UploadOneDrive(oauthToken, contents, filename, "SEAL")
 	fmt.Println(file)
 	if erro != nil {
 		err = &model.DashboardResponse{

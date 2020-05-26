@@ -45,6 +45,12 @@ type FolderProps struct {
 	ID string `json:"id"`
 }
 
+type FolderChildren struct {
+	Values []struct {
+		Name string `json:"name"`
+	} `json:"value"`
+}
+
 // Used to control token expiration
 var currentOneDriveToken oauth2.Token
 
@@ -78,10 +84,10 @@ func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 }
 
 // PUT request to create a file in a given folder
-func CreateOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
+func CreateOneDriveFile(token *oauth2.Token, folderID string, filename string, blob []byte) (err error) {
 	var url string
 	if model.Local {
-		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/datastore.txt:/content"
+		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + filename + ":/content"
 	} else {
 		url = os.Getenv("CREATE_FILE_URL") + folderID + ":/" + os.Getenv("DATA_STORE_FILENAME") + ":/content"
 	}
@@ -122,6 +128,36 @@ func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response,
 
 	client := &http.Client{}
 	resp, err = client.Do(req)
+	return
+}
+
+func GetOneDriveItems(token *oauth2.Token, folder string) (folderchildren *FolderChildren, err error) {
+	var url string
+	if model.Local {
+		url = "https://graph.microsoft.com/v1.0/me/drive/items/5C07F9D77D4396CC!106/children"
+	} else {
+		url = os.Getenv("GET_ITEMS_URL") + folder + "/children"
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+
+	log.Println("Token ", token.AccessToken)
+	auth := "Bearer " + token.AccessToken
+	req.Header.Add("Authorization", auth)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	var v interface{}
+	json.Unmarshal([]byte(body), &v)
+	jsonM, _ := json.Marshal(v)
+
+	json.Unmarshal(jsonM, &folderchildren)
+
+	log.Println(v)
 	return
 }
 

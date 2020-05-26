@@ -15,8 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// see https://github.com/EC-SEAL/interface-specs/blob/master/images/UC8_06_SP_Attribute_Retrieval_from_Browser_PDS_v2.png how does generateToken works
-
+// Setup a persistence mechanism and load a secure storage into session.
 func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistanceLoad")
 
@@ -30,52 +29,39 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	smRes, err := sm.GenerateToken("", "PERms001", "PERms001", "70e26ae7-2687-4cc4-a3f2-ae1ab7ff1f6e")
-	msToken = smRes.AdditionalData
-
-	id, err := sm.ValidateToken(msToken)
+	id, smResp, err := utils.GetSessionDataFromMSToken(msToken)
 	if err != nil {
 		w.WriteHeader(err.Code)
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
-	smResp2, err := sm.GetSessionData(id, "")
-	if err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	pds := smResp2.SessionData.SessionVariables["PDS"]
-	clientCallBack := smResp2.SessionData.SessionVariables["ClientCallbackAddr"]
-	log.Println(smResp2)
-
+	// Initialize Variables
 	var ds *externaldrive.DataStore
 	var fetchedFromLocalData bool
+	pds := smResp.SessionData.SessionVariables["PDS"]
+	clientCallBack := smResp.SessionData.SessionVariables["ClientCallbackAddr"]
+	var password, clientCallBackVerify string
 
+	//Send Current User to UI
 	sm.CurrentUser = make(chan sm.SessionMngrResponse)
-	sm.CurrentUser <- smResp2
+	sm.CurrentUser <- smResp
 
-	var clientId string
+	//Request Filename
 	model.Filename = make(chan model.File)
 	filename := <-model.Filename
 	log.Println(filename)
 
 	if pds == "googleDrive" || pds == "oneDrive" {
-		ds, err = services.FetchCloudDataStore(pds, smResp2, &filename)
-		clientId = smResp2.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		fmt.Println(err)
+		ds, err = services.FetchCloudDataStore(pds, smResp, &filename)
 	} else if pds == "Browser" || pds == "Mobile" {
-		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp2)
-		clientId = smResp2.SessionData.SessionVariables["OneDriveAccessToken"]
+		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp)
 	}
-	var password string
+
 	if err != nil {
 		if err.Code == 302 {
-
-			log.Println("vamos la")
-			password, ds, err = services.StoreCloudData(smResp2, pds, clientId, id, filename.Filename)
-
+			fmt.Println("No DataStore Found! Performing Store")
+			password, ds, err = services.StoreCloudData(smResp, pds, id, filename.Filename)
 			log.Println(ds)
 			log.Println(err)
 		}
@@ -86,7 +72,6 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var clientCallBackVerify string
 	if model.Local {
 		clientCallBackVerify = "https://vm.project-seal.eu:9053"
 	} else {
@@ -94,7 +79,7 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if fetchedFromLocalData && clientCallBack == clientCallBackVerify {
-		w = utils.WriteResponseMessage(w, smResp2.SessionData.SessionID, 200)
+		w = utils.WriteResponseMessage(w, smResp.SessionData.SessionID, 200)
 		return
 
 	} else if fetchedFromLocalData && clientCallBack != clientCallBackVerify {
@@ -105,15 +90,15 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		}
 		w = utils.WriteResponseMessage(w, smRes.AdditionalData, 200)
 		return
+
 	} else {
 		if err != nil {
 			w = utils.WriteResponseMessage(w, err, err.Code)
 			return
 		}
 
-		if password != "" {
-			log.Println("ja tens")
-		} else {
+		// Waits for Password
+		if password == "" {
 			model.Password = make(chan string)
 			password = <-model.Password
 			log.Println(password)

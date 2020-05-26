@@ -14,7 +14,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Handles /per/store request
+// Save session data to the configured persistence mechanism (front channel)
 func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("persistentStore")
 
@@ -28,45 +28,20 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionId, err := sm.ValidateToken(msToken)
-	if err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	sessionData, err := sm.GetSessionData(sessionId, "")
-	if err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	if err := sm.ValidateSessionMngrResponse(sessionData); err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	log.Println(sessionData)
+	id, sessionData, err := utils.GetSessionDataFromMSToken(msToken)
 
 	pds := sessionData.SessionData.SessionVariables["PDS"]
 	log.Println(pds)
-
-	var clientId string
-	if pds == "googleDrive" {
-		clientId := sessionData.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		log.Println(clientId)
-	} else if pds == "oneDrive" {
-		clientId := sessionData.SessionData.SessionVariables["OneDriveAccessToken"]
-		log.Println(clientId)
-	}
-
 	var dataStore *externaldrive.DataStore
 	var redirect string
 
+	// Request Filename to UI
+	log.Println("a entrar")
 	model.Filename = make(chan model.File)
 	filename := <-model.Filename
 	log.Println(filename)
 
-	_, dataStore, err = services.StoreCloudData(sessionData, pds, clientId, sessionData.SessionData.SessionID, filename.Filename)
+	_, dataStore, err = services.StoreCloudData(sessionData, pds, id, filename.Filename)
 
 	fmt.Println(dataStore)
 	fmt.Println(redirect)

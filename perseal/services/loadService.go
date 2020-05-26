@@ -22,20 +22,22 @@ import (
 
 // Service Method to Fetch the DataStore according to the PDS variable
 func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse, filename *model.File) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+	log.Println(filename.Method)
 
-	var file *http.Response
+	// if no files to load were found
+	if filename.Method == "store" {
+		err = &model.DashboardResponse{
+			Code:    302,
+			Message: "New Store Method",
+		}
+		log.Println(filename.Method)
+		return
+	}
+
 	if pds == "googleDrive" {
 		var client *http.Client
 		client, err = getGoogleDriveClient(smResp)
-		log.Println(filename.Method)
-		if filename.Method == "store" {
-			err = &model.DashboardResponse{
-				Code:    302,
-				Message: "New Store Method",
-			}
-			log.Println(filename.Method)
-			return
-		}
+
 		file, erro := externaldrive.GetGoogleDriveFile(filename.Filename, client)
 		log.Println(file)
 		if erro != nil {
@@ -47,31 +49,13 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse, filename *mo
 			return
 		}
 		dataStore, err = readBody(file, smResp.SessionData.SessionID)
+
 	} else if pds == "oneDrive" {
-		creds, erro := externaldrive.SetOneDriveCreds(smResp)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Set One Drive Credentials",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
+
 		var oauthToken *oauth2.Token
-		_, oauthToken, erro = externaldrive.GetOneDriveToken(creds)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Get One Drive Token",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
-		log.Println(oauthToken)
-		model.Filename = make(chan model.File)
-		filename := <-model.Filename
-		log.Println(filename)
-		close(model.Filename)
+		oauthToken, err = getOneDriveToken(smResp)
+
+		file, erro := externaldrive.GetOneDriveItem(oauthToken, filename.Filename)
 		if erro != nil {
 			err = &model.DashboardResponse{
 				Code:         500,
@@ -80,7 +64,6 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse, filename *mo
 			}
 			return
 		}
-
 		log.Println(file)
 		dataStore, err = readBody(file, smResp.SessionData.SessionID)
 		log.Println(dataStore)
@@ -89,14 +72,10 @@ func FetchCloudDataStore(pds string, smResp sm.SessionMngrResponse, filename *mo
 }
 
 func FetchLocalDataStore(pds string, clientCallback string, smResp sm.SessionMngrResponse) bool {
-	if pds == "Mobile" || pds == "Browser" {
-		qr, _ := qrcode.New(clientCallback+"/cl/persistence/"+pds+"/load?sessionID="+smResp.SessionData.SessionID, qrcode.Medium)
-		im := qr.Image(256)
-		out, _ := os.Create("./QRImg.png")
-		_ = png.Encode(out, im)
-	} else if pds == "Browser" {
-		//Asks SEAL ENCRYPTED PERSONAL DATASTORE
-	}
+	qr, _ := qrcode.New(clientCallback+"/cl/persistence/"+pds+"/load?sessionID="+smResp.SessionData.SessionID, qrcode.Medium)
+	im := qr.Image(256)
+	out, _ := os.Create("./QRImg.png")
+	_ = png.Encode(out, im)
 	return true
 }
 
@@ -131,6 +110,7 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 }
 
 func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []string, err *model.DashboardResponse) {
+
 	if pds == "googleDrive" {
 		var client *http.Client
 		client, err = getGoogleDriveClient(smResp)
@@ -149,6 +129,25 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 			}
 			return
 		}
+	} else if pds == "oneDrive" {
+		var oauthToken *oauth2.Token
+		oauthToken, err = getOneDriveToken(smResp)
+		if err != nil {
+			return
+		}
+		resp, erro := externaldrive.GetOneDriveItems(oauthToken, "SEAL")
+		if erro != nil {
+			err = &model.DashboardResponse{
+				Code:         500,
+				Message:      "Couldn't Get One Drive Items",
+				ErrorMessage: erro.Error(),
+			}
+			return
+		}
+		for _, v := range resp.Values {
+			files = append(files, v.Name)
+		}
+		log.Println(resp.Values)
 	}
 	return
 }
@@ -190,6 +189,29 @@ func getGoogleDriveClient(smResp sm.SessionMngrResponse) (client *http.Client, e
 	}
 
 	client = config.Client(context.Background(), token)
+	return
+}
+
+func getOneDriveToken(smResp sm.SessionMngrResponse) (oauthToken *oauth2.Token, err *model.DashboardResponse) {
+	creds, erro := externaldrive.SetOneDriveCreds(smResp)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Set One Drive Credentials",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+	_, oauthToken, erro = externaldrive.GetOneDriveToken(creds)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         500,
+			Message:      "Couldn't Get One Drive Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+	log.Println(oauthToken.AccessToken)
 	return
 }
 

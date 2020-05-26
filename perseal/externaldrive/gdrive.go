@@ -118,7 +118,6 @@ func createGoogleDriveFile(service *drive.Service, name string, mimeType string,
 		Parents:  []string{parentId},
 	}
 	for _, v := range files.Files {
-		log.Println(v.Name)
 		if v.Name == name && !isFolder(v) {
 			service.Files.Delete(v.Id).Do()
 			// Update does not seem to be working - so It deletes the file before writing it again instead

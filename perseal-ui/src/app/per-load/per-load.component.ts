@@ -1,3 +1,4 @@
+import { environment } from './../../environments/environment.prod';
 import { HttpService } from 'src/Utils/httpService';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, Inject } from '@angular/core';
@@ -20,7 +21,6 @@ export class PerLoadComponent implements OnInit {
    }
 
   ngOnInit(): void {
-
     this.route.queryParams.subscribe(params =>
         this.method = params['method']
       )
@@ -33,11 +33,14 @@ export class PerLoadComponent implements OnInit {
 
   sendDataStoreFile(password: string) {
     console.log(this.dataStoreFile)
+
     this.server.sendDataStoreFile(this.dataStoreFile, this.method).subscribe(data => {
 
-      window.location.href= 'http://localhost:4200/insertPassword'
+      console.log("boa")
+      window.location.href = environment.settings.host+ '/insertPassword';
       }, error => {
 
+        console.log("mau")
         this.redirectUrl = error
         if(this.redirectUrl != null) {
 
@@ -46,7 +49,7 @@ export class PerLoadComponent implements OnInit {
           window.location.href=this.redirectUrl.error
           }
       });
-}
+    }
   storeFile(){
     this.method = "store"
   }

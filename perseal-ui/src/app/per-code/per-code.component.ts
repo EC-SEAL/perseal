@@ -1,3 +1,4 @@
+import { environment } from './../../environments/environment.prod';
 import { ActivatedRoute } from '@angular/router';
 import { HttpService } from 'src/Utils/httpService';
 import { Component, OnInit } from '@angular/core';
@@ -28,6 +29,6 @@ export class PerCodeComponent implements OnInit {
         console.log(error);
       });
 
-    window.location.href = 'http://localhost:4200/insertPassword';
+    window.location.href = environment.settings.host + '/insertPassword';
 }
 }
