@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/EC-SEAL/perseal/model"
+	"github.com/EC-SEAL/perseal/utils"
 )
 
 /* validateToken
@@ -119,7 +120,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 		}
 		return
 	}
-	req, erro = prepareRequestHeaders(req, url)
+	req, erro = utils.PrepareRequestHeaders(req, url)
 
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -192,7 +193,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 		return
 	}
 
-	req, erro = prepareRequestHeaders(req, url)
+	req, erro = utils.PrepareRequestHeaders(req, url)
 
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -264,7 +265,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 		return
 	}
 
-	req, erro = prepareRequestHeaders(req, url)
+	req, erro = utils.PrepareRequestHeaders(req, url)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         404,
@@ -357,7 +358,7 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 		return
 	}
 
-	req, erro = prepareRequestHeaders(req, url)
+	req, erro = utils.PrepareRequestHeaders(req, url)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         404,

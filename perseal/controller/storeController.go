@@ -28,7 +28,7 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, sessionData, err := utils.GetSessionDataFromMSToken(msToken)
+	id, sessionData, err := getSessionDataFromMSToken(msToken)
 
 	pds := sessionData.SessionData.SessionVariables["PDS"]
 	log.Println(pds)
@@ -119,6 +119,8 @@ func Reset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sm.UpdateSessionData(sessionToken, "{}", "")
+	smResp, _ := sm.GetSessionData(sessionToken, "")
+	services.DeleteFiles(smResp)
 	ti, _ := sm.GetSessionData(sessionToken, "")
 	w.WriteHeader(200)
 	t, _ := json.MarshalIndent(ti, "", "\t")

@@ -14,6 +14,7 @@ import (
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/EC-SEAL/perseal/utils"
 	"github.com/skip2/go-qrcode"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -107,6 +108,26 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 	_, err = sm.UpdateSessionData(sessionToken, string(jsonM), "dataStore")
 
 	return
+}
+
+func ValidateSignature(encrypted string, sigToValidate string) bool {
+	sig, err := utils.GetSignature(encrypted)
+	if err != nil {
+		return false
+	}
+
+	log.Println("sig: ", sig)
+	log.Println("toValidate: ", sigToValidate)
+	if sig != sigToValidate {
+		return false
+	}
+	log.Println("Validated")
+	return true
+}
+
+func DeleteFiles(smResp sm.SessionMngrResponse) {
+	client, _ := getGoogleDriveClient(smResp)
+	externaldrive.GetGoogleDriveFiles(client)
 }
 
 func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []string, err *model.DashboardResponse) {

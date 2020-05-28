@@ -132,6 +132,16 @@ func (ds *DataStore) Encrypt(cipherPassword string) (err error) {
 	return
 }
 
+func (ds *DataStore) SignDataStore() (err error) {
+	b64dec, err := utils.GetSignature(ds.EncryptedData)
+	if err != nil {
+		return
+	}
+	ds.Signature = string(b64dec)
+	ds.SignatureAlgorithm = "SHA256"
+	return
+}
+
 // Sign signs the DataStore with rsa-sha256
 func (ds *DataStore) Sign(privateKey []byte) (err error) { //TODO
 	//TODO
@@ -236,6 +246,11 @@ func StoreSessionData(data interface{}, uuid, cipherPassword string) (dataStore 
 			return
 		}
 		log.Println("Encrypted blob: ", dataStore.EncryptedData)
+		err = dataStore.SignDataStore()
+		if err != nil {
+			return
+		}
+		log.Println("DataStore Signed: ", dataStore)
 	}
 	return
 }

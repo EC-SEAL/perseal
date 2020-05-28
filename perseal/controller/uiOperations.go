@@ -145,3 +145,23 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	model.Password = make(chan string)
 	model.Code <- code
 }
+
+func getSessionDataFromMSToken(msToken string) (id string, smResp sm.SessionMngrResponse, err *model.DashboardResponse) {
+	id, err = sm.ValidateToken(msToken)
+	if err != nil {
+		return
+	}
+	smResp, err = sm.GetSessionData(id, "")
+
+	if err != nil {
+		return
+	}
+
+	log.Println(smResp)
+
+	if err = sm.ValidateSessionMngrResponse(smResp); err != nil {
+		return
+	}
+
+	return
+}

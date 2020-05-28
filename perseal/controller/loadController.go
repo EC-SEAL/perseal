@@ -29,7 +29,7 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, smResp, err := utils.GetSessionDataFromMSToken(msToken)
+	id, smResp, err := getSessionDataFromMSToken(msToken)
 	if err != nil {
 		w.WriteHeader(err.Code)
 		w = utils.WriteResponseMessage(w, err, err.Code)
@@ -56,6 +56,15 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		ds, err = services.FetchCloudDataStore(pds, smResp, &filename)
 	} else if pds == "Browser" || pds == "Mobile" {
 		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp)
+	}
+
+	if !services.ValidateSignature(ds.EncryptedData, r.FormValue("sig")) {
+		errorToDash := &model.DashboardResponse{
+			Code:    500,
+			Message: "Error Validating Signature",
+		}
+		w = utils.WriteResponseMessage(w, errorToDash, errorToDash.Code)
+		return
 	}
 
 	if err != nil {

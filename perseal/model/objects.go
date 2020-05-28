@@ -16,7 +16,7 @@ type File struct {
 	Method   string
 }
 
-var Local = false
+var Local = true
 
 var Code, Password, CloudLogin chan string
 var Redirect chan RedirectStruct

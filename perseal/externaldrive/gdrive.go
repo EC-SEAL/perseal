@@ -105,6 +105,24 @@ func GetGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
 	return
 }
 
+func DeleteGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
+	service, err := drive.New(client)
+	if err != nil {
+		return
+	}
+
+	list, err := service.Files.List().Do()
+	if err != nil {
+		return
+	}
+	fileList = make([]string, 0)
+	for _, v := range list.Files {
+		service.Files.Delete(v.Id)
+	}
+	fileList = fileList[:len(fileList)-1]
+	return
+}
+
 func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (file *drive.File, err error) {
 	files, err := service.Files.List().Do()
 	if err != nil {
