@@ -101,7 +101,6 @@ func GetGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
 	for _, v := range list.Files {
 		fileList = append(fileList, v.Name)
 	}
-	fileList = fileList[:len(fileList)-1]
 	return
 }
 

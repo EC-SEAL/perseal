@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/google/uuid"
 	"github.com/spacemonkeygo/httpsig"
 )
@@ -29,38 +30,34 @@ func WriteResponseMessage(w http.ResponseWriter, data interface{}, code int) htt
 	return w
 }
 
-func signRequest(r *http.Request, headers map[string]string) (string, error) {
-	//https://www.digitalocean.com/community/tutorials/openssl-essentials-working-with-ssl-certificates-private-keys-and-csrs#private-keys
-	newReq, err := http.NewRequest(r.Method, r.URL.String(), nil)
-	if err != nil {
-		return "", err
-	}
-	heads := []string{}
-	for k, v := range headers {
-		newReq.Header.Set(k, v)
-		heads = append(heads, strings.ToLower(k))
-	}
-	key, err := getPrivateKey()
-	rsaPubKey, err := ioutil.ReadFile("./public.pub")
-	if err != nil {
-		return "", err
-	}
+func GetSignature(encypt string) (b64dec string, err error) {
+	interfacekey, err := getPrivateKey()
+	key := interfacekey.(*rsa.PrivateKey)
+	message := []byte(encypt)
+	hashed := sha256.Sum256(message)
 
-	b64dec, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(rsaPubKey)))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, hashed[:])
 	if err != nil {
-		return "", err
+		return
 	}
+	b64dec = base64.URLEncoding.EncodeToString(signature)
+	return
+}
 
-	sha256sum := sha256.Sum256(b64dec)
-	shahex := hex.EncodeToString(sha256sum[:])
+func ReadRequestBody(r *http.Request) (stringBody string, err *model.DashboardResponse) {
 
-	signer := httpsig.NewSigner(shahex, key, httpsig.RSASHA256, heads)
-	err = signer.Sign(newReq)
-	if err != nil {
-		return "", err
+	bodybytes, erro := ioutil.ReadAll(r.Body)
+	if erro != nil {
+		err = &model.DashboardResponse{
+			Code:         404,
+			Message:      "Couldn't Read Body from Request",
+			ErrorMessage: erro.Error(),
+		}
+		return
 	}
+	stringBody = string(bodybytes)
 
-	return newReq.Header.Get("Authorization"), nil
+	return
 }
 
 func PrepareRequestHeaders(req *http.Request, url string) (*http.Request, error) {
@@ -131,16 +128,36 @@ func getPrivateKey() (key interface{}, err error) {
 
 }
 
-func GetSignature(encypt string) (b64dec string, err error) {
-	interfacekey, err := getPrivateKey()
-	key := interfacekey.(*rsa.PrivateKey)
-	message := []byte(encypt)
-	hashed := sha256.Sum256(message)
-
-	signature, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, hashed[:])
+func signRequest(r *http.Request, headers map[string]string) (string, error) {
+	//https://www.digitalocean.com/community/tutorials/openssl-essentials-working-with-ssl-certificates-private-keys-and-csrs#private-keys
+	newReq, err := http.NewRequest(r.Method, r.URL.String(), nil)
 	if err != nil {
-		return
+		return "", err
 	}
-	b64dec = base64.URLEncoding.EncodeToString(signature)
-	return
+	heads := []string{}
+	for k, v := range headers {
+		newReq.Header.Set(k, v)
+		heads = append(heads, strings.ToLower(k))
+	}
+	key, err := getPrivateKey()
+	rsaPubKey, err := ioutil.ReadFile("./public.pub")
+	if err != nil {
+		return "", err
+	}
+
+	b64dec, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(rsaPubKey)))
+	if err != nil {
+		return "", err
+	}
+
+	sha256sum := sha256.Sum256(b64dec)
+	shahex := hex.EncodeToString(sha256sum[:])
+
+	signer := httpsig.NewSigner(shahex, key, httpsig.RSASHA256, heads)
+	err = signer.Sign(newReq)
+	if err != nil {
+		return "", err
+	}
+
+	return newReq.Header.Get("Authorization"), nil
 }

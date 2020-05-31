@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
 	"errors"
@@ -78,4 +79,11 @@ func AESDecrypt(key []byte, securemess string) (decodedmess []byte, err error) {
 
 	// decodedmess = string(cipherText)
 	return cipherText, nil
+}
+
+func HashSUM256(ciphering string) string {
+	hasher := sha1.New()
+	hasher.Write([]byte(ciphering))
+	sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	return sha
 }

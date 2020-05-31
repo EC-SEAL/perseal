@@ -3,6 +3,7 @@
 // https://github.com/angular/protractor/blob/master/lib/config.ts
 
 const { SpecReporter } = require('jasmine-spec-reporter');
+import { environment } from './../src/environments/environment.prod';
 
 /**
  * @type { import("protractor").Config }
@@ -16,7 +17,7 @@ exports.config = {
     browserName: 'chrome'
   },
   directConnect: true,
-  baseUrl: 'http://vm.project-seal.eu:80/',
+  baseUrl: "http://perseal.seal.eu:80/",
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,

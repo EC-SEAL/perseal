@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,44 +17,42 @@ import (
 func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("persistentStore")
 
-	msToken := r.FormValue("msToken")
-	if msToken == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find msToken",
-		}
+	id, sessionData, err := getSessionDataFromMSToken(r)
+	if err != nil {
+		w.WriteHeader(err.Code)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
-
-	id, sessionData, err := getSessionDataFromMSToken(msToken)
 
 	pds := sessionData.SessionData.SessionVariables["PDS"]
 	log.Println(pds)
 	var dataStore *externaldrive.DataStore
 	var redirect string
 
-	// Request Filename to UI
-	log.Println("a entrar")
-	model.Filename = make(chan model.File)
-	filename := <-model.Filename
-	log.Println(filename)
-
-	_, dataStore, err = services.StoreCloudData(sessionData, pds, id, filename.Filename)
+	_, dataStore, err = services.StoreCloudData(sessionData, pds, id, "datastore.seal", "store")
 
 	fmt.Println(dataStore)
 	fmt.Println(redirect)
 	fmt.Println(err)
 
+	url := sessionData.SessionData.SessionVariables["ClientCallbackAddr"]
+
 	if redirect != "" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, redirect, 302)
 		return
 	} else if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	} else if dataStore != nil {
 		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(201)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, url, 200)
+		if model.CurrentUser != nil {
+			model.CurrentUser = nil
+		}
 	}
 	return
 }
@@ -104,25 +101,4 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-}
-
-//Auxiliary Method for Development: Resets Session Variables of a given SessionId
-func Reset(w http.ResponseWriter, r *http.Request) {
-	sessionToken := r.FormValue("sessionToken")
-	if sessionToken == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find Session Token",
-		}
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	sm.UpdateSessionData(sessionToken, "{}", "")
-	smResp, _ := sm.GetSessionData(sessionToken, "")
-	services.DeleteFiles(smResp)
-	ti, _ := sm.GetSessionData(sessionToken, "")
-	w.WriteHeader(200)
-	t, _ := json.MarshalIndent(ti, "", "\t")
-	w.Write(t)
 }

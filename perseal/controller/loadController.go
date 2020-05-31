@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
@@ -19,21 +18,18 @@ import (
 func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistanceLoad")
 
-	msToken := r.FormValue("msToken")
-	if msToken == "" {
-		errorToDash := &model.DashboardResponse{
-			Code:    404,
-			Message: "msToken not Found",
-		}
-		w = utils.WriteResponseMessage(w, errorToDash, errorToDash.Code)
-		return
-	}
-
-	id, smResp, err := getSessionDataFromMSToken(msToken)
+	id, smResp, err := getSessionDataFromMSToken(r)
 	if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(err.Code)
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
+	}
+
+	// For Development
+	if smResp.SessionData.SessionVariables["ClienCallbackAddr"] == "" {
+		sm.UpdateSessionData(id, "https://vm.project-seal.eu:9053/swagger-ui.html", "ClientCallbackAddr")
+		smResp, _ = sm.GetSessionData(id, "")
 	}
 
 	// Initialize Variables
@@ -43,65 +39,60 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	clientCallBack := smResp.SessionData.SessionVariables["ClientCallbackAddr"]
 	var password, clientCallBackVerify string
 
-	//Send Current User to UI
-	sm.CurrentUser = make(chan sm.SessionMngrResponse)
-	sm.CurrentUser <- smResp
-
-	//Request Filename
-	model.Filename = make(chan model.File)
-	filename := <-model.Filename
-	log.Println(filename)
-
 	if pds == "googleDrive" || pds == "oneDrive" {
-		ds, err = services.FetchCloudDataStore(pds, smResp, &filename)
+		ds, err = services.FetchCloudDataStore(smResp, pds, "datastore.seal")
 	} else if pds == "Browser" || pds == "Mobile" {
 		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp)
 	}
 
-	if !services.ValidateSignature(ds.EncryptedData, r.FormValue("sig")) {
+	// For UC 1.06. If no Files ares found, perform a store
+	if err != nil {
+		log.Println(err.Code)
+		if err.Code == 302 {
+			fmt.Println("No DataStore Found! Performing Store")
+			password, ds, err = services.StoreCloudData(smResp, pds, id, "datastore.seal", "load&store")
+			log.Println(ds)
+			log.Println(err)
+		}
+
+	}
+
+	// Validates signature of DataStore
+	if !services.ValidateSignature(ds.EncryptedData, ds.Signature) {
 		errorToDash := &model.DashboardResponse{
 			Code:    500,
 			Message: "Error Validating Signature",
 		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, errorToDash, errorToDash.Code)
 		return
 	}
 
 	if err != nil {
-		if err.Code == 302 {
-			fmt.Println("No DataStore Found! Performing Store")
-			password, ds, err = services.StoreCloudData(smResp, pds, id, filename.Filename)
-			log.Println(ds)
-			log.Println(err)
-		}
-	}
-
-	if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
 
-	if model.Local {
-		clientCallBackVerify = "https://vm.project-seal.eu:9053"
-	} else {
-		clientCallBackVerify = os.Getenv("CLIENT_CALLBACK_VERIFY")
-	}
-
 	if fetchedFromLocalData && clientCallBack == clientCallBackVerify {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, smResp.SessionData.SessionID, 200)
 		return
 
 	} else if fetchedFromLocalData && clientCallBack != clientCallBackVerify {
 		smRes, err := sm.GenerateToken("", "PERms001", "PERms001", id)
 		if err != nil {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w = utils.WriteResponseMessage(w, err, err.Code)
 			return
 		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, smRes.AdditionalData, 200)
 		return
 
 	} else {
 		if err != nil {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w = utils.WriteResponseMessage(w, err, err.Code)
 			return
 		}
@@ -111,17 +102,19 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 			model.Password = make(chan string)
 			password = <-model.Password
 			log.Println(password)
-			close(model.Password)
+			model.Password = nil
 		}
 
 		err = services.DecryptAndMarshallDataStore(ds, id, password)
 
 		if err != nil {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w = utils.WriteResponseMessage(w, err, err.Code)
 			return
 		}
 
 		w.Header().Set("content-type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, ds, 200)
 	}
 	return
