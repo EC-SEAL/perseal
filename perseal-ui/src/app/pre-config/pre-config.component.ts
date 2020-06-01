@@ -16,6 +16,7 @@ export class PreConfigComponent implements OnInit {
   method: string;
   redirectUrl: HttpErrorResponse ;
   hasRedirect: any;
+  sessionId: string;
 
   constructor(private server: HttpService, private route: ActivatedRoute) {
 
@@ -25,9 +26,12 @@ export class PreConfigComponent implements OnInit {
     this.route.queryParams.subscribe(params =>
         this.method = params['method']
       );
+    this.route.queryParams.subscribe(params =>
+        this.sessionId = params['sessionId']
+      );
     if(this.method === "load"){
 
-      this.server.requestRedirect().subscribe(hasRedirect =>{
+      this.server.requestRedirect(this.sessionId).subscribe(hasRedirect =>{
         console.log("certo")
         this.hasRedirect = false;
         window.location.href = environment.settings.host + '/insertPassword';
@@ -44,7 +48,7 @@ export class PreConfigComponent implements OnInit {
       });
 
     } else  if(this.method === "store"){
-      this.server.requestRedirect().subscribe(hasRedirect =>{
+      this.server.requestRedirect(this.sessionId).subscribe(hasRedirect =>{
         this.hasRedirect = false;
         window.location.href = environment.settings.host + '/insertPassword';
       }, error => {
@@ -55,7 +59,7 @@ export class PreConfigComponent implements OnInit {
 
           console.log(this.redirectUrl.error);
           console.log(this.redirectUrl.status);
-          window.location.href=this.redirectUrl.error;
+          window.location.href=this.redirectUrl.error
           }
       });
     }

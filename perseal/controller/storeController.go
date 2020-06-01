@@ -17,7 +17,7 @@ import (
 func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("persistentStore")
 
-	id, sessionData, err := getSessionDataFromMSToken(r)
+	id, err := utils.ReadRequestBody(r)
 	if err != nil {
 		w.WriteHeader(err.Code)
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -25,11 +25,17 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionData, err := sm.GetSessionData(id, "")
 	pds := sessionData.SessionData.SessionVariables["PDS"]
 	log.Println(pds)
 	var dataStore *externaldrive.DataStore
 	var redirect string
 
+	// For Development
+	if sessionData.SessionData.SessionVariables["ClienCallbackAddr"] == "" {
+		sm.UpdateSessionData(id, "https://vm.project-seal.eu:9053/swagger-ui.html", "ClientCallbackAddr")
+		sessionData, _ = sm.GetSessionData(id, "")
+	}
 	_, dataStore, err = services.StoreCloudData(sessionData, pds, id, "datastore.seal", "store")
 
 	fmt.Println(dataStore)
@@ -50,8 +56,8 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w = utils.WriteResponseMessage(w, url, 200)
-		if model.CurrentUser != nil {
-			model.CurrentUser = nil
+		if sm.CurrentUser != nil {
+			sm.CurrentUser = nil
 		}
 	}
 	return

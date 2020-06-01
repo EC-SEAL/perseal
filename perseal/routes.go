@@ -56,7 +56,7 @@ var perRoutes = routes{
 	},
 	route{
 		"Internal Method to Fetch URL of Cloud login for Redirect Request",
-		"GET",
+		"POST",
 		"/requestRedirect",
 		controller.RedirectRequest,
 	},
@@ -90,5 +90,11 @@ var perRoutes = routes{
 		"GET",
 		"/reset",
 		controller.Reset,
+	},
+	route{
+		"Test",
+		"POST",
+		"/getSessionId",
+		controller.GetSessionId,
 	},
 }

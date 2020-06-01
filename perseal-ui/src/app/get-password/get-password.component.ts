@@ -1,3 +1,4 @@
+import { ActivatedRoute } from '@angular/router';
 import { HttpService } from 'src/Persistence/httpService';
 import { Component, OnInit, Input } from '@angular/core';
 import { HttpResponse, HttpErrorResponse } from '@angular/common/http';
@@ -12,10 +13,15 @@ export class GetPasswordComponent implements OnInit {
   password: string;
   files: any
   toStore: string;
+  sessionId: string
 
-  constructor(private server: HttpService) { }
+
+  constructor(private server: HttpService, private route: ActivatedRoute) { }
 
    ngOnInit() {
+    this.route.queryParams.subscribe(params =>
+      this.sessionId = params['sessionId']
+    );
     this.toStore="load";
     console.log(this.toStore)
     this.server.requestDataCloudFiles().subscribe(files => {

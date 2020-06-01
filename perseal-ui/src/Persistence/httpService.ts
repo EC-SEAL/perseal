@@ -21,8 +21,8 @@ export class  HttpService {
     return this.http.get(this.url + 'fetchCloudFiles');
   }
 
-    requestRedirect(){
-    return this.http.get(this.url + 'requestRedirect');
+  requestRedirect(sessionId: string){
+    return this.http.post(this.url + 'requestRedirect', sessionId);
   }
 
   sendCode(code: string){
@@ -39,5 +39,9 @@ export class  HttpService {
 
   noFilesStore(bool: boolean){
     return this.http.post(this.url + 'toStore', bool);
+  }
+
+  getSessionId(token: string){
+    return this.http.post(this.url + 'getSessionId', token);
   }
 }

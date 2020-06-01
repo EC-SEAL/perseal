@@ -18,13 +18,15 @@ import (
 func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistanceLoad")
 
-	id, smResp, err := getSessionDataFromMSToken(r)
+	id, err := utils.ReadRequestBody(r)
 	if err != nil {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(err.Code)
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
+
+	smResp, err := sm.GetSessionData(id, "")
 
 	// For Development
 	if smResp.SessionData.SessionVariables["ClienCallbackAddr"] == "" {
@@ -115,7 +117,7 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("content-type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, ds, 200)
+		w = utils.WriteResponseMessage(w, clientCallBack, 200)
 	}
 	return
 }
@@ -167,7 +169,7 @@ func PersistenceLoadWithToken(w http.ResponseWriter, r *http.Request) {
 	cipherPassword := r.FormValue("cipherPassword")
 	if cipherPassword == "" {
 		err = &model.DashboardResponse{
-			Code:         404,
+			Code:         500,
 			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
 			ErrorMessage: erro.Error(),
 		}

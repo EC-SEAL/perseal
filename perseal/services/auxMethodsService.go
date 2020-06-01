@@ -53,7 +53,7 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 	dataStore.EncryptedData = ""
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         404,
+			Code:         500,
 			Message:      "Couldn't Decrypt DataStore",
 			ErrorMessage: erro.Error(),
 		}
@@ -64,7 +64,7 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 	jsonM, erro := json.Marshal(dataStore)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         404,
+			Code:         500,
 			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
 			ErrorMessage: erro.Error(),
 		}
@@ -105,7 +105,7 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 		files, erro = externaldrive.GetGoogleDriveFiles(client)
 		if erro != nil {
 			err = &model.DashboardResponse{
-				Code:         500,
+				Code:         404,
 				Message:      "Could not Get GoogleDrive Files",
 				ErrorMessage: erro.Error(),
 			}
@@ -121,7 +121,7 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 		resp, erro := externaldrive.GetOneDriveItems(oauthToken, "SEAL")
 		if erro != nil {
 			err = &model.DashboardResponse{
-				Code:         500,
+				Code:         404,
 				Message:      "Couldn't Get One Drive Items",
 				ErrorMessage: erro.Error(),
 			}
@@ -140,7 +140,7 @@ func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err 
 	body, erro := ioutil.ReadAll(file.Body)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         400,
 			Message:      "Couldn't Read Body From Response of Google Drive File",
 			ErrorMessage: erro.Error(),
 		}
@@ -154,7 +154,7 @@ func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err 
 	jsonM, erro := json.Marshal(v)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         400,
 			Message:      "Couldn't Parse the Body From Response of Google Drive File to JSON",
 			ErrorMessage: erro.Error(),
 		}

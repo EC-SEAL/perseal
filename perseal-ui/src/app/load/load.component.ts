@@ -15,25 +15,37 @@ export class LoadComponent implements OnInit {
  token: string
   link: any
   toStore: string
+  sessionId: any
+  error: boolean
 
   ngOnInit(): void {
+    this.error = false
     this.route.queryParams.subscribe(params =>
       this.token = params['token']
     )
-    this.openURL();
-    setTimeout(() =>
-    {
-     window.open( environment.settings.host + '/preConfig?method=load');
+    this.server.getSessionId(this.token).subscribe(sessionId => {
+      this.sessionId = sessionId;
+      this.openURL();
+      setTimeout(() =>
+      {
+       window.open( environment.settings.host + '/preConfig?method=load');
 
-    },
-    1750);
+      },
+      1750);
 
+    },  error =>{
+      console.log('falhou')
+      this.error = true
+    }
+    )
   }
 
   async openURL(){
-    this.server.perLoad(this.token).subscribe(link =>{
+    this.server.perLoad(this.sessionId).subscribe(link =>{
 
+      this.link = link;
       console.log("made post")
+      window.location.href = this.link
 
     }, error => {
       console.log(error)

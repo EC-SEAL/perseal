@@ -78,7 +78,7 @@ func loadSessionDataOneDrive(smResp interface{}, id string, filename string, cam
 	file, erro := externaldrive.GetOneDriveItem(oauthToken, filename)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         404,
 			Message:      "Couldn't Get One Drive Item",
 			ErrorMessage: erro.Error(),
 		}
@@ -95,7 +95,7 @@ func getOneDriveToken(data interface{}, id string, cameFrom string) (oauthToken 
 
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         404,
 			Message:      "Couldn't Get One Drive Token",
 			ErrorMessage: erro.Error(),
 		}
@@ -153,7 +153,7 @@ func updateNewOneDriveTokenFromCode(sessionId string, code string, id string) (o
 	oauthToken, erro = externaldrive.RequestToken(code, id)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         404,
 			Message:      "Couldn't Request One Drive Token",
 			ErrorMessage: erro.Error(),
 		}

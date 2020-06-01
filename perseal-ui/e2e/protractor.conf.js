@@ -17,7 +17,7 @@ exports.config = {
     browserName: 'chrome'
   },
   directConnect: true,
-  baseUrl: "http://perseal.seal.eu:80/",
+  baseUrl: "http://localhost:4200/",
   framework: 'jasmine',
   jasmineNodeOpts: {
     showColors: true,

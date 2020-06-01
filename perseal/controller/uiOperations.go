@@ -11,6 +11,23 @@ import (
 	"github.com/EC-SEAL/perseal/utils"
 )
 
+func GetSessionId(w http.ResponseWriter, r *http.Request) {
+	log.Println("getSessionId")
+
+	id, _, err := getSessionDataFromMSToken(r)
+
+	log.Println(err)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("content-type", "application/json")
+
+	if err != nil {
+		w = utils.WriteResponseMessage(w, err, err.Code)
+		return
+	}
+	w = utils.WriteResponseMessage(w, id, 200)
+	return
+
+}
 func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 	log.Println("showCloudFiles")
 

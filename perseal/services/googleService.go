@@ -75,7 +75,7 @@ func loadSessionDataGoogleDrive(data interface{}, id string, filename string, ca
 	log.Println(file)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         404,
 			Message:      "Couldn't Get Google Drive File",
 			ErrorMessage: erro.Error(),
 		}
@@ -175,7 +175,7 @@ func getGoogleDriveClient(smResp sm.SessionMngrResponse) (client *http.Client, e
 	if err != nil {
 		if erro != nil {
 			err = &model.DashboardResponse{
-				Code:         500,
+				Code:         404,
 				Message:      "Couldn't retrieve config from Google Creds JSON",
 				ErrorMessage: erro.Error(),
 			}
@@ -193,7 +193,7 @@ func updateNewGoogleDriveTokenFromCode(config *oauth2.Config, sessionId string, 
 	tok, erro := config.Exchange(oauth2.NoContext, code)
 	if erro != nil {
 		err = &model.DashboardResponse{
-			Code:         500,
+			Code:         404,
 			Message:      "Could not Fetch Google Drive Access Token",
 			ErrorMessage: erro.Error(),
 		}

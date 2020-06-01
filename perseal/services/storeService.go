@@ -26,7 +26,7 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, id string, filename
 		password, dataStore, err = storeSessionDataOneDrive(data, uuid, id, filename, cameFrom) // No password
 	} else {
 		err = &model.DashboardResponse{
-			Code:    404,
+			Code:    400,
 			Message: "Wrong Module Or No Module Found in Credentials",
 		}
 		return
@@ -51,7 +51,7 @@ func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword stri
 		return
 	} else {
 		err = &model.DashboardResponse{
-			Code:    404,
+			Code:    400,
 			Message: "Bad PDS Variable",
 		}
 		return

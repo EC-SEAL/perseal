@@ -13,23 +13,35 @@ export class StoreComponent implements OnInit {
   constructor(private server: HttpService, private route: ActivatedRoute) { }
 
   token: string
+  sessionId: any
   link: any
+  error: boolean
+
   ngOnInit(): void {
+    this.error = false
     this.route.queryParams.subscribe(params =>
       this.token = params['token']
     )
-    this.openURL();
-    setTimeout(() =>
-    {
-     window.open( environment.settings.host + '/preConfig?method=store');
+    this.server.getSessionId(this.token).subscribe(sessionId => {
+      this.sessionId = sessionId;
+      this.openURL();
+      setTimeout(() =>
+      {
+       window.open( environment.settings.host + '/preConfig?method=store');
 
-    },
-    1750);
+      },
+      1750);
+
+    },  error =>{
+      console.log('falhou')
+      this.error = true
+    }
+    )
 
   }
 
   async openURL(){
-    this.server.perStore(this.token).subscribe(link =>{
+    this.server.perStore(this.sessionId).subscribe(link =>{
 
       this.link = link;
       console.log("made post")

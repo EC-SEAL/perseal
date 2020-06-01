@@ -13,6 +13,6 @@ type RedirectStruct struct {
 
 var Local = false
 
-var Code, Password, CloudLogin, CurrentUser chan string
+var Code, Password, CloudLogin chan string
 var Redirect chan RedirectStruct
 var CheckFirstAccess chan bool
