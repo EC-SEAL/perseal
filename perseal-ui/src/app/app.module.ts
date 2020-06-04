@@ -12,6 +12,7 @@ import { PreConfigComponent } from './pre-config/pre-config.component';
 import { PerCodeComponent } from './per-code/per-code.component';
 import { LoadComponent } from './load/load.component';
 import { StoreComponent } from './store/store.component';
+import { PerComponent } from './per/per.component';
 
 @NgModule({
   declarations: [
@@ -21,6 +22,7 @@ import { StoreComponent } from './store/store.component';
     PerCodeComponent,
     LoadComponent,
     StoreComponent,
+    PerComponent,
 
   ],
   imports: [

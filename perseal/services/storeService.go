@@ -1,9 +1,9 @@
 package services
 
 import (
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
-	"github.com/EC-SEAL/perseal/sm"
 )
 
 var (
@@ -11,19 +11,17 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreCloudData(data sm.SessionMngrResponse, pds string, id string, filename string, cameFrom string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	uuid := mockUUID
+func StoreCloudData(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+	dto.UUID = mockUUID
 
-	data, err = checkClientId(data, pds)
+	dto.SMResp, err = checkClientId(dto)
 	if err != nil {
 		return
 	}
-	if pds == "googleDrive" {
-		password, dataStore, err = storeSessionDataGoogleDrive(data, uuid, id, filename, cameFrom) // No password
-		return
-
-	} else if pds == "oneDrive" {
-		password, dataStore, err = storeSessionDataOneDrive(data, uuid, id, filename, cameFrom) // No password
+	if dto.PDS == "googleDrive" {
+		returningdto, dataStore, err = storeSessionDataGoogleDrive(dto, filename)
+	} else if dto.PDS == "oneDrive" {
+		returningdto, dataStore, err = storeSessionDataOneDrive(dto, filename)
 	} else {
 		err = &model.DashboardResponse{
 			Code:    400,
@@ -35,11 +33,11 @@ func StoreCloudData(data sm.SessionMngrResponse, pds string, id string, filename
 }
 
 // Back-channel store may only be used for local Browser storing
-func StoreLocalData(data sm.SessionMngrResponse, pds string, cipherPassword string) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	uuid := mockUUID
-	if pds != "googleDrive" && pds != "oneDrive" {
+func StoreLocalData(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+	dto.UUID = mockUUID
+	if dto.PDS != "googleDrive" && dto.PDS != "oneDrive" {
 		var erro error
-		dataStore, erro = externaldrive.StoreSessionData(data, uuid, cipherPassword)
+		dataStore, erro = externaldrive.StoreSessionData(dto)
 		if erro != nil {
 			err = &model.DashboardResponse{
 				Code:         500,

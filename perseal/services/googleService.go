@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
@@ -21,18 +22,26 @@ import (
 // GOOGLE DRIVE SERVICE METHODS
 
 //Attempts to Store the Session Data On Google Drive
-func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename string, cameFrom string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
-	oauthToken, client, err := getGoogleToken(data, id, cameFrom)
+	returningdto = dto
+	returningdto, client, err := getGoogleToken(dto)
 	if err != nil {
 		return
 	}
-	fmt.Println(oauthToken.AccessToken)
+	if dto.StopProcess == true {
+		return
+	}
+	fmt.Println(returningdto.Token.AccessToken)
 
+	utils.RecieveCheckFirstAccess()
 	// Request Password From UI
-	password = utils.RecievePassword()
+	returningdto.StopProcess, returningdto.Password = utils.RecievePassword()
+	if returningdto.StopProcess == true {
+		return
+	}
 
-	dataStore, erro := externaldrive.StoreSessionData(data, uuid, password)
+	dataStore, erro := externaldrive.StoreSessionData(returningdto)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -42,7 +51,7 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename str
 		return
 	}
 
-	file, erro := dataStore.UploadGoogleDrive(oauthToken, client, filename)
+	file, erro := dataStore.UploadGoogleDrive(returningdto.Token, client, filename)
 	fmt.Println(file)
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -55,15 +64,26 @@ func storeSessionDataGoogleDrive(data interface{}, uuid, id string, filename str
 }
 
 //Attempts to Load a Datastore from GoogleDrive into Session
-func loadSessionDataGoogleDrive(data interface{}, id string, filename string, cameFrom string) (file *http.Response, err *model.DashboardResponse) {
+func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, file *http.Response, err *model.DashboardResponse) {
 
-	_, client, err := getGoogleToken(data, id, cameFrom)
+	returningdto = dto
+
+	returningdto, client, err := getGoogleToken(returningdto)
 	if err != nil {
 		return
 	}
+	if returningdto.StopProcess == true {
+		return
+	}
+
+	jsonM, _ := json.Marshal(returningdto.SMResp)
+	smr := &sm.SessionMngrResponse{}
+	json.Unmarshal(jsonM, smr)
+
+	str := smr.SessionData.SessionVariables["ClientCallbackAddr"]
+	utils.SendLink(str)
 
 	checkFirstAccess := utils.RecieveCheckFirstAccess()
-
 	if checkFirstAccess == true {
 		err = &model.DashboardResponse{
 			Code:    302,
@@ -85,8 +105,13 @@ func loadSessionDataGoogleDrive(data interface{}, id string, filename string, ca
 }
 
 // Fetches GoogleDrive Code
-func getGoogleToken(data interface{}, id string, cameFrom string) (oauthToken *oauth2.Token, client *http.Client, err *model.DashboardResponse) {
-	config, err := refreshGoogleDriveCreds(data)
+func getGoogleToken(dto dto.PersistenceDTO) (returningdto dto.PersistenceDTO, client *http.Client, err *model.DashboardResponse) {
+
+	returningdto = dto
+	config, err := refreshGoogleDriveCreds(dto.SMResp)
+	if err != nil {
+		return
+	}
 	log.Println("access cred ", externaldrive.AccessCreds)
 
 	// If no Token was Found
@@ -99,28 +124,31 @@ func getGoogleToken(data interface{}, id string, cameFrom string) (oauthToken *o
 			URL:      authURL,
 		}
 
-		utils.SendRedirect(modelRedirect)
+		returningdto.StopProcess = utils.SendRedirect(modelRedirect)
+		if returningdto.StopProcess == true {
+			return
+		}
 		code := utils.RecieveCode()
 		log.Println(code)
 
 		log.Println(config)
-		err = updateNewGoogleDriveTokenFromCode(config, id, code)
+		err = updateNewGoogleDriveTokenFromCode(config, returningdto.ID, code)
 		if err != nil {
 			return
 		}
 
-		data, err = sm.GetSessionData(id, "")
+		returningdto.SMResp, err = sm.GetSessionData(returningdto.ID, "")
 		if err != nil {
 			return
 		}
 
-		config, err = refreshGoogleDriveCreds(data)
+		config, err = refreshGoogleDriveCreds(returningdto.SMResp)
 		if err != nil {
 			return
 		}
 
 	} else {
-		if cameFrom != "load&store" {
+		if returningdto.Method != "load&store" {
 			modelRedirect := model.RedirectStruct{
 				Redirect: false,
 				URL:      "",
@@ -128,22 +156,22 @@ func getGoogleToken(data interface{}, id string, cameFrom string) (oauthToken *o
 			utils.SendRedirect(modelRedirect)
 		}
 	}
-	if cameFrom != "load&store" {
+	if returningdto.Method != "load&store" {
 		if sm.CurrentUser == nil {
 			sm.CurrentUser = make(chan sm.SessionMngrResponse)
 		}
-		jsonM, _ := json.Marshal(data)
+		jsonM, _ := json.Marshal(returningdto.SMResp)
 		smr := &sm.SessionMngrResponse{}
 		json.Unmarshal(jsonM, smr)
 		sm.CurrentUser <- *smr
 	}
 
-	oauthToken = &oauth2.Token{}
-	erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(oauthToken)
+	returningdto.Token = &oauth2.Token{}
+	erro := json.NewDecoder(strings.NewReader(externaldrive.AccessCreds)).Decode(returningdto.Token)
 
 	log.Println(erro)
 
-	client = config.Client(context.Background(), oauthToken)
+	client = config.Client(context.Background(), returningdto.Token)
 	return
 }
 
@@ -215,7 +243,7 @@ func updateNewGoogleDriveTokenFromCode(config *oauth2.Config, sessionId string, 
 }
 
 // Uploads new GoogleDrive data
-func refreshGoogleDriveCreds(data interface{}) (config *oauth2.Config, err *model.DashboardResponse) {
+func refreshGoogleDriveCreds(data sm.SessionMngrResponse) (config *oauth2.Config, err *model.DashboardResponse) {
 
 	googleCreds := externaldrive.SetGoogleDriveCreds(data)
 

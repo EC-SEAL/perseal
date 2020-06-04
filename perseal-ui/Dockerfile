@@ -11,7 +11,7 @@ RUN npm set progress=false
 
 RUN npm install
 
-RUN npm run build --prod
+RUN npm run build --prod --baseHref=/per/
 
 
 FROM nginx:1.15.8-alpine

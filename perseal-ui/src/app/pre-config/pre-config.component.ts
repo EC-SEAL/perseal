@@ -1,7 +1,7 @@
 import { environment } from '../../environments/environment.prod';
 import { HttpService } from 'src/Persistence/httpService';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit, Inject, HostListener } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({

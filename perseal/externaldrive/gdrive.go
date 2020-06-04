@@ -2,7 +2,6 @@ package externaldrive
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -180,20 +179,17 @@ func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err 
 	return file, err
 }
 
-func SetGoogleDriveCreds(data interface{}) GoogleDriveCreds {
+func SetGoogleDriveCreds(data sm.SessionMngrResponse) GoogleDriveCreds {
 	googleCreds = &GoogleDriveCreds{}
-	jsonM, _ := json.Marshal(data)
-	smr := &sm.SessionMngrResponse{}
-	json.Unmarshal(jsonM, smr)
 
-	log.Println("the smr ", smr)
-	googleCreds.Web.ClientId = smr.SessionData.SessionVariables["GoogleDriveClientID"]
-	googleCreds.Web.ProjectId = smr.SessionData.SessionVariables["GoogleDriveProject"]
-	googleCreds.Web.AuthURI = smr.SessionData.SessionVariables["GoogleDriveAuthURI"]
-	googleCreds.Web.TokenURI = smr.SessionData.SessionVariables["GoogleDriveTokenURI"]
-	googleCreds.Web.AuthProviderx509CertUrl = smr.SessionData.SessionVariables["GoogleDriveAuthProviderx509CertUrl"]
-	googleCreds.Web.ClientSecret = smr.SessionData.SessionVariables["GoogleDriveClientSecret"]
-	googleCreds.Web.RedirectURIS = strings.Split([]string{smr.SessionData.SessionVariables["GoogleDriveRedirectUris"]}[0], ",")
-	AccessCreds = smr.SessionData.SessionVariables["GoogleDriveAccessCreds"]
+	log.Println("the data ", data)
+	googleCreds.Web.ClientId = data.SessionData.SessionVariables["GoogleDriveClientID"]
+	googleCreds.Web.ProjectId = data.SessionData.SessionVariables["GoogleDriveProject"]
+	googleCreds.Web.AuthURI = data.SessionData.SessionVariables["GoogleDriveAuthURI"]
+	googleCreds.Web.TokenURI = data.SessionData.SessionVariables["GoogleDriveTokenURI"]
+	googleCreds.Web.AuthProviderx509CertUrl = data.SessionData.SessionVariables["GoogleDriveAuthProviderx509CertUrl"]
+	googleCreds.Web.ClientSecret = data.SessionData.SessionVariables["GoogleDriveClientSecret"]
+	googleCreds.Web.RedirectURIS = strings.Split([]string{data.SessionData.SessionVariables["GoogleDriveRedirectUris"]}[0], ",")
+	AccessCreds = data.SessionData.SessionVariables["GoogleDriveAccessCreds"]
 	return *googleCreds
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/utils"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
@@ -234,14 +235,14 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 }
 
 // data = sessionData
-func StoreSessionData(data interface{}, uuid, cipherPassword string) (dataStore *DataStore, err error) {
-	dataStore, err = NewDataStore(uuid, data)
+func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) {
+	dataStore, err = NewDataStore(dto.UUID, dto.SMResp)
 	if err != nil {
 		return
 	}
 	// Encrypt blob if cipherPassword param is set
-	if cipherPassword != "" {
-		err = dataStore.Encrypt(cipherPassword)
+	if dto.Password != "" {
+		err = dataStore.Encrypt(dto.Password)
 		if err != nil {
 			return
 		}

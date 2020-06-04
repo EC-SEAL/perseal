@@ -6,7 +6,7 @@
     "perseal-ui": {
       "projectType": "application",
       "schematics": {},
-      "root": "",
+      "root": "per",
       "sourceRoot": "src",
       "prefix": "app",
       "architect": {

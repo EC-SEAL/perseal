@@ -11,8 +11,8 @@ type RedirectStruct struct {
 	URL      string `json:"url"`
 }
 
-var Local = false
+var Local = true
 
-var Code, Password, CloudLogin chan string
+var Code, Password, CloudLogin, ClientCallback chan string
 var Redirect chan RedirectStruct
-var CheckFirstAccess chan bool
+var CheckFirstAccess, End chan bool

@@ -37,8 +37,19 @@ export class  HttpService {
     return this.http.post(this.url + 'load', msToken);
   }
 
+  clientCallbackAddr(){
+    return this.http.get(this.url + 'clientCallbackAddr');
+  }
+
   noFilesStore(bool: boolean){
     return this.http.post(this.url + 'toStore', bool);
+  }
+  resetAndClose(){
+    return this.http.get(this.url + 'resetAndClose');
+  }
+
+  reset(){
+    return this.http.get(this.url + 'reset');
   }
 
   getSessionId(token: string){

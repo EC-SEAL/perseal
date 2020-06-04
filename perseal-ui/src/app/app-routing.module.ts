@@ -1,3 +1,4 @@
+import { PerComponent } from './per/per.component';
 import { LoadComponent } from './load/load.component';
 import { StoreComponent } from './store/store.component';
 import { PerCodeComponent } from './per-code/per-code.component';
@@ -8,11 +9,17 @@ import { GetPasswordComponent } from './get-password/get-password.component';
 
 
 const routes: Routes = [
-  {path: 'load', component: LoadComponent},
-  {path: 'store', component: StoreComponent},
   {path: 'insertPassword', component: GetPasswordComponent, pathMatch: 'full'},
   {path: 'preConfig', component: PreConfigComponent},
-  {path: 'code', component: PerCodeComponent}
+  {path: 'code', component: PerCodeComponent},
+  {
+    path: 'per/:method',
+    component: PerComponent,
+    children : [
+      {path: 'store', component: StoreComponent},
+      {path: 'load', component: LoadComponent},
+    ]
+}
 ];
 
 @NgModule({

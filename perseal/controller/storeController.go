@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
@@ -26,23 +27,34 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionData, err := sm.GetSessionData(id, "")
-	pds := sessionData.SessionData.SessionVariables["PDS"]
-	log.Println(pds)
+
 	var dataStore *externaldrive.DataStore
 	var redirect string
 
 	// For Development
-	if sessionData.SessionData.SessionVariables["ClienCallbackAddr"] == "" {
+	if sessionData.SessionData.SessionVariables["ClientCallbackAddr"] == "" {
 		sm.UpdateSessionData(id, "https://vm.project-seal.eu:9053/swagger-ui.html", "ClientCallbackAddr")
 		sessionData, _ = sm.GetSessionData(id, "")
 	}
-	_, dataStore, err = services.StoreCloudData(sessionData, pds, id, "datastore.seal", "store")
 
+	dto := dto.PersistenceDTO{
+		ID:                 id,
+		PDS:                sessionData.SessionData.SessionVariables["PDS"],
+		Method:             "store",
+		ClientCallbackAddr: sessionData.SessionData.SessionVariables["ClientCallbackAddr"],
+		SMResp:             sessionData,
+	}
+	dto, dataStore, err = services.StoreCloudData(dto, "datastore.seal")
+
+	if dto.StopProcess == true {
+		w.Header().Set("content-type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
+		return
+	}
 	fmt.Println(dataStore)
 	fmt.Println(redirect)
 	fmt.Println(err)
-
-	url := sessionData.SessionData.SessionVariables["ClientCallbackAddr"]
 
 	if redirect != "" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -55,10 +67,8 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	} else if dataStore != nil {
 		w.Header().Set("content-type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, url, 200)
-		if sm.CurrentUser != nil {
-			sm.CurrentUser = nil
-		}
+		w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
+		log.Println("url: ", dto.ClientCallbackAddr)
 	}
 	return
 }
@@ -90,13 +100,20 @@ func PersistenceStoreWithToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cipherPassword string
-	pds := sessionData.SessionData.SessionVariables["PDS"]
-
 	if keys, ok := r.URL.Query()["cipherPassword"]; ok {
 		cipherPassword = keys[0]
 	}
 
-	dataStore, err := services.StoreLocalData(sessionData, pds, cipherPassword)
+	dto := dto.PersistenceDTO{
+		ID:                 sessionToken,
+		PDS:                sessionData.SessionData.SessionVariables["PDS"],
+		Method:             "store",
+		ClientCallbackAddr: sessionData.SessionData.SessionVariables["ClientCallbackAddr"],
+		SMResp:             sessionData,
+		Password:           cipherPassword,
+	}
+
+	dataStore, err := services.StoreLocalData(dto)
 
 	if err != nil {
 		w = utils.WriteResponseMessage(w, err, err.Code)

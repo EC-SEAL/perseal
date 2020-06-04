@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
@@ -38,19 +37,13 @@ func getSessionDataFromMSToken(r *http.Request) (id string, smResp sm.SessionMng
 
 //Auxiliary Method for Development: Resets Session Variables of a given SessionId
 func Reset(w http.ResponseWriter, r *http.Request) {
-	sessionToken := r.FormValue("sessionToken")
-	if sessionToken == "" {
-		err := &model.DashboardResponse{
-			Code:    400,
-			Message: "Couldn't find Session Token",
-		}
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	sm.UpdateSessionData(sessionToken, "{}", "")
-	ti, _ := sm.GetSessionData(sessionToken, "")
-	w.WriteHeader(200)
-	t, _ := json.MarshalIndent(ti, "", "\t")
-	w.Write(t)
+	model.Password = nil
+	model.ClientCallback = nil
+	model.CheckFirstAccess = nil
+	model.CloudLogin = nil
+	model.Code = nil
+	model.Redirect = nil
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = utils.WriteResponseMessage(w, "", 200)
+	return
 }

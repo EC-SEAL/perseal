@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
@@ -26,25 +27,38 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	smResp, err := sm.GetSessionData(id, "")
+	sessionData, err := sm.GetSessionData(id, "")
 
 	// For Development
-	if smResp.SessionData.SessionVariables["ClienCallbackAddr"] == "" {
+	if sessionData.SessionData.SessionVariables["ClientCallbackAddr"] == "" {
+		log.Println("updating")
 		sm.UpdateSessionData(id, "https://vm.project-seal.eu:9053/swagger-ui.html", "ClientCallbackAddr")
-		smResp, _ = sm.GetSessionData(id, "")
+		sessionData, _ = sm.GetSessionData(id, "")
+	}
+
+	dto := dto.PersistenceDTO{
+		ID:                 id,
+		PDS:                sessionData.SessionData.SessionVariables["PDS"],
+		Method:             "load",
+		ClientCallbackAddr: sessionData.SessionData.SessionVariables["ClientCallbackAddr"],
+		SMResp:             sessionData,
 	}
 
 	// Initialize Variables
 	var ds *externaldrive.DataStore
 	var fetchedFromLocalData bool
-	pds := smResp.SessionData.SessionVariables["PDS"]
-	clientCallBack := smResp.SessionData.SessionVariables["ClientCallbackAddr"]
-	var password, clientCallBackVerify string
+	var clientCallBackVerify string
 
-	if pds == "googleDrive" || pds == "oneDrive" {
-		ds, err = services.FetchCloudDataStore(smResp, pds, "datastore.seal")
-	} else if pds == "Browser" || pds == "Mobile" {
-		fetchedFromLocalData = services.FetchLocalDataStore(pds, clientCallBack, smResp)
+	if dto.PDS == "googleDrive" || dto.PDS == "oneDrive" {
+		dto, ds, err = services.FetchCloudDataStore(dto, "datastore.seal")
+	} else if dto.PDS == "Browser" || dto.PDS == "Mobile" {
+		fetchedFromLocalData = services.FetchLocalDataStore(dto)
+	}
+	if dto.StopProcess {
+		w.Header().Set("content-type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
+		return
 	}
 
 	// For UC 1.06. If no Files ares found, perform a store
@@ -52,11 +66,18 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		log.Println(err.Code)
 		if err.Code == 302 {
 			fmt.Println("No DataStore Found! Performing Store")
-			password, ds, err = services.StoreCloudData(smResp, pds, id, "datastore.seal", "load&store")
-			log.Println(ds)
+			dto.Method = "load&store"
+			dto, ds, err = services.StoreCloudData(dto, "datastore.seal")
+			log.Println("DATASTORE SIG ", ds.Signature)
 			log.Println(err)
 		}
 
+	}
+	if dto.StopProcess {
+		w.Header().Set("content-type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
+		return
 	}
 
 	// Validates signature of DataStore
@@ -76,12 +97,12 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if fetchedFromLocalData && clientCallBack == clientCallBackVerify {
+	if fetchedFromLocalData && dto.ClientCallbackAddr == clientCallBackVerify {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, smResp.SessionData.SessionID, 200)
+		w = utils.WriteResponseMessage(w, dto.ID, 200)
 		return
 
-	} else if fetchedFromLocalData && clientCallBack != clientCallBackVerify {
+	} else if fetchedFromLocalData && dto.ClientCallbackAddr != clientCallBackVerify {
 		smRes, err := sm.GenerateToken("", "PERms001", "PERms001", id)
 		if err != nil {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -99,15 +120,19 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Waits for Password
-		if password == "" {
-			model.Password = make(chan string)
-			password = <-model.Password
-			log.Println(password)
-			model.Password = nil
+		var verification bool
+		if dto.Password == "" {
+			// Waits for Password
+			verification, dto.Password = utils.RecievePassword()
 		}
 
-		err = services.DecryptAndMarshallDataStore(ds, id, password)
+		if verification {
+			w.Header().Set("content-type", "application/json")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
+			return
+		}
+		err = services.DecryptAndMarshallDataStore(ds, dto.ID, dto.Password)
 
 		if err != nil {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -117,7 +142,7 @@ func PersistenceLoad(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("content-type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, clientCallBack, 200)
+		w = utils.WriteResponseMessage(w, dto.ClientCallbackAddr, 200)
 	}
 	return
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
@@ -18,11 +19,21 @@ import (
 // ONE DRIVE SERVICE METHODS
 
 //Attempts to Store the Session Data On OneDrive
-func storeSessionDataOneDrive(data interface{}, uuid, id string, filename string, cameFrom string) (password string, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
+func storeSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
 
-	oauthToken, err := getOneDriveToken(data, id, cameFrom)
+	returningdto, err = getOneDriveToken(dto)
+	if returningdto.StopProcess == true {
+		return
+	}
 
-	dataStore, erro := externaldrive.StoreSessionData(data, uuid, password)
+	utils.RecieveCheckFirstAccess()
+	// Request Password From UI
+	returningdto.StopProcess, returningdto.Password = utils.RecievePassword()
+	if returningdto.StopProcess == true {
+		return
+	}
+
+	dataStore, erro := externaldrive.StoreSessionData(returningdto)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -33,7 +44,7 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string, filename string
 	}
 
 	var contents []byte
-	contents, erro = dataStore.UploadingBlob(oauthToken)
+	contents, erro = dataStore.UploadingBlob(returningdto.Token)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         500,
@@ -43,7 +54,7 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string, filename string
 		return
 	}
 	var file *drive.File
-	file, erro = dataStore.UploadOneDrive(oauthToken, contents, filename, "SEAL")
+	file, erro = dataStore.UploadOneDrive(returningdto.Token, contents, filename, "SEAL")
 	fmt.Println(file)
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -56,14 +67,22 @@ func storeSessionDataOneDrive(data interface{}, uuid, id string, filename string
 }
 
 // Fetches GoogleDrive Code
-func loadSessionDataOneDrive(smResp interface{}, id string, filename string, cameFrom string) (file *http.Response, err *model.DashboardResponse) {
-	var oauthToken *oauth2.Token
-	oauthToken, err = getOneDriveToken(smResp, id, cameFrom)
+func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, file *http.Response, err *model.DashboardResponse) {
+	returningdto = dto
+	returningdto, err = getOneDriveToken(dto)
 	if err != nil {
 		return
 	}
+	if returningdto.StopProcess == true {
+		return
+	}
 
-	fmt.Println(oauthToken.AccessToken)
+	fmt.Println(returningdto.Token)
+	jsonM, _ := json.Marshal(returningdto.SMResp)
+	smr := &sm.SessionMngrResponse{}
+	json.Unmarshal(jsonM, smr)
+	str := smr.SessionData.SessionVariables["ClientCallbackAddr"]
+	utils.SendLink(str)
 
 	checkFirstAccess := utils.RecieveCheckFirstAccess()
 
@@ -75,7 +94,7 @@ func loadSessionDataOneDrive(smResp interface{}, id string, filename string, cam
 		return
 	}
 
-	file, erro := externaldrive.GetOneDriveItem(oauthToken, filename)
+	file, erro := externaldrive.GetOneDriveItem(returningdto.Token, filename)
 	if erro != nil {
 		err = &model.DashboardResponse{
 			Code:         404,
@@ -88,10 +107,13 @@ func loadSessionDataOneDrive(smResp interface{}, id string, filename string, cam
 	return
 }
 
-func getOneDriveToken(data interface{}, id string, cameFrom string) (oauthToken *oauth2.Token, err *model.DashboardResponse) {
+func getOneDriveToken(dto dto.PersistenceDTO) (returningdto dto.PersistenceDTO, err *model.DashboardResponse) {
+	returningdto = dto
+	var link string
+	var erro error
 
-	creds, err := setOneDriveCreds(data)
-	link, oauthToken, erro := externaldrive.GetOneDriveToken(creds)
+	creds, err := setOneDriveCreds(returningdto.SMResp)
+	link, returningdto.Token, erro = externaldrive.GetOneDriveToken(creds)
 
 	if erro != nil {
 		err = &model.DashboardResponse{
@@ -109,24 +131,27 @@ func getOneDriveToken(data interface{}, id string, cameFrom string) (oauthToken 
 			URL:      link,
 		}
 
-		utils.SendRedirect(modelRedirect)
+		returningdto.StopProcess = utils.SendRedirect(modelRedirect)
+		if returningdto.StopProcess == true {
+			return
+		}
 		code := utils.RecieveCode()
 		log.Println(code)
 
-		oauthToken, err = updateNewOneDriveTokenFromCode(id, code, creds.OneDriveClientID)
+		returningdto.Token, err = updateNewOneDriveTokenFromCode(returningdto.ID, code, creds.OneDriveClientID)
 
-		data, err = sm.GetSessionData(id, "")
+		returningdto.SMResp, err = sm.GetSessionData(returningdto.ID, "")
 		if err != nil {
 			return
 		}
-		creds, err = setOneDriveCreds(data)
+		creds, err = setOneDriveCreds(returningdto.SMResp)
 		if err != nil {
 			return
 		}
 
-		log.Println("TOKEN ", oauthToken)
+		log.Println("TOKEN ", returningdto.Token)
 	} else {
-		if cameFrom != "load&store" {
+		if returningdto.Method != "load&store" {
 			modelRedirect := model.RedirectStruct{
 				Redirect: false,
 				URL:      "",
@@ -134,11 +159,11 @@ func getOneDriveToken(data interface{}, id string, cameFrom string) (oauthToken 
 			utils.SendRedirect(modelRedirect)
 		}
 	}
-	if cameFrom != "load&store" {
+	if returningdto.Method != "load&store" {
 		if sm.CurrentUser == nil {
 			sm.CurrentUser = make(chan sm.SessionMngrResponse)
 		}
-		jsonM, _ := json.Marshal(data)
+		jsonM, _ := json.Marshal(returningdto.SMResp)
 		smr := &sm.SessionMngrResponse{}
 		json.Unmarshal(jsonM, smr)
 		sm.CurrentUser <- *smr
@@ -169,7 +194,7 @@ func updateNewOneDriveTokenFromCode(sessionId string, code string, id string) (o
 	return
 }
 
-func setOneDriveCreds(data interface{}) (creds *externaldrive.OneDriveCreds, err *model.DashboardResponse) {
+func setOneDriveCreds(data sm.SessionMngrResponse) (creds *externaldrive.OneDriveCreds, err *model.DashboardResponse) {
 	creds, erro := externaldrive.SetOneDriveCreds(data)
 	if erro != nil {
 		err = &model.DashboardResponse{

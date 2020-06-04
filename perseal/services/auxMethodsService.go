@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
@@ -15,12 +16,11 @@ import (
 
 // if no files to load were found
 
-func checkClientId(smResp sm.SessionMngrResponse, pds string) (returningSM sm.SessionMngrResponse, err *model.DashboardResponse) {
-
-	id := smResp.SessionData.SessionID
-	returningSM = smResp
-	if pds == "googleDrive" {
-		clientID := smResp.SessionData.SessionVariables["GoogleDriveAccessCreds"]
+func checkClientId(dto dto.PersistenceDTO) (returningSM sm.SessionMngrResponse, err *model.DashboardResponse) {
+	id := dto.ID
+	returningSM = dto.SMResp
+	if dto.PDS == "googleDrive" {
+		clientID := dto.SMResp.SessionData.SessionVariables["GoogleDriveAccessCreds"]
 		// Validates if the session data contains the google drive authentication token
 		if clientID == "" {
 			returningSM.Error = "Session Data Not Correctly Set - Google Drive Client Missing"
@@ -30,8 +30,8 @@ func checkClientId(smResp sm.SessionMngrResponse, pds string) (returningSM sm.Se
 				return
 			}
 		}
-	} else if pds == "oneDrive" {
-		clientID := smResp.SessionData.SessionVariables["OneDriveAccessToken"]
+	} else if dto.PDS == "oneDrive" {
+		clientID := dto.SMResp.SessionData.SessionVariables["OneDriveAccessToken"]
 		log.Println(clientID)
 		if clientID == "" {
 			returningSM.Error = "Session Data Not Correctly Set - One Drive Client Missing"
@@ -94,6 +94,12 @@ func ValidateSignature(encrypted string, sigToValidate string) bool {
 
 func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []string, err *model.DashboardResponse) {
 
+	dto := dto.PersistenceDTO{
+		PDS:    pds,
+		SMResp: smResp,
+		Method: "load&store",
+	}
+
 	if pds == "googleDrive" {
 		var client *http.Client
 		client, err = getGoogleDriveClient(smResp)
@@ -114,7 +120,7 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 
 	} else if pds == "oneDrive" {
 		var oauthToken *oauth2.Token
-		oauthToken, err = getOneDriveToken(smResp, smResp.SessionData.SessionID, "load&store")
+		dto, err = getOneDriveToken(dto)
 		if err != nil {
 			return
 		}

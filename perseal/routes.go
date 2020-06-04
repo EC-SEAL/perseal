@@ -97,4 +97,23 @@ var perRoutes = routes{
 		"/getSessionId",
 		controller.GetSessionId,
 	},
+
+	route{
+		"Test",
+		"GET",
+		"/clientCallbackAddr",
+		controller.ClientCallbackAddr,
+	},
+	route{
+		"Test",
+		"GET",
+		"/resetAndClose",
+		controller.ResetChannelsAndClose,
+	},
+	route{
+		"Generate msToken",
+		"GET",
+		"/generateToken",
+		controller.GenerateToken,
+	},
 }

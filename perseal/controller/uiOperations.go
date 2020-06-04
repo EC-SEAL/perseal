@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
@@ -77,10 +78,28 @@ func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func ClientCallbackAddr(w http.ResponseWriter, r *http.Request) {
+	log.Println("ClientCallbackAddr")
+
+	if model.ClientCallback == nil {
+		model.ClientCallback = make(chan string)
+	}
+	log.Println("clientcall   ", model.ClientCallback)
+
+	client := <-model.ClientCallback
+	log.Println("CLIENT ", client)
+	model.ClientCallback = nil
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = utils.WriteResponseMessage(w, client, 200)
+	return
+}
+
 func CheckFirstAccess(w http.ResponseWriter, r *http.Request) {
 	log.Println("CheckFirstAccess")
 
 	if model.CheckFirstAccess == nil {
+		log.Println("making check")
 		model.CheckFirstAccess = make(chan bool)
 	}
 
@@ -90,12 +109,24 @@ func CheckFirstAccess(w http.ResponseWriter, r *http.Request) {
 		w = utils.WriteResponseMessage(w, err, err.Code)
 		return
 	}
+	go func() {
+		time.Sleep(5 * time.Second)
+		log.Println("ES SENT")
+		model.CheckFirstAccess = nil
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, "este", 200)
 
+	}()
+
+	log.Println(toStore)
+	log.Println(model.CheckFirstAccess)
 	if toStore == "true" {
 		model.CheckFirstAccess <- true
 	} else {
 		model.CheckFirstAccess <- false
 	}
+
+	log.Println("SENT")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w = utils.WriteResponseMessage(w, "", 200)
 	return
@@ -111,6 +142,7 @@ func RedirectRequest(w http.ResponseWriter, r *http.Request) {
 
 	var redirect model.RedirectStruct
 	redirect = <-model.Redirect
+	model.Redirect = nil
 
 	log.Println("tenho")
 	// If true, redirects to Login Page of Cloud
@@ -140,6 +172,9 @@ func RecievePassword(w http.ResponseWriter, r *http.Request) {
 
 	sha := utils.HashSUM256(password)
 
+	if model.Password == nil {
+		model.Password = make(chan string)
+	}
 	model.Password <- sha
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w = utils.WriteResponseMessage(w, "", 200)
@@ -166,5 +201,47 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	model.Code <- code
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w = utils.WriteResponseMessage(w, "", 200)
+	return
+}
+
+func ResetChannelsAndClose(w http.ResponseWriter, r *http.Request) {
+	log.Println("resetChannelsIsAndClose")
+	model.Password = nil
+	model.ClientCallback = nil
+	model.CheckFirstAccess = nil
+	model.CloudLogin = nil
+	model.Code = nil
+	model.Redirect = nil
+	log.Println(model.End)
+	model.End <- true
+	log.Println(model.End)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = utils.WriteResponseMessage(w, "", 200)
+	return
+}
+
+func GenerateToken(w http.ResponseWriter, r *http.Request) {
+	log.Println("generateToken")
+	var id string
+	if keys, ok := r.URL.Query()["sessionId"]; ok {
+		id = keys[0]
+	}
+	if id == "" {
+		err := &model.DashboardResponse{
+			Code:    400,
+			Message: "Couldn't find Session Token",
+		}
+		w = utils.WriteResponseMessage(w, err, err.Code)
+		return
+	}
+
+	smResp, err := sm.GenerateToken("", "PERms001", "PERms001", id)
+	if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = utils.WriteResponseMessage(w, err, err.Code)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = utils.WriteResponseMessage(w, smResp.AdditionalData, 200)
 	return
 }

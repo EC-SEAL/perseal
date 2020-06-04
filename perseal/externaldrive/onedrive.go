@@ -359,18 +359,11 @@ func tokenRequest(req *http.Request) (tok *oauth2.Token, err error) {
 	return
 }
 
-func SetOneDriveCreds(data interface{}) (creds *OneDriveCreds, err error) {
-	smr := &sm.SessionMngrResponse{}
-	jsonM, err := json.Marshal(data)
-	if err != nil {
-		return
-	}
+func SetOneDriveCreds(data sm.SessionMngrResponse) (creds *OneDriveCreds, err error) {
 	creds = &OneDriveCreds{}
-
-	json.Unmarshal(jsonM, smr)
-	creds.OneDriveClientID = smr.SessionData.SessionVariables["OneDriveClientID"]
-	creds.OneDriveScopes = smr.SessionData.SessionVariables["OneDriveScopes"]
-	creds.OneDriveAccessToken = smr.SessionData.SessionVariables["OneDriveAccessToken"]
-	creds.OneDriveRefreshToken = smr.SessionData.SessionVariables["OneDriveRefreshToken"]
+	creds.OneDriveClientID = data.SessionData.SessionVariables["OneDriveClientID"]
+	creds.OneDriveScopes = data.SessionData.SessionVariables["OneDriveScopes"]
+	creds.OneDriveAccessToken = data.SessionData.SessionVariables["OneDriveAccessToken"]
+	creds.OneDriveRefreshToken = data.SessionData.SessionVariables["OneDriveRefreshToken"]
 	return
 }
