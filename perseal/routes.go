@@ -25,6 +25,19 @@ func newRouter() *mux.Router {
 			Methods(route.Method).
 			Name(route.Name)
 	}
+
+	staticPaths := map[string]string{
+		"ui": "./ui/",
+	}
+
+	for pathName, pathValue := range staticPaths {
+		pathPrefix := "/" + pathName + "/"
+		router.
+			PathPrefix(pathPrefix).
+			Handler(http.
+				StripPrefix(pathPrefix, http.FileServer(http.Dir(pathValue))))
+	}
+
 	return router
 }
 
@@ -33,87 +46,70 @@ var perRoutes = routes{
 	route{
 		"Setup a persistence mechanism and load a secure storage into session.",
 		"POST",
-		"/load",
+		"/loadFile",
 		controller.PersistenceLoad,
 	},
 	route{
 		"Save session data to the configured persistence mechanism (front channel).",
 		"POST",
-		"/store",
+		"/storeFile",
 		controller.PersistenceStore,
 	},
 	route{
-		"Silent setup of a persistence mechanism by loading a user-provided secure storage into session. (back channel).",
+		"Store And Load",
 		"POST",
-		"/load/{sessionToken}",
-		controller.PersistenceLoadWithToken,
-	},
-	route{
-		"Save session data to the configured persistence mechanism (back channel). Might return the signed and possibly encrypted datastore",
-		"GET",
-		"/store/{sessionToken}",
-		controller.PersistenceStoreWithToken,
-	},
-	route{
-		"Internal Method to Fetch URL of Cloud login for Redirect Request",
-		"POST",
-		"/requestRedirect",
-		controller.RedirectRequest,
-	},
-
-	route{
-		"Internal Method to Send Confirmation Whether it is a First Access Load or Not",
-		"POST",
-		"/toStore",
-		controller.CheckFirstAccess,
-	},
-	route{
-		"Internal Method to Send Password",
-		"POST",
-		"/insertPassword",
-		controller.RecievePassword,
-	},
-	route{
-		"Internal Method to Fetch Cloud Files",
-		"GET",
-		"/fetchCloudFiles",
-		controller.ShowCloudFiles,
+		"/storeAndLoadFile",
+		controller.PersistenceStoreAndLoad,
 	},
 	route{
 		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
-		"POST",
+		"GET",
 		"/code",
 		controller.RetrieveCode,
 	},
 	route{
-		"Resets Session Variables: Development Purposes",
-		"GET",
-		"/reset",
-		controller.Reset,
-	},
-	route{
-		"Test",
+		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
 		"POST",
-		"/getSessionId",
-		controller.GetSessionId,
+		"/insertPassword",
+		controller.InsertPasswordStoreAndLoad,
 	},
+	route{
+		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+		"GET",
+		"/save",
+		controller.Save,
+	},
+	route{
+		"Intitial Configuration And Main Entry Point For Cloud Operations",
+		"GET",
+		"/{method}",
+		controller.InitialCloudConfig,
+	},
+	route{
+		"Intitial Configuration And Main Entry Point For Local Operations",
+		"GET",
+		"/{method}/{sessionToken}",
+		controller.InitialLocalConfig,
+	},
+	/*
+		route{
+			"Generate msToken",
+			"GET",
+			"/generateToken",
+			controller.GenerateToken,
+		},
+		route{
+			"Start Session",
+			"POST",
+			"/startSession",
+			controller.StartSession,
+		},
 
-	route{
-		"Test",
-		"GET",
-		"/clientCallbackAddr",
-		controller.ClientCallbackAddr,
-	},
-	route{
-		"Test",
-		"GET",
-		"/resetAndClose",
-		controller.ResetChannelsAndClose,
-	},
-	route{
-		"Generate msToken",
-		"GET",
-		"/generateToken",
-		controller.GenerateToken,
-	},
+		route{
+			"Start Session",
+			"GET",
+			"/updateLocal",
+			controller.UpdateSessionData,
+		},
+	*/
 }

@@ -7,9 +7,3 @@ services:
         command: /go/bin/perseal
         ports:
             - "$PERSEAL_EXT_PORT:$PERSEAL_INT_PORT"
-    perseal-ui:
-        build: ./perseal-ui
-        container_name: perseal-ui
-        env_file: .env
-        ports:
-            - "$PERSEAL_UI_EXT_PORT:$PERSEAL_UI_INT_PORT"

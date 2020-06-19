@@ -11,19 +11,16 @@ var (
 )
 
 // Store Data on the corresponding PDS
-func StoreCloudData(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	dto.UUID = mockUUID
-
-	dto.SMResp, err = checkClientId(dto)
+func StoreCloudData(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	if err != nil {
 		return
 	}
 	if dto.PDS == "googleDrive" {
-		returningdto, dataStore, err = storeSessionDataGoogleDrive(dto, filename)
+		dataStore, err = storeSessionDataGoogleDrive(dto, filename)
 	} else if dto.PDS == "oneDrive" {
-		returningdto, dataStore, err = storeSessionDataOneDrive(dto, filename)
+		dataStore, err = storeSessionDataOneDrive(dto, filename)
 	} else {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:    400,
 			Message: "Wrong Module Or No Module Found in Credentials",
 		}
@@ -33,22 +30,12 @@ func StoreCloudData(dto dto.PersistenceDTO, filename string) (returningdto dto.P
 }
 
 // Back-channel store may only be used for local Browser storing
-func StoreLocalData(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	dto.UUID = mockUUID
+func StoreLocalData(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	if dto.PDS != "googleDrive" && dto.PDS != "oneDrive" {
-		var erro error
-		dataStore, erro = externaldrive.StoreSessionData(dto)
-		if erro != nil {
-			err = &model.DashboardResponse{
-				Code:         500,
-				Message:      "Couldn't Create New DataStore and Encrypt It",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
+		dataStore, _ = externaldrive.StoreSessionData(dto)
 		return
 	} else {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:    400,
 			Message: "Bad PDS Variable",
 		}

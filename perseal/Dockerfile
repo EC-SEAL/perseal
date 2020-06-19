@@ -30,7 +30,8 @@ LABEL maintainer=$PERSEAL_EMAIL
 FROM alpine:latest as alpine
 RUN apk add -U --no-cache ca-certificates
 
-FROM tomcat:8.0.47-jre7
+
+FROM tomcat:8.0.47-jre7 AS tomcat
 ARG KEYSTORE=keystore.jks
 ARG ALIAS=perseal
 ARG KEYSTOREPASS=keystorepass
@@ -41,9 +42,11 @@ COPY public.pub .
 RUN keytool -importkeystore -srckeystore ./$KEYSTORE -srcstorepass $KEYSTOREPASS -srcalias $ALIAS -destalias $ALIAS -destkeystore $INTER -deststoretype PKCS12 -deststorepass $KEYSTOREPASS
 RUN openssl pkcs12 -in $INTER -nodes -nocerts -out private.key -passin pass:$KEYSTOREPASS
 RUN ls .
-
-COPY --from=build-env /go/bin/perseal /go/bin/perseal
 # Run the executable
 
+RUN mkdir ./ui
+COPY ui ui
 
-#ENTRYPOINT ["/go/bin/perseal"]
+COPY --from=build-env /go/bin/perseal /go/bin/perseal
+
+#ENTRYPOINT ["/go/bin/perseal"]	

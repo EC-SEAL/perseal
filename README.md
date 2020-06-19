@@ -3,12 +3,7 @@
 Endpoint routes referenced in [perseal/routes.go](perseal/routes.go)
 
 ## To Do
-### Redirect to cloud login page in order to retrieve *CODE* to fetch and store the *ACCESS TOKEN*
-```
-Affects: UCs related to Cloud (/per/load and /per/store)
-```
-
-### QR Codes
+### Mobile Storage
 ```
 Affects: UC 1.07 and 8.03
 ```
@@ -16,7 +11,7 @@ Affects: UC 1.07 and 8.03
 ## Usage
 
 ```bash
-#Docker
+# Docker
 docker-compose build
 docker-compose up
 ```

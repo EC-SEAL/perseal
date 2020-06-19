@@ -14,45 +14,24 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// if no files to load were found
+func GetRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLResponse) {
 
-func checkClientId(dto dto.PersistenceDTO) (returningSM sm.SessionMngrResponse, err *model.DashboardResponse) {
-	id := dto.ID
-	returningSM = dto.SMResp
-	if dto.PDS == "googleDrive" {
-		clientID := dto.SMResp.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		// Validates if the session data contains the google drive authentication token
-		if clientID == "" {
-			returningSM.Error = "Session Data Not Correctly Set - Google Drive Client Missing"
-			establishGoogleCredentials(id)
-			returningSM, err = sm.GetSessionData(id, "")
-			if err != nil {
-				return
-			}
-		}
-	} else if dto.PDS == "oneDrive" {
-		clientID := dto.SMResp.SessionData.SessionVariables["OneDriveAccessToken"]
-		log.Println(clientID)
-		if clientID == "" {
-			returningSM.Error = "Session Data Not Correctly Set - One Drive Client Missing"
-			establishOneDriveCredentials(id)
-			returningSM, err = sm.GetSessionData(id, "")
-
-			if err != nil {
-				return
-			}
-		}
+	if dto.PDS == "googleDrive" && dto.GoogleAccessCreds == "" {
+		url, err = getGoogleRedirectURL(dto)
+	} else if dto.PDS == "oneDrive" && dto.OneDriveToken.AccessToken == "" {
+		url, err = getOneDriveRedirectURL(dto)
 	}
+
 	return
 }
 
 // Decrypts dataStore and loads it into session
-func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToken string, cipherPassword string) (err *model.DashboardResponse) {
+func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDTO) (err *model.HTMLResponse) {
 
-	erro := dataStore.Decrypt(cipherPassword)
+	erro := dataStore.Decrypt(dto.Password)
 	dataStore.EncryptedData = ""
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Decrypt DataStore",
 			ErrorMessage: erro.Error(),
@@ -63,7 +42,7 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 
 	jsonM, erro := json.Marshal(dataStore)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
 			ErrorMessage: erro.Error(),
@@ -72,7 +51,7 @@ func DecryptAndMarshallDataStore(dataStore *externaldrive.DataStore, sessionToke
 		return
 	}
 
-	_, err = sm.UpdateSessionData(sessionToken, string(jsonM), "dataStore")
+	_, err = sm.UpdateSessionData(dto.ID, string(jsonM), "dataStore")
 
 	return
 }
@@ -92,17 +71,11 @@ func ValidateSignature(encrypted string, sigToValidate string) bool {
 	return true
 }
 
-func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []string, err *model.DashboardResponse) {
+func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLResponse) {
 
-	dto := dto.PersistenceDTO{
-		PDS:    pds,
-		SMResp: smResp,
-		Method: "load&store",
-	}
-
-	if pds == "googleDrive" {
+	if dto.PDS == "googleDrive" {
 		var client *http.Client
-		client, err = getGoogleDriveClient(smResp)
+		_, client, err = getGoogleDriveClient(dto.GoogleAccessCreds)
 
 		if err != nil {
 			return
@@ -110,7 +83,7 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 		var erro error
 		files, erro = externaldrive.GetGoogleDriveFiles(client)
 		if erro != nil {
-			err = &model.DashboardResponse{
+			err = &model.HTMLResponse{
 				Code:         404,
 				Message:      "Could not Get GoogleDrive Files",
 				ErrorMessage: erro.Error(),
@@ -118,15 +91,15 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 			return
 		}
 
-	} else if pds == "oneDrive" {
-		var oauthToken *oauth2.Token
-		dto, err = getOneDriveToken(dto)
+	} else if dto.PDS == "oneDrive" {
+		var token *oauth2.Token
+		token, err = checkOneDriveTokenExpiry(dto)
 		if err != nil {
 			return
 		}
-		resp, erro := externaldrive.GetOneDriveItems(oauthToken, "SEAL")
+		resp, erro := externaldrive.GetOneDriveItems(token, "SEAL")
 		if erro != nil {
-			err = &model.DashboardResponse{
+			err = &model.HTMLResponse{
 				Code:         404,
 				Message:      "Couldn't Get One Drive Items",
 				ErrorMessage: erro.Error(),
@@ -142,10 +115,10 @@ func GetCloudFileNames(pds string, smResp sm.SessionMngrResponse) (files []strin
 }
 
 // Reads the Body of a Given Datastore Response
-func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err *model.DashboardResponse) {
+func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err *model.HTMLResponse) {
 	body, erro := ioutil.ReadAll(file.Body)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         400,
 			Message:      "Couldn't Read Body From Response of Google Drive File",
 			ErrorMessage: erro.Error(),
@@ -159,7 +132,7 @@ func readBody(file *http.Response, id string) (ds *externaldrive.DataStore, err 
 	log.Println(v)
 	jsonM, erro := json.Marshal(v)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         400,
 			Message:      "Couldn't Parse the Body From Response of Google Drive File to JSON",
 			ErrorMessage: erro.Error(),

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<style>
+h1 {
+   margin-left: 50px; 
+  }
+  h2 {
+    margin-left: 50px;
+  }
+  form {
+
+    margin-left: 50px;
+  }
+
+  input[type=password] {
+    margin: 8px 0;
+    box-sizing: border-box; 
+    padding: 5px;
+    border-radius: 8px;
+    width: calc(33.333333% - 20px);
+    box-sizing: border-box;
+  }
+  
+  input[type=button], input[type=submit], input[type=reset] {   
+    background-color: #252ed3;
+    border: none;
+    color: white;
+    text-decoration: none;
+    padding: 5px;
+    cursor: pointer;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div><img src="/ui/logo.png" height="150px"></div>
+
+{{$id := .ID}}
+
+{{if .DoesNotHaveFiles }}
+ <form action="/per/insertPassword" method="post">
+  <p><h2>No Files Found!</h2></p>
+  <p ><h2>Would You Like to Store a File? </h2></p>
+  <input type="hidden" name="sessionId" value={{.ID}}>
+  <input type="submit" value="Yes">
+</form>
+
+{{end}}
+
+<div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
+
+</body>
+</html>

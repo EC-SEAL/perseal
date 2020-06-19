@@ -43,6 +43,7 @@ func main() {
 		addr = os.Getenv("HOST")
 		fmt.Println("container development")
 	}
+
 	server := &http.Server{
 		TLSConfig:    tlsConfig,
 		Addr:         addr,
@@ -50,9 +51,9 @@ func main() {
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
 	}
-
 	//start listening on port 8082
 
+	http.Handle("/per/ui/", http.StripPrefix("/per/ui/", http.FileServer(http.Dir("ui/"))))
 	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
 	log.Fatal(server.ListenAndServe())
 }

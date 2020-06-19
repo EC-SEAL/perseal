@@ -6,3 +6,6 @@ pkg
 perseal/perseal.exe
 bin/perseal.exe
 shell.sh
+perseal/services/public.pub
+perseal/services/private.key
+perseal/profile

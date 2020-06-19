@@ -3,12 +3,11 @@ package externaldrive
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
-	"regexp"
 
 	"github.com/EC-SEAL/perseal/dto"
+	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
@@ -87,6 +86,10 @@ import (
 }
 */
 
+var (
+	gdriveRootFolder string = "SEAL"
+)
+
 type DataStore struct {
 	ID                  string      `json:"id"`
 	EncryptedData       string      `json:"encryptedData"`
@@ -96,22 +99,26 @@ type DataStore struct {
 	ClearData           interface{} `json:"clearData,omitempty"`
 }
 
-// DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
-
 // NewDataStore creates a new DataStore object
-func NewDataStore(ID string, data interface{}) (ds *DataStore, err error) {
-	if data == nil {
-		return nil, errors.New("Cannot store empty data")
+func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
+	currentDs := &DataStore{}
+	var inter interface{}
+	json.Unmarshal([]byte(data.SessionData.SessionVariables["dataStore"]), &inter)
+
+	jsonM, err := json.Marshal(inter)
+	if err != nil {
+		return
 	}
-	//Validates UUID
-	uuid := regexp.MustCompile("^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-4[a-fA-F0-9]{3}-[8|9|aA|bB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}$")
-	if !uuid.MatchString(ID) {
-		return nil, errors.New("Invalid UUID")
-	}
+	json.Unmarshal(jsonM, &currentDs)
+
+	log.Println(currentDs)
+
+	sessionWithoutDataStore := data.SessionData.SessionVariables
+	delete(sessionWithoutDataStore, "dataStore")
 
 	ds = &DataStore{
-		ID:        ID,
-		ClearData: data,
+		ID:        currentDs.ID,
+		ClearData: sessionWithoutDataStore,
 	}
 	return
 }
@@ -133,19 +140,13 @@ func (ds *DataStore) Encrypt(cipherPassword string) (err error) {
 	return
 }
 
+// Signs DataStore using the certificate key
 func (ds *DataStore) SignDataStore() (err error) {
 	b64dec, err := utils.GetSignature(ds.EncryptedData)
 	if err != nil {
 		return
 	}
 	ds.Signature = string(b64dec)
-	ds.SignatureAlgorithm = "SHA256"
-	return
-}
-
-// Sign signs the DataStore with rsa-sha256
-func (ds *DataStore) Sign(privateKey []byte) (err error) { //TODO
-	//TODO
 	ds.SignatureAlgorithm = "rsa-sha256"
 	return
 }
@@ -160,11 +161,7 @@ func (ds *DataStore) Decrypt(cipherPassword string) (err error) {
 	return
 }
 
-var (
-	gdriveRootFolder string = "SEAL"
-)
-
-func (ds *DataStore) marshalWithoutClearText() (res []byte, err error) {
+func (ds *DataStore) MarshalWithoutClearText() (res []byte, err error) {
 	return json.MarshalIndent(&DataStore{
 		ID:                  ds.ID,
 		EncryptedData:       ds.EncryptedData,
@@ -178,7 +175,7 @@ func (ds *DataStore) marshalWithoutClearText() (res []byte, err error) {
 func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err error) {
 	log.Println("Uploading Blob ", ds.ID)
 	if ds.EncryptedData != "" {
-		data, err = ds.marshalWithoutClearText()
+		data, err = ds.MarshalWithoutClearText()
 		log.Println(string(data))
 	} else {
 		log.Println("No Encryption data for this DataStore - storing as plaintext")
@@ -193,6 +190,9 @@ func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err e
 // UploadGoogleDrive - Uploads file to Google Drive
 func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client, filename string) (file *drive.File, err error) {
 	data, err := ds.UploadingBlob(oauthToken)
+	if err != nil {
+		return
+	}
 
 	fp := &FileProps{
 		Id:          ds.ID,
@@ -202,6 +202,7 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 		ContentType: "application/octet-stream",
 	}
 	file, err = SendFile(fp, client)
+	log.Println(err)
 	return
 }
 
@@ -210,6 +211,7 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 
 	//if the folder exists, only creats the datastore file
 	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
+	log.Println(fileExists)
 	if err != nil {
 		return
 	}
@@ -234,24 +236,30 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 	return
 }
 
-// data = sessionData
 func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) {
-	dataStore, err = NewDataStore(dto.UUID, dto.SMResp)
+	tmpDataStore, err := NewDataStore(dto.SMResp)
 	if err != nil {
 		return
 	}
 	// Encrypt blob if cipherPassword param is set
 	if dto.Password != "" {
-		err = dataStore.Encrypt(dto.Password)
 		if err != nil {
 			return
 		}
-		log.Println("Encrypted blob: ", dataStore.EncryptedData)
-		err = dataStore.SignDataStore()
+		err = tmpDataStore.Encrypt(dto.Password)
+		log.Println("Encrypted blob: ", tmpDataStore.EncryptedData)
+		err = tmpDataStore.SignDataStore()
 		if err != nil {
 			return
 		}
-		log.Println("DataStore Signed: ", dataStore)
+		log.Println("DataStore Signed: ", tmpDataStore)
+		dataStore = &DataStore{
+			ID:                  tmpDataStore.ID,
+			EncryptedData:       tmpDataStore.EncryptedData,
+			EncryptionAlgorithm: tmpDataStore.EncryptionAlgorithm,
+			Signature:           tmpDataStore.Signature,
+			SignatureAlgorithm:  tmpDataStore.SignatureAlgorithm,
+		}
 	}
 	return
 }

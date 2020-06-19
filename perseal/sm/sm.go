@@ -91,19 +91,11 @@ type UpdateDataRequest struct {
 	VariableName string `json:"variableName"`
 }
 
-type TokenResponse struct {
-	Payload string `json:"payload"`
-	Status  struct {
-		Message string `json:"message"`
-	}
-}
-
 var (
-	client      http.Client
-	CurrentUser chan SessionMngrResponse
+	client http.Client
 )
 
-func GenerateToken(data string, receiver string, sender string, sessionId string) (tokenResp SessionMngrResponse, err *model.DashboardResponse) {
+func GenerateToken(data string, receiver string, sender string, sessionId string) (tokenResp SessionMngrResponse, err *model.HTMLResponse) {
 	var url string
 	if model.Local {
 		url = "http://vm.project-seal.eu:9090/sm/generateToken?receiver=" + receiver + "&sender=" + sender + "&sessionId=" + sessionId
@@ -113,7 +105,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate URL to Generate Token",
 			ErrorMessage: erro.Error(),
@@ -123,7 +115,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 	req, erro = utils.PrepareRequestHeaders(req, url)
 
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Sign Request",
 			ErrorMessage: erro.Error(),
@@ -135,7 +127,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 	resp, erro := client.Do(req)
 	fmt.Println("\n", resp)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         404,
 			Message:      "Couldn't Execute Request to Generate Token",
 			ErrorMessage: erro.Error(),
@@ -146,7 +138,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 	body, erro := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Read Response from Request to  Generate Token",
 			ErrorMessage: erro.Error(),
@@ -159,7 +151,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 	fmt.Println("\n", dat)
 	jsonM, erro := json.Marshal(dat)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
 			ErrorMessage: erro.Error(),
@@ -175,7 +167,7 @@ func GenerateToken(data string, receiver string, sender string, sessionId string
 
 // ValidateToken - SessionManager function where the passed security token’s signature will be validated, as well as the validity as well as other validation measuresResponds by code: OK,
 // sessionData.sessionId the sessionId used to gen. the jwt, and additionalData: extraData that were used to generate the jwt
-func ValidateToken(token string) (sessionId string, err *model.DashboardResponse) {
+func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
 	var url string
 	if model.Local {
 		url = "http://vm.project-seal.eu:9090/sm/validateToken?token=" + token
@@ -185,7 +177,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate URL to Validate Token",
 			ErrorMessage: erro.Error(),
@@ -196,7 +188,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 	req, erro = utils.PrepareRequestHeaders(req, url)
 
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Sign Request",
 			ErrorMessage: erro.Error(),
@@ -208,7 +200,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 	resp, erro := client.Do(req)
 	fmt.Println(resp)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         404,
 			Message:      "Couldn't Execute Request to Validate Token",
 			ErrorMessage: erro.Error(),
@@ -219,7 +211,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 	body, erro := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         400,
 			Message:      "Couldn't Read Response from Request to Validate Token",
 			ErrorMessage: erro.Error(),
@@ -232,7 +224,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 	fmt.Println(data)
 	jsonM, erro := json.Marshal(data)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate JSON From Response Body of Validate Token",
 			ErrorMessage: erro.Error(),
@@ -247,7 +239,7 @@ func ValidateToken(token string) (sessionId string, err *model.DashboardResponse
 }
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
-func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err *model.DashboardResponse) {
+func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
 	var url string
 	if model.Local {
 		url = "http://vm.project-seal.eu:9090/sm/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
@@ -257,7 +249,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate URL to Get Session Data",
 			ErrorMessage: erro.Error(),
@@ -267,7 +259,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 
 	req, erro = utils.PrepareRequestHeaders(req, url)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Sign Request",
 			ErrorMessage: erro.Error(),
@@ -277,7 +269,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 
 	resp, erro := client.Do(req)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         404,
 			Message:      "Couldn't Execute Request to Get Session Data",
 			ErrorMessage: erro.Error(),
@@ -287,7 +279,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 
 	body, erro := ioutil.ReadAll(resp.Body)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         400,
 			Message:      "Couldn't Read Response from Request to Get Session Data",
 			ErrorMessage: erro.Error(),
@@ -298,7 +290,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 	var result interface{}
 	erro = json.Unmarshal([]byte(body), &result)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Parse Response Body from Get Session Data to Object",
 			ErrorMessage: erro.Error(),
@@ -308,7 +300,7 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 
 	jsonM, erro := json.Marshal(result)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate JSON From Object to SessionManagerResponse",
 			ErrorMessage: erro.Error(),
@@ -321,9 +313,9 @@ func GetSessionData(sessionID string, variableName string) (smResp SessionMngrRe
 }
 
 // ValidateSessionMngrResponse valites the fields in the received data in ValidateToken/GetSessionData
-func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.DashboardResponse) {
+func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.HTMLResponse) {
 	if smResp.Code == "ERROR" {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         404,
 			Message:      `ERROR" code in the received SessionData`,
 			ErrorMessage: smResp.Error,
@@ -333,7 +325,7 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.Dashboa
 }
 
 //Updates a Session Variable, by providind the sessionID, the new value of the variable and the the variable name
-func UpdateSessionData(sessionId string, dataObject string, variableName string) (body string, err *model.DashboardResponse) {
+func UpdateSessionData(sessionId string, dataObject string, variableName string) (body string, err *model.HTMLResponse) {
 	var url string
 	if model.Local {
 		url = "http://vm.project-seal.eu:9090/sm/updateSessionData"
@@ -350,7 +342,7 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 
 	req, erro := http.NewRequest("POST", url, bytes.NewBuffer(reqBodyBytes.Bytes()))
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Generate URL to UpdataSessionData",
 			ErrorMessage: erro.Error(),
@@ -360,7 +352,7 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 
 	req, erro = utils.PrepareRequestHeaders(req, url)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Sign Request",
 			ErrorMessage: erro.Error(),
@@ -372,7 +364,7 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 
 	resp, erro := client.Do(req)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         404,
 			Message:      "Couldn't Execute Request to UpdataSessionData",
 			ErrorMessage: erro.Error(),
@@ -383,7 +375,7 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 
 	bodybytes, erro := ioutil.ReadAll(resp.Body)
 	if erro != nil {
-		err = &model.DashboardResponse{
+		err = &model.HTMLResponse{
 			Code:         400,
 			Message:      "Couldn't Read Response from Request to UpdataSessionData",
 			ErrorMessage: erro.Error(),

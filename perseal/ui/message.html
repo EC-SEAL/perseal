@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<style>
+
+  h1 {
+   margin-left: 50px; 
+  }
+  h3 {
+    margin-left: 50px;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div><img src="/ui/logo.png" height="150px"></div>
+
+{{$code := .Code}}
+
+<div id="ds" type="hidden">{{ .DataStore }}</div>
+<div id="url" type="hidden">{{ .ClientCallbackAddr }}</div>
+
+
+{{if (eq $code 200) }}
+<h1>Success!</h1>
+{{end}}
+
+{{if not (eq $code 200) }}
+<h1>Failure!</h1>
+<h3>{{ .Response.ErrorMessage }}</h3>
+{{end}}
+
+<h3>{{ .Message }}</h3>
+
+<form id="form" action="/per/save" method="get">
+  <input name="contents" type="hidden" value={{.DataStore}}>
+</form>
+
+<div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
+
+
+<script>
+  document.getElementById('ds').style.display='none';
+  var ds = document.getElementById("ds").innerHTML;
+  if (ds !== ""){
+    document.getElementById("form").submit();
+  }
+  document.getElementById('url').style.display='none';
+  var div = document.getElementById("url").innerHTML;
+  var timer = setTimeout(function() {
+      window.location=div
+  }, 3000);
+</script>
+
+</body>
+</html>

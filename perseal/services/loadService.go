@@ -1,43 +1,33 @@
 package services
 
 import (
-	"image/png"
+	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
-	"github.com/skip2/go-qrcode"
 )
 
 // Service Method to Fetch the DataStore according to the PDS variable
-func FetchCloudDataStore(dto dto.PersistenceDTO, filename string) (returningdto dto.PersistenceDTO, dataStore *externaldrive.DataStore, err *model.DashboardResponse) {
-	returningdto = dto
-
-	returningdto.SMResp, err = checkClientId(returningdto)
+func FetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	if err != nil {
 		return
 	}
-	id := returningdto.ID
+	id := dto.ID
 	var file *http.Response
 
-	if returningdto.PDS == "googleDrive" {
-		returningdto, file, err = loadSessionDataGoogleDrive(returningdto, filename)
+	if dto.PDS == "googleDrive" {
+		file, err = loadSessionDataGoogleDrive(dto, filename)
 		if err != nil {
-			return
-		}
-		if returningdto.StopProcess {
 			return
 		}
 		dataStore, err = readBody(file, id)
 
-	} else if returningdto.PDS == "oneDrive" {
-		returningdto, file, err = loadSessionDataOneDrive(returningdto, filename)
-		if returningdto.StopProcess {
-			return
-		}
+	} else if dto.PDS == "oneDrive" {
+		file, err = loadSessionDataOneDrive(dto, filename)
 		if err != nil {
 			return
 		}
@@ -47,10 +37,33 @@ func FetchCloudDataStore(dto dto.PersistenceDTO, filename string) (returningdto 
 	return
 }
 
-func FetchLocalDataStore(dto dto.PersistenceDTO) bool {
-	qr, _ := qrcode.New(dto.ClientCallbackAddr+"/cl/persistence/"+dto.PDS+"/load?sessionID="+dto.ID, qrcode.Medium)
-	im := qr.Image(256)
-	out, _ := os.Create("./QRImg.png")
-	_ = png.Encode(out, im)
-	return true
+func FetchLocalDataStore(r *http.Request) (ds *externaldrive.DataStore) {
+	file, handler, _ := r.FormFile("file")
+	defer file.Close()
+	f, _ := handler.Open()
+	body, erro := ioutil.ReadAll(f)
+	if erro != nil {
+		return
+	}
+
+	var v string
+	str := string(body)
+	log.Println("string", str)
+	json.Unmarshal([]byte(str), &v)
+
+	log.Println(v)
+	if erro != nil {
+		return
+	}
+
+	err := json.Unmarshal([]byte(v), &ds)
+	log.Println(err)
+	return
+	/*
+		qr, _ := qrcode.New(dto.ClientCallbackAddr+"/cl/persistence/"+dto.PDS+"/load?sessionID="+dto.ID, qrcode.Medium)
+		im := qr.Image(256)
+		out, _ := os.Create("./QRImg.png")
+		_ = png.Encode(out, im)
+		return true
+	*/
 }

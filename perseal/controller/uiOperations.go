@@ -1,247 +1,155 @@
 package controller
 
 import (
-	"fmt"
+	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
-	"time"
+	"strconv"
 
-	"github.com/EC-SEAL/perseal/model"
-	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
-	"github.com/EC-SEAL/perseal/utils"
+	"github.com/gorilla/mux"
 )
 
-func GetSessionId(w http.ResponseWriter, r *http.Request) {
-	log.Println("getSessionId")
+// Main Entry Point For Cloud. Verifies Token, Retrieves Session and checks if has Cloud Token.
+//If not, redirects to Cloud Login Page
+//If it does, presents page to Insert Password
+func InitialCloudConfig(w http.ResponseWriter, r *http.Request) {
+	log.Println("initial cloud config")
+	method := mux.Vars(r)["method"]
+	var token string
+	if keys, ok := r.URL.Query()["msToken"]; ok {
+		token = keys[0]
+	}
 
-	id, _, err := getSessionDataFromMSToken(r)
-
-	log.Println(err)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("content-type", "application/json")
-
+	id, err := sm.ValidateToken(token)
 	if err != nil {
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
+		dto, err := persistenceBuilder(id, sm.SessionMngrResponse{})
+		writeResponseMessage(w, dto, *err)
 	}
-	w = utils.WriteResponseMessage(w, id, 200)
-	return
 
+	sm.UpdateSessionData(id, method, "CurrentMethod")
+	log.Println(method)
+	initialConfig(id, method, w, r)
 }
-func ShowCloudFiles(w http.ResponseWriter, r *http.Request) {
-	log.Println("showCloudFiles")
 
-	//Recieves Current User
-	log.Println(sm.CurrentUser)
-	if sm.CurrentUser == nil {
-		sm.CurrentUser = make(chan sm.SessionMngrResponse)
-	}
-	smResp := <-sm.CurrentUser
+// Main Entry Point. Verifies Token, Retrieves Session and checks if has Cloud Token.
+//If not, redirects to Cloud Login Page
+//If it does, presents page to Insert Password
+func InitialLocalConfig(w http.ResponseWriter, r *http.Request) {
+	log.Println("initial local config")
+	method := mux.Vars(r)["method"]
+	id := mux.Vars(r)["sessionToken"]
 
-	log.Println("smResp in showCloudFiles ", smResp)
-	pds := smResp.SessionData.SessionVariables["PDS"]
-	var clientId string
+	sm.UpdateSessionData(id, method, "CurrentMethod")
+	initialConfig(id, method, w, r)
+}
 
-	if pds == "googleDrive" {
-		clientId = smResp.SessionData.SessionVariables["GoogleDriveAccessCreds"]
-		log.Println(clientId)
-	} else if pds == "oneDrive" {
-		clientId = smResp.SessionData.SessionVariables["OneDriveAccessToken"]
-		log.Println(clientId)
-	}
-
-	// If the Token doesn't exist, then the files don't exist as well
-	if clientId == "" {
-		var files []string
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("content-type", "application/json")
-		w = utils.WriteResponseMessage(w, files, 200)
-		return
-	}
-
-	files, err := services.GetCloudFileNames(pds, smResp)
-
-	log.Println(files)
-	log.Println(err)
-
+// Activated When Cloud Drive does not have files, so it can store and load the dataStore
+func InsertPasswordStoreAndLoad(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.FormValue("sessionId"))
+	id := r.FormValue("sessionId")
+	sessionData, err := sm.GetSessionData(id, "")
 	if err != nil {
-		log.Println(err)
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, err, err.Code)
-	} else {
-		w.Header().Set("content-type", "application/json")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, files, 200)
-		log.Println("Correctly Fetched Cloud Files")
-	}
-	return
-}
-
-func ClientCallbackAddr(w http.ResponseWriter, r *http.Request) {
-	log.Println("ClientCallbackAddr")
-
-	if model.ClientCallback == nil {
-		model.ClientCallback = make(chan string)
-	}
-	log.Println("clientcall   ", model.ClientCallback)
-
-	client := <-model.ClientCallback
-	log.Println("CLIENT ", client)
-	model.ClientCallback = nil
-
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, client, 200)
-	return
-}
-
-func CheckFirstAccess(w http.ResponseWriter, r *http.Request) {
-	log.Println("CheckFirstAccess")
-
-	if model.CheckFirstAccess == nil {
-		log.Println("making check")
-		model.CheckFirstAccess = make(chan bool)
+		dto, err := persistenceBuilder(id, sm.SessionMngrResponse{})
+		writeResponseMessage(w, dto, *err)
 	}
 
-	toStore, err := utils.ReadRequestBody(r)
+	dto, err := persistenceBuilder(id, sessionData)
 	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-	go func() {
-		time.Sleep(5 * time.Second)
-		log.Println("ES SENT")
-		model.CheckFirstAccess = nil
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, "este", 200)
-
-	}()
-
-	log.Println(toStore)
-	log.Println(model.CheckFirstAccess)
-	if toStore == "true" {
-		model.CheckFirstAccess <- true
-	} else {
-		model.CheckFirstAccess <- false
+		writeResponseMessage(w, dto, *err)
 	}
 
-	log.Println("SENT")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, "", 200)
+	dto.Method = ""
+	dto.StoreAndLoad = true
+	t, _ := template.ParseFiles("ui/insertPassword.html")
+	t.Execute(w, dto)
+}
+
+func Save(w http.ResponseWriter, r *http.Request) {
+	log.Println("save")
+	var contents string
+	if keys, ok := r.URL.Query()["contents"]; ok {
+		contents = keys[0]
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote("datastore.seal"))
+	w.Header().Set("Content-Type", "application/octet-stream")
+	json.NewEncoder(w).Encode(contents)
 	return
 }
 
-func RedirectRequest(w http.ResponseWriter, r *http.Request) {
-	log.Println("redirectRequest")
+//OTHERS
 
-	log.Println(model.Redirect)
-	if model.Redirect == nil {
-		model.Redirect = make(chan model.RedirectStruct)
-	}
-
-	var redirect model.RedirectStruct
-	redirect = <-model.Redirect
-	model.Redirect = nil
-
-	log.Println("tenho")
-	// If true, redirects to Login Page of Cloud
-	if redirect.Redirect {
-		fmt.Println(redirect)
-		model.Redirect = nil
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, redirect.URL, 302)
-		return
-	} else {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, "", 200)
-		return
-	}
-
-}
-
-func RecievePassword(w http.ResponseWriter, r *http.Request) {
-	log.Println("recievePassword")
-
-	password, err := utils.ReadRequestBody(r)
-	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
-
-	sha := utils.HashSUM256(password)
-
-	if model.Password == nil {
-		model.Password = make(chan string)
-	}
-	model.Password <- sha
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, "", 200)
-	return
-
-}
-
-func RetrieveCode(w http.ResponseWriter, r *http.Request) {
-	log.Println("recieveCode")
-
-	code, err := utils.ReadRequestBody(r)
-	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-
-	}
-
-	log.Println(model.Code)
-	if model.Code == nil {
-		model.Code = make(chan string)
-	}
-
-	model.Code <- code
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, "", 200)
-	return
-}
-
-func ResetChannelsAndClose(w http.ResponseWriter, r *http.Request) {
-	log.Println("resetChannelsIsAndClose")
-	model.Password = nil
-	model.ClientCallback = nil
-	model.CheckFirstAccess = nil
-	model.CloudLogin = nil
-	model.Code = nil
-	model.Redirect = nil
-	log.Println(model.End)
-	model.End <- true
-	log.Println(model.End)
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, "", 200)
-	return
-}
-
+/*
 func GenerateToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("generateToken")
+
+	var id, method string
+	if keys, ok := r.URL.Query()["sessionId"]; ok {
+		id = keys[0]
+	}
+	if id == "" {
+		err := &model.HTMLResponse{
+			Code:    400,
+			Message: "Couldn't find Session Token",
+		}
+		w = writeResponseMessage(w, err, err.Code)
+		return
+	}
+
+	if keys, ok := r.URL.Query()["method"]; ok {
+		method = keys[0]
+	}
+	if id == "" {
+		err := &model.HTMLResponse{
+			Code:    400,
+			Message: "Couldn't find Session Token",
+		}
+		w = writeResponseMessage(w, err, err.Code)
+		return
+	}
+
+	smResp, err := utils.GenerateTokenAPI(method, id)
+
+	if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = writeResponseMessage(w, err, err.Code)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = writeResponseMessage(w, smResp.Payload, 200)
+	return
+}
+
+func StartSession(w http.ResponseWriter, r *http.Request) {
+	log.Println("startSession")
+	smResp, err := utils.StartSession()
+	if err != nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w = writeResponseMessage(w, err, err.Code)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w = writeResponseMessage(w, smResp.Payload, 200)
+	return
+}
+
+func UpdateSessionData(w http.ResponseWriter, r *http.Request) {
 	var id string
 	if keys, ok := r.URL.Query()["sessionId"]; ok {
 		id = keys[0]
 	}
 	if id == "" {
-		err := &model.DashboardResponse{
+		err := &model.HTMLResponse{
 			Code:    400,
 			Message: "Couldn't find Session Token",
 		}
-		w = utils.WriteResponseMessage(w, err, err.Code)
+		w = writeResponseMessage(w, err, err.Code)
 		return
 	}
-
-	smResp, err := sm.GenerateToken("", "PERms001", "PERms001", id)
-	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = utils.WriteResponseMessage(w, err, err.Code)
-		return
-	}
+	sm.UpdateSessionData(id, "Moblie", "PDS")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = utils.WriteResponseMessage(w, smResp.AdditionalData, 200)
+	w = writeResponseMessage(w, "", 200)
 	return
 }
+*/
