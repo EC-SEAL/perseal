@@ -13,6 +13,25 @@ import (
 	"google.golang.org/api/drive/v3"
 )
 
+// UploadGoogleDrive - Uploads file to Google Drive
+func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client, filename string) (file *drive.File, err error) {
+	data, err := ds.UploadingBlob()
+	if err != nil {
+		return
+	}
+
+	fp := &FileProps{
+		Id:          ds.ID,
+		Name:        filename, //TODO what should the name of the Blob be in Gdrive???
+		Path:        gdriveRootFolder,
+		Blob:        data,
+		ContentType: "application/octet-stream",
+	}
+	file, err = SendFile(fp, client)
+	log.Println(err)
+	return
+}
+
 // Requests a token from the web, then returns the retrieved token.
 func GetGoogleLinkForDashboardRedirect(id string, config *oauth2.Config) string {
 	var authURL string

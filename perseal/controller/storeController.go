@@ -16,12 +16,13 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 	dto, err := recieveSessionIdAndPassword(r)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
+		return
 	}
 
 	log.Println(dto.ID)
 	log.Println(dto.PDS)
 
-	if dto.PDS != "googleDrive" && dto.PDS != "oneDrive" {
+	if dto.PDS == "Mobile" || dto.PDS == "Browser" {
 		dto.IsLocal = true
 		dto.StoreAndLoad = false
 		dataStore, _ := externaldrive.StoreSessionData(dto)
@@ -32,6 +33,7 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(err)
 			writeResponseMessage(w, dto, *err)
+			return
 		}
 		response := model.HTMLResponse{
 			Code:               200,
@@ -48,6 +50,7 @@ func PersistenceStore(w http.ResponseWriter, r *http.Request) {
 		log.Println(dto.ClientCallbackAddr)
 		if err != nil {
 			writeResponseMessage(w, dto, *err)
+			return
 		}
 
 		response := model.HTMLResponse{

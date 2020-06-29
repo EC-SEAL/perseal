@@ -12,9 +12,6 @@ var (
 
 // Store Data on the corresponding PDS
 func StoreCloudData(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
-	if err != nil {
-		return
-	}
 	if dto.PDS == "googleDrive" {
 		dataStore, err = storeSessionDataGoogleDrive(dto, filename)
 	} else if dto.PDS == "oneDrive" {

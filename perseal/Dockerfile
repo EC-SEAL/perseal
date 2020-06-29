@@ -32,15 +32,16 @@ RUN apk add -U --no-cache ca-certificates
 
 
 FROM tomcat:8.0.47-jre7 AS tomcat
-ARG KEYSTORE=keystore.jks
-ARG ALIAS=perseal
-ARG KEYSTOREPASS=keystorepass
+ARG SSL_KEYSTORE_PATH=keystore.jks
+ARG SSL_CERT_ALIAS=perseal
+ARG SSL_KEY_PASS=keystorepass
 ARG INTER=inter.p12
 
 COPY keystore.jks .
 COPY public.pub .
-RUN keytool -importkeystore -srckeystore ./$KEYSTORE -srcstorepass $KEYSTOREPASS -srcalias $ALIAS -destalias $ALIAS -destkeystore $INTER -deststoretype PKCS12 -deststorepass $KEYSTOREPASS
-RUN openssl pkcs12 -in $INTER -nodes -nocerts -out private.key -passin pass:$KEYSTOREPASS
+
+RUN keytool -importkeystore -srckeystore ./$SSL_KEYSTORE_PATH -srcstorepass $SSL_KEY_PASS -srcalias $SSL_CERT_ALIAS -destalias $SSL_CERT_ALIAS -destkeystore $INTER -deststoretype PKCS12 -deststorepass $SSL_KEY_PASS
+RUN openssl pkcs12 -in $INTER -nodes -nocerts -out private.key -passin pass:$SSL_KEY_PASS
 RUN ls .
 # Run the executable
 

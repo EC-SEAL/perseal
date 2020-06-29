@@ -21,55 +21,38 @@ import (
 
 //Attempts to Store the Session Data On Google Drive
 func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
-	token, client, err := getGoogleDriveClient(dto.GoogleAccessCreds)
-	if err != nil {
-		return
-	}
+	token, client := getGoogleDriveClient(dto.GoogleAccessCreds)
+	log.Println(token)
+
 	log.Println("TOKEN ", token)
 	log.Println("ClIENT ", client)
 
-	dataStore, erro := externaldrive.StoreSessionData(dto)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate DataStore",
-			ErrorMessage: erro.Error(),
-		}
-	}
+	dataStore, _ = externaldrive.StoreSessionData(dto)
 
 	file, erro := dataStore.UploadGoogleDrive(token, client, filename)
-	fmt.Println(file)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
-			Message:      "Couldn't Generate Uploading Blob",
+			Message:      "Couldn't Store DataStore",
 			ErrorMessage: erro.Error(),
 		}
+		return
 	}
+
+	fmt.Println("file", file)
 	return
 }
 
 //Attempts to Load a Datastore from GoogleDrive into Session
 func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *http.Response, err *model.HTMLResponse) {
 
-	_, client, err := getGoogleDriveClient(dto.GoogleAccessCreds)
-	if err != nil {
-		return
-	}
+	_, client := getGoogleDriveClient(dto.GoogleAccessCreds)
 
-	jsonM, erro := json.Marshal(dto.SMResp)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate Marshal Session Data",
-			ErrorMessage: erro.Error(),
-		}
-	}
-
+	jsonM, _ := json.Marshal(dto.SMResp)
 	smr := &sm.SessionMngrResponse{}
 	json.Unmarshal(jsonM, smr)
 
-	file, erro = externaldrive.GetGoogleDriveFile(filename, client)
+	file, erro := externaldrive.GetGoogleDriveFile(filename, client)
 	log.Println(file)
 	if erro != nil {
 		err = &model.HTMLResponse{
@@ -77,62 +60,25 @@ func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *
 			Message:      "Couldn't Get Google Drive File",
 			ErrorMessage: erro.Error(),
 		}
-		return
 	}
 	return
 }
 func getGoogleRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLResponse) {
 
 	var config *oauth2.Config
-	config, err = establishGoogleDriveCreds()
+	config = establishGoogleDriveCreds()
 	log.Println(config)
-	if err != nil {
-		return
-	}
 	url = externaldrive.GetGoogleLinkForDashboardRedirect(dto.ID, config)
 	return
 }
 
-func getGoogleDriveClient(accessCreds string) (token *oauth2.Token, client *http.Client, err *model.HTMLResponse) {
-	googleCreds, err := establishGoogleDriveCreds()
-	if err != nil {
-		return
-	}
+func getGoogleDriveClient(accessCreds string) (token *oauth2.Token, client *http.Client) {
+	googleCreds := establishGoogleDriveCreds()
 
 	token = &oauth2.Token{}
-	erro := json.NewDecoder(strings.NewReader(accessCreds)).Decode(token)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Could not Decode Credentials to Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	fmt.Println(googleCreds)
-	b2, erro := json.Marshal(googleCreds)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Google Creds JSON Malformed",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	config, erro := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-	if err != nil {
-		if erro != nil {
-			err = &model.HTMLResponse{
-				Code:         404,
-				Message:      "Couldn't retrieve config from Google Creds JSON",
-				ErrorMessage: erro.Error(),
-			}
-			return
-		}
-	}
-
+	json.NewDecoder(strings.NewReader(accessCreds)).Decode(token)
+	b2, _ := json.Marshal(googleCreds)
+	config, _ := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
 	client = config.Client(context.Background(), token)
 	return
 }
@@ -140,10 +86,7 @@ func getGoogleDriveClient(accessCreds string) (token *oauth2.Token, client *http
 // Uploads Google Drive Token to SessionVariables
 func UpdateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Token, err *model.HTMLResponse) {
 
-	config, err := establishGoogleDriveCreds()
-	if err != nil {
-		return
-	}
+	config := establishGoogleDriveCreds()
 
 	tok, erro := config.Exchange(oauth2.NoContext, code)
 	if erro != nil {
@@ -170,29 +113,14 @@ func UpdateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 }
 
 // Uploads new GoogleDrive data
-func establishGoogleDriveCreds() (config *oauth2.Config, err *model.HTMLResponse) {
+func establishGoogleDriveCreds() (config *oauth2.Config) {
 
 	googleCreds := externaldrive.SetGoogleDriveCreds()
 
 	fmt.Println(googleCreds)
-	b2, erro := json.Marshal(googleCreds)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Parse the Google Drive Credentials to byte array",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
+	b2, _ := json.Marshal(googleCreds)
 
-	config, erro = google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Get Config from Google Creds",
-			ErrorMessage: erro.Error(),
-		}
-	}
+	config, _ = google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
 
 	log.Println(googleCreds)
 	return

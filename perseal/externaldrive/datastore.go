@@ -4,13 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
-	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
-	"golang.org/x/oauth2"
-	"google.golang.org/api/drive/v3"
 )
 
 // // DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
@@ -101,6 +98,7 @@ type DataStore struct {
 
 // NewDataStore creates a new DataStore object
 func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
+
 	currentDs := &DataStore{}
 	var inter interface{}
 	json.Unmarshal([]byte(data.SessionData.SessionVariables["dataStore"]), &inter)
@@ -111,6 +109,7 @@ func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
 	}
 	json.Unmarshal(jsonM, &currentDs)
 
+	log.Println(data)
 	log.Println(currentDs)
 
 	sessionWithoutDataStore := data.SessionData.SessionVariables
@@ -172,7 +171,7 @@ func (ds *DataStore) MarshalWithoutClearText() (res []byte, err error) {
 }
 
 // Upload the DataStore given the user's oauthToken
-func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err error) {
+func (ds *DataStore) UploadingBlob() (data []byte, err error) {
 	log.Println("Uploading Blob ", ds.ID)
 	if ds.EncryptedData != "" {
 		data, err = ds.MarshalWithoutClearText()
@@ -183,55 +182,6 @@ func (ds *DataStore) UploadingBlob(oauthToken *oauth2.Token) (data []byte, err e
 	}
 	if err != nil {
 		return nil, err
-	}
-	return
-}
-
-// UploadGoogleDrive - Uploads file to Google Drive
-func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client, filename string) (file *drive.File, err error) {
-	data, err := ds.UploadingBlob(oauthToken)
-	if err != nil {
-		return
-	}
-
-	fp := &FileProps{
-		Id:          ds.ID,
-		Name:        filename, //TODO what should the name of the Blob be in Gdrive???
-		Path:        gdriveRootFolder,
-		Blob:        data,
-		ContentType: "application/octet-stream",
-	}
-	file, err = SendFile(fp, client)
-	log.Println(err)
-	return
-}
-
-// UploadOneDrive - Uploads file to One Drive
-func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filename string, folderName string) (file *drive.File, err error) {
-
-	//if the folder exists, only creats the datastore file
-	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
-	log.Println(fileExists)
-	if err != nil {
-		return
-	}
-
-	var folderID string
-	if fileExists.StatusCode == 404 {
-		folderID, err = CreateOneDriveFolder(oauthToken)
-		if err != nil {
-			return
-		}
-		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
-		if err != nil {
-			return
-		}
-	} else {
-		folderID, err = GetOneDriveFolderID(fileExists)
-		if err != nil {
-			return
-		}
-		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
 	}
 	return
 }

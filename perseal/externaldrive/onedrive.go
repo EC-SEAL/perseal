@@ -16,6 +16,7 @@ import (
 
 	"github.com/EC-SEAL/perseal/model"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/drive/v3"
 )
 
 const (
@@ -42,6 +43,36 @@ type FolderChildren struct {
 	Values []struct {
 		Name string `json:"name"`
 	} `json:"value"`
+}
+
+// UploadOneDrive - Uploads file to One Drive
+func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filename string, folderName string) (file *drive.File, err error) {
+
+	//if the folder exists, only creats the datastore file
+	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
+	log.Println(fileExists)
+	if err != nil {
+		return
+	}
+
+	var folderID string
+	if fileExists.StatusCode == 404 {
+		folderID, err = CreateOneDriveFolder(oauthToken)
+		if err != nil {
+			return
+		}
+		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
+		if err != nil {
+			return
+		}
+	} else {
+		folderID, err = GetOneDriveFolderID(fileExists)
+		if err != nil {
+			return
+		}
+		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
+	}
+	return
 }
 
 // POST request to create a folder in the root
@@ -328,7 +359,7 @@ func tokenRequest(req *http.Request) (tok *oauth2.Token, err error) {
 	return
 }
 
-func SetOneDriveCreds() (creds *model.OneDriveCreds, err error) {
+func SetOneDriveCreds() (creds *model.OneDriveCreds) {
 	creds = &model.OneDriveCreds{}
 
 	if model.Local {

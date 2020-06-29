@@ -43,6 +43,8 @@ func newRouter() *mux.Router {
 
 // As per in SPEC https://github.com/EC-SEAL/interface-specs/blob/master/SEAL_Interfaces.yaml
 var perRoutes = routes{
+
+	//internal endpoints
 	route{
 		"Setup a persistence mechanism and load a secure storage into session.",
 		"POST",
@@ -63,15 +65,46 @@ var perRoutes = routes{
 	},
 	route{
 		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
-		"GET",
-		"/code",
-		controller.RetrieveCode,
-	},
-	route{
-		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
 		"POST",
 		"/insertPassword",
 		controller.InsertPasswordStoreAndLoad,
+	},
+
+	//routes for testing
+	/*
+		route{
+			"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+			"GET",
+			"/session",
+			controller.StartSession,
+		},
+		route{
+			"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+			"GET",
+			"/token",
+			controller.Token,
+		},
+		route{
+			"SimulatesDashboardBehaviour",
+			"GET",
+			"/simulateDashboard",
+			controller.SimulateDashboard,
+		},
+		route{
+			"Generate msToken",
+			"POST",
+			"/test/{method}",
+			controller.Test,
+		},
+
+		//end of routes for testing
+	*/
+	//external endpoints
+	route{
+		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+		"GET",
+		"/code",
+		controller.RetrieveCode,
 	},
 	route{
 		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
@@ -80,36 +113,16 @@ var perRoutes = routes{
 		controller.Save,
 	},
 	route{
-		"Intitial Configuration And Main Entry Point For Cloud Operations",
+		"Initial Configuration And Main Entry Point For Cloud Operations",
 		"GET",
 		"/{method}",
 		controller.InitialCloudConfig,
 	},
+
 	route{
 		"Intitial Configuration And Main Entry Point For Local Operations",
-		"GET",
-		"/{method}/{sessionToken}",
-		controller.InitialLocalConfig,
+		"POST",
+		"/load/{sessionToken}",
+		controller.BackChannelDecryption,
 	},
-	/*
-		route{
-			"Generate msToken",
-			"GET",
-			"/generateToken",
-			controller.GenerateToken,
-		},
-		route{
-			"Start Session",
-			"POST",
-			"/startSession",
-			controller.StartSession,
-		},
-
-		route{
-			"Start Session",
-			"GET",
-			"/updateLocal",
-			controller.UpdateSessionData,
-		},
-	*/
 }

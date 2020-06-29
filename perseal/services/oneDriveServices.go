@@ -23,6 +23,7 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (dataStor
 	if err != nil {
 		return
 	}
+	log.Println(token)
 
 	dataStore, erro := externaldrive.StoreSessionData(dto)
 	if erro != nil {
@@ -35,7 +36,7 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (dataStor
 	}
 
 	var contents []byte
-	contents, erro = dataStore.UploadingBlob(token)
+	contents, erro = dataStore.UploadingBlob()
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
@@ -80,10 +81,8 @@ func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (file *htt
 
 func getOneDriveRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLResponse) {
 
-	creds, err := establishOneDriveCreds()
-	if err != nil {
-		return
-	}
+	creds := externaldrive.SetOneDriveCreds()
+
 	url, erro := externaldrive.GetOneDriveRedirectURL(dto.ID, creds)
 	if erro != nil {
 		err = &model.HTMLResponse{
@@ -97,28 +96,24 @@ func getOneDriveRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTML
 
 // Fetches GoogleDrive Code
 func checkOneDriveTokenExpiry(dto dto.PersistenceDTO) (token *oauth2.Token, err *model.HTMLResponse) {
-	creds, err := establishOneDriveCreds()
-	if err != nil {
-
-	}
+	creds := externaldrive.SetOneDriveCreds()
 
 	token, erro := externaldrive.CheckOneDriveTokenExpiry(dto.OneDriveToken, creds)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         404,
-			Message:      "Could Not Refresh OneDrive Token",
+			Message:      "Error in Request to Refresh Token",
 			ErrorMessage: erro.Error(),
 		}
+		return
 	}
+
 	return
 }
 
 func UpdateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.Token, err *model.HTMLResponse) {
 
-	creds, err := establishOneDriveCreds()
-	if err != nil {
-
-	}
+	creds := externaldrive.SetOneDriveCreds()
 
 	var erro error
 	oauthToken, erro = externaldrive.RequestToken(code, creds.OneDriveClientID)
@@ -143,17 +138,5 @@ func UpdateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 	}
 
 	_, err = sm.UpdateSessionData(id, string(jsonM), "OneDriveToken")
-	return
-}
-
-func establishOneDriveCreds() (creds *model.OneDriveCreds, err *model.HTMLResponse) {
-	creds, erro := externaldrive.SetOneDriveCreds()
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Set One Drive Credentials",
-			ErrorMessage: erro.Error(),
-		}
-	}
 	return
 }

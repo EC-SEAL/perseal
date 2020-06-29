@@ -22,7 +22,16 @@ h1 {
     width: calc(33.333333% - 20px);
     box-sizing: border-box;
   }
-  
+  button{
+    background-color: #252ed3;
+    border: none;
+    color: white;
+    text-decoration: none;
+    padding: 7px;
+    cursor: pointer;
+    margin-top: 10px;
+    margin-left: 100px;
+  }
   input[type=button], input[type=submit], input[type=reset] {   
     background-color: #252ed3;
     border: none;
@@ -30,6 +39,7 @@ h1 {
     text-decoration: none;
     padding: 5px;
     cursor: pointer;
+    margin-left: 50px;
   }
 </style>
 
@@ -39,6 +49,7 @@ h1 {
 
 <div><img src="/ui/logo.png" height="150px"></div>
 
+
 {{$id := .ID}}
 
 {{if .DoesNotHaveFiles }}
@@ -47,7 +58,10 @@ h1 {
   <p ><h2>Would You Like to Store a File? </h2></p>
   <input type="hidden" name="sessionId" value={{.ID}}>
   <input type="submit" value="Yes">
-</form>
+</form> 
+<a href={{.ClientCallbackAddr}}>
+  <button>No</button>
+</a>
 
 {{end}}
 

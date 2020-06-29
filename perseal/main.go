@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"time"
@@ -29,12 +28,6 @@ func main() {
 
 	r := newRouter()
 
-	tlsConfig := &tls.Config{
-		ClientAuth:         tls.RequestClientCert,
-		InsecureSkipVerify: true,
-	}
-
-	tlsConfig.BuildNameToCertificate()
 	var addr string
 	if model.Local {
 		addr = "localhost:8082"
@@ -43,6 +36,14 @@ func main() {
 		addr = os.Getenv("HOST")
 		fmt.Println("container development")
 	}
+
+	tlsConfig := &tls.Config{
+		ClientAuth:         tls.RequestClientCert,
+		InsecureSkipVerify: true,
+		ServerName:         addr,
+	}
+
+	tlsConfig.BuildNameToCertificate()
 
 	server := &http.Server{
 		TLSConfig:    tlsConfig,
@@ -55,5 +56,5 @@ func main() {
 
 	http.Handle("/per/ui/", http.StripPrefix("/per/ui/", http.FileServer(http.Dir("ui/"))))
 	fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
-	log.Fatal(server.ListenAndServe())
+	server.ListenAndServe()
 }

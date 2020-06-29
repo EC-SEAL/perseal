@@ -7,8 +7,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/EC-SEAL/perseal/dto"
+	"github.com/EC-SEAL/perseal/model"
+	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/EC-SEAL/perseal/utils"
 	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
 )
 
 // Main Entry Point For Cloud. Verifies Token, Retrieves Session and checks if has Cloud Token.
@@ -21,28 +26,19 @@ func InitialCloudConfig(w http.ResponseWriter, r *http.Request) {
 	if keys, ok := r.URL.Query()["msToken"]; ok {
 		token = keys[0]
 	}
+	log.Println(token)
 
 	id, err := sm.ValidateToken(token)
 	if err != nil {
-		dto, err := persistenceBuilder(id, sm.SessionMngrResponse{})
+		dto, _ := dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
+		log.Println(dto)
 		writeResponseMessage(w, dto, *err)
+		return
+	} else {
+		sm.UpdateSessionData(id, method, "CurrentMethod")
+		log.Println(method)
+		initialConfig(id, method, w, r)
 	}
-
-	sm.UpdateSessionData(id, method, "CurrentMethod")
-	log.Println(method)
-	initialConfig(id, method, w, r)
-}
-
-// Main Entry Point. Verifies Token, Retrieves Session and checks if has Cloud Token.
-//If not, redirects to Cloud Login Page
-//If it does, presents page to Insert Password
-func InitialLocalConfig(w http.ResponseWriter, r *http.Request) {
-	log.Println("initial local config")
-	method := mux.Vars(r)["method"]
-	id := mux.Vars(r)["sessionToken"]
-
-	sm.UpdateSessionData(id, method, "CurrentMethod")
-	initialConfig(id, method, w, r)
 }
 
 // Activated When Cloud Drive does not have files, so it can store and load the dataStore
@@ -51,13 +47,15 @@ func InsertPasswordStoreAndLoad(w http.ResponseWriter, r *http.Request) {
 	id := r.FormValue("sessionId")
 	sessionData, err := sm.GetSessionData(id, "")
 	if err != nil {
-		dto, err := persistenceBuilder(id, sm.SessionMngrResponse{})
+		dto, err := dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
 		writeResponseMessage(w, dto, *err)
+		return
 	}
 
-	dto, err := persistenceBuilder(id, sessionData)
+	dto, err := dto.PersistenceBuilder(id, sessionData)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
+		return
 	}
 
 	dto.Method = ""
@@ -78,78 +76,126 @@ func Save(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//OTHERS
+// Recieves Token and SessionId from Cloud Redirect
+// Creates Token with the Code and Stores it into Session
+// Opens Insert Password
+func RetrieveCode(w http.ResponseWriter, r *http.Request) {
+	log.Println("recieveCode")
 
-/*
-func GenerateToken(w http.ResponseWriter, r *http.Request) {
-	log.Println("generateToken")
-
-	var id, method string
-	if keys, ok := r.URL.Query()["sessionId"]; ok {
+	var id, code string
+	if keys, ok := r.URL.Query()["state"]; ok {
 		id = keys[0]
 	}
-	if id == "" {
-		err := &model.HTMLResponse{
-			Code:    400,
-			Message: "Couldn't find Session Token",
-		}
-		w = writeResponseMessage(w, err, err.Code)
+	if keys, ok := r.URL.Query()["code"]; ok {
+		code = keys[0]
+	}
+	sessionData, err := sm.GetSessionData(id, "")
+	if err != nil {
+		dto, err := dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
+		writeResponseMessage(w, dto, *err)
 		return
 	}
 
-	if keys, ok := r.URL.Query()["method"]; ok {
-		method = keys[0]
-	}
-	if id == "" {
-		err := &model.HTMLResponse{
-			Code:    400,
-			Message: "Couldn't find Session Token",
-		}
-		w = writeResponseMessage(w, err, err.Code)
+	dto, err := dto.PersistenceBuilder(id, sessionData)
+	if err != nil {
+		writeResponseMessage(w, dto, *err)
 		return
 	}
 
-	smResp, err := utils.GenerateTokenAPI(method, id)
+	var token *oauth2.Token
+	if dto.PDS == "googleDrive" {
+		token, err = services.UpdateNewGoogleDriveTokenFromCode(dto.ID, code)
+		b, _ := json.Marshal(token)
+		dto.GoogleAccessCreds = string(b)
+	} else if dto.PDS == "oneDrive" {
+		token, err = services.UpdateNewOneDriveTokenFromCode(dto.ID, code)
+		dto.OneDriveToken = *token
+
+	}
+	log.Println(dto.Method)
+	redirectToOperation(dto, w)
+}
+
+// Main Entry Point For Cloud. Verifies Token, Retrieves Session and checks if has Cloud Token.
+//If not, redirects to Cloud Login Page
+//If it does, presents page to Insert Password
+func Test(w http.ResponseWriter, r *http.Request) {
+	log.Println("test")
+	token := r.FormValue("msToken")
+	method := mux.Vars(r)["method"]
+
+	log.Println(token)
+	id, err := sm.ValidateToken(token)
+	if err != nil {
+		dto, _ := dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
+		log.Println(dto)
+		writeResponseMessage(w, dto, *err)
+		return
+	}
+
+	sm.UpdateSessionData(id, method, "CurrentMethod")
+	smResp, err := sm.GetSessionData(id, "")
 
 	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = writeResponseMessage(w, err, err.Code)
+		obj, err := dto.PersistenceBuilder(id, sm.SessionMngrResponse{}, "")
+		writeResponseMessage(w, obj, *err)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = writeResponseMessage(w, smResp.Payload, 200)
+
+	obj, err := dto.PersistenceBuilder(id, smResp)
+	log.Println(obj.Method)
+	if err != nil {
+		writeResponseMessage(w, obj, *err)
+		return
+	}
+
+	log.Println(obj)
+	url, err := services.GetRedirectURL(obj)
+
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	w.Write([]byte(url))
 	return
+}
+
+func SimulateDashboard(w http.ResponseWriter, r *http.Request) {
+
+	type testStruct struct {
+		ID      string
+		MSToken string
+	}
+
+	testing := testStruct{
+		ID:      model.TestUser,
+		MSToken: model.MSToken,
+	}
+	t, _ := template.ParseFiles("ui/simulateDashboard.html")
+	t.Execute(w, testing)
 }
 
 func StartSession(w http.ResponseWriter, r *http.Request) {
-	log.Println("startSession")
-	smResp, err := utils.StartSession()
-	if err != nil {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w = writeResponseMessage(w, err, err.Code)
-		return
+	resp, _ := utils.StartSession()
+	model.TestUser = resp.Payload
+	var url string
+	if model.Local {
+		url = "http://localhost:8082"
+	} else {
+		url = "http://perseal.seal.eu:8082"
 	}
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = writeResponseMessage(w, smResp.Payload, 200)
-	return
+	http.Redirect(w, r, url+"/per/simulateDashboard", 302)
 }
 
-func UpdateSessionData(w http.ResponseWriter, r *http.Request) {
-	var id string
-	if keys, ok := r.URL.Query()["sessionId"]; ok {
-		id = keys[0]
+func Token(w http.ResponseWriter, r *http.Request) {
+	var method string
+	if keys, ok := r.URL.Query()["method"]; ok {
+		method = keys[0]
 	}
-	if id == "" {
-		err := &model.HTMLResponse{
-			Code:    400,
-			Message: "Couldn't find Session Token",
-		}
-		w = writeResponseMessage(w, err, err.Code)
-		return
+	resp, _ := utils.GenerateTokenAPI(method, model.TestUser)
+	model.MSToken = resp.Payload
+	var url string
+	if model.Local {
+		url = "http://localhost:8082"
+	} else {
+		url = "http://perseal.seal.eu:8082"
 	}
-	sm.UpdateSessionData(id, "Moblie", "PDS")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w = writeResponseMessage(w, "", 200)
-	return
+	http.Redirect(w, r, url+"/per/simulateDashboard", 302)
 }
-*/

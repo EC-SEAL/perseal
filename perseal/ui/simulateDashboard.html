@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<style>
+h1 {
+   margin-left: 50px; 
+  }
+  h2 {
+    margin-left: 50px;
+  }
+  form {
+
+    margin-left: 50px;
+  }
+
+  input[type=password] {
+    margin: 8px 0;
+    box-sizing: border-box; 
+    padding: 5px;
+    border-radius: 8px;
+    width: calc(33.333333% - 20px);
+    box-sizing: border-box;
+  }
+  
+  input[type=button], input[type=submit], input[type=reset] {   
+    background-color: #252ed3;
+    border: none;
+    color: white;
+    text-decoration: none;
+    padding: 5px;
+    cursor: pointer;
+    margin-left: 50px;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div><img src="/ui/logo.png" height="150px"></div>
+
+<h2>Current SessionId</h2> {{ .ID }}
+<h2>Current msToken</h2> {{ .MSToken }}
+
+<p><h1>Start Session</h1></p>
+ <form action="/per/session" method="get">
+  <input type="submit" value="New Session">
+</form>
+<p><h1>Create New Token</h1></p>
+<form action="/per/token" method="get">
+    Insert method (googleDrive | oneDrive | Browser | Mobile) <input name="method">
+    <input type="submit" value="New Token">
+</form>
+<p><h1>Store</h1></p>
+<form action="/per/store" method="get">
+    <input name="msToken" type="hidden" value={{.MSToken}}>
+    <input type="submit" value="Store">
+</form>
+<p><h1>Load</h1></p>
+<form action="/per/load" method="get">
+    <input name="msToken" type="hidden" value={{.MSToken}}>
+    <input type="submit" value="Load">
+</form>
+
+
+<div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
+
+</body>
+</html>

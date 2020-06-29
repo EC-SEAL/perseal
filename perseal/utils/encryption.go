@@ -7,24 +7,21 @@ import (
 	"crypto/sha1"
 	"crypto/sha512"
 	"encoding/base64"
-	"errors"
 	"io"
-	"log"
 	"os"
-
-	"golang.org/x/crypto/pbkdf2"
 )
 
 var (
 	PBKDF2SALT string = os.Getenv("PBKDF2SALT") // to make
 )
 
+/*
 // Pbkdf2 Fixes key length for AES Usage
 func Pbkdf2(key []byte) []byte {
 	log.Println("salt:", string(PBKDF2SALT))
 	return pbkdf2.Key(key, []byte(PBKDF2SALT), 4096, 32, sha512.New)
 }
-
+*/
 func Padding(cipherText []byte, length int) []byte {
 	hasher := sha512.New()
 	hasher.Write(cipherText)
@@ -60,11 +57,6 @@ func AESDecrypt(key []byte, securemess string) (decodedmess []byte, err error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return
-	}
-
-	if len(cipherText) < aes.BlockSize {
-		err = errors.New("Ciphertext block size is too short!")
 		return
 	}
 

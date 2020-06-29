@@ -9,3 +9,5 @@ shell.sh
 perseal/services/public.pub
 perseal/services/private.key
 perseal/profile
+*.key
+*.pub

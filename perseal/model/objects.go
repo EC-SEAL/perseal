@@ -34,4 +34,8 @@ type OneDriveCreds struct {
 	OneDriveRefreshToken string `json:"oneDrivetRefreshToken"`
 }
 
-var Local = true
+var Local = false
+var TestCode chan *bool
+
+var TestUser string
+var MSToken string
