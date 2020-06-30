@@ -99,7 +99,7 @@ var (
 // sessionData.sessionId the sessionId used to gen. the jwt, and additionalData: extraData that were used to generate the jwt
 func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "http://vm.project-seal.eu:9090/sm/validateToken?token=" + token
 	} else {
 		url = os.Getenv("SM_ENDPOINT") + "/validateToken?token=" + token
@@ -171,7 +171,7 @@ func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
 func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "http://vm.project-seal.eu:9090/sm/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
 	} else {
 		url = os.Getenv("SM_ENDPOINT") + "/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
@@ -257,7 +257,7 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.HTMLRes
 //Updates a Session Variable, by providind the sessionID, the new value of the variable and the the variable name
 func UpdateSessionData(sessionId string, dataObject string, variableName string) (body string, err *model.HTMLResponse) {
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "http://vm.project-seal.eu:9090/sm/updateSessionData"
 	} else {
 		url = os.Getenv("SM_ENDPOINT") + "/updateSessionData"

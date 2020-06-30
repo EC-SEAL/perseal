@@ -11,3 +11,5 @@ perseal/services/private.key
 perseal/profile
 *.key
 *.pub
+*.p12
+*.crt

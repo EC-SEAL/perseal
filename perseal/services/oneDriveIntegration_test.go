@@ -16,12 +16,12 @@ func TestOneDriveService(t *testing.T) {
 	session, _ := sm.GetSessionData(obj.ID, "")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
-	ds, err := StoreCloudData(obj, "datastore.seal")
+	ds, err := storeCloudData(obj, "datastore.seal")
 	log.Println(ds)
 	log.Println(err)
 
 	// Test Load OneDrive
-	ds, err = FetchCloudDataStore(obj, "datastore.seal")
+	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
 		t.Error("Thrown error, got: ", err)
 	}

@@ -52,8 +52,7 @@ h1 {
 
 {{$id := .ID}}
 
-{{if .DoesNotHaveFiles }}
- <form action="/per/insertPassword" method="post">
+ <form action="/per/aux/storeAndLoad" method="post">
   <p><h2>No Files Found!</h2></p>
   <p ><h2>Would You Like to Store a File? </h2></p>
   <input type="hidden" name="sessionId" value={{.ID}}>
@@ -63,7 +62,6 @@ h1 {
   <button>No</button>
 </a>
 
-{{end}}
 
 <div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
 

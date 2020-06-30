@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
@@ -21,15 +20,12 @@ import (
 
 //Attempts to Store the Session Data On Google Drive
 func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
-	token, client := getGoogleDriveClient(dto.GoogleAccessCreds)
-	log.Println(token)
-
-	log.Println("TOKEN ", token)
-	log.Println("ClIENT ", client)
-
+	client := getGoogleDriveClient(dto.GoogleAccessCreds)
+	log.Println(client)
+	log.Println(dto.GoogleAccessCreds)
 	dataStore, _ = externaldrive.StoreSessionData(dto)
 
-	file, erro := dataStore.UploadGoogleDrive(token, client, filename)
+	file, erro := dataStore.UploadGoogleDrive(&dto.GoogleAccessCreds, client, filename)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
@@ -46,7 +42,7 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (dataS
 //Attempts to Load a Datastore from GoogleDrive into Session
 func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *http.Response, err *model.HTMLResponse) {
 
-	_, client := getGoogleDriveClient(dto.GoogleAccessCreds)
+	client := getGoogleDriveClient(dto.GoogleAccessCreds)
 
 	jsonM, _ := json.Marshal(dto.SMResp)
 	smr := &sm.SessionMngrResponse{}
@@ -63,7 +59,7 @@ func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *
 	}
 	return
 }
-func getGoogleRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLResponse) {
+func getGoogleRedirectURL(dto dto.PersistenceDTO) (url string) {
 
 	var config *oauth2.Config
 	config = establishGoogleDriveCreds()
@@ -72,19 +68,17 @@ func getGoogleRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLRe
 	return
 }
 
-func getGoogleDriveClient(accessCreds string) (token *oauth2.Token, client *http.Client) {
+func getGoogleDriveClient(accessCreds oauth2.Token) (client *http.Client) {
 	googleCreds := establishGoogleDriveCreds()
 
-	token = &oauth2.Token{}
-	json.NewDecoder(strings.NewReader(accessCreds)).Decode(token)
 	b2, _ := json.Marshal(googleCreds)
 	config, _ := google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-	client = config.Client(context.Background(), token)
+	client = config.Client(context.Background(), &accessCreds)
 	return
 }
 
 // Uploads Google Drive Token to SessionVariables
-func UpdateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Token, err *model.HTMLResponse) {
+func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Token, err *model.HTMLResponse) {
 
 	config := establishGoogleDriveCreds()
 

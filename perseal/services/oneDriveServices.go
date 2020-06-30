@@ -79,18 +79,9 @@ func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (file *htt
 	return
 }
 
-func getOneDriveRedirectURL(dto dto.PersistenceDTO) (url string, err *model.HTMLResponse) {
-
+func getOneDriveRedirectURL(dto dto.PersistenceDTO) (url string) {
 	creds := externaldrive.SetOneDriveCreds()
-
-	url, erro := externaldrive.GetOneDriveRedirectURL(dto.ID, creds)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate One Drive Redirect URL",
-			ErrorMessage: erro.Error(),
-		}
-	}
+	url = externaldrive.GetOneDriveRedirectURL(dto.ID, creds)
 	return
 }
 
@@ -111,7 +102,7 @@ func checkOneDriveTokenExpiry(dto dto.PersistenceDTO) (token *oauth2.Token, err 
 	return
 }
 
-func UpdateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.Token, err *model.HTMLResponse) {
+func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.Token, err *model.HTMLResponse) {
 
 	creds := externaldrive.SetOneDriveCreds()
 

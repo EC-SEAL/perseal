@@ -40,28 +40,45 @@ h1 {
 
 <div><img src="/ui/logo.png" height="150px"></div>
 
-<h2>Current SessionId</h2> {{ .ID }}
-<h2>Current msToken</h2> {{ .MSToken }}
 
-<p><h1>Start Session</h1></p>
- <form action="/per/session" method="get">
+<p><h1>Start New Session</h1></p>
+ <form action="/per/test/session" method="get">
   <input type="submit" value="New Session">
 </form>
+
+{{if not (eq .ID "")}}
+
+<p><h2>Current SessionId {{ .ID }}</h2></p>
 <p><h1>Create New Token</h1></p>
-<form action="/per/token" method="get">
-    Insert method (googleDrive | oneDrive | Browser | Mobile) <input name="method">
-    <input type="submit" value="New Token">
+<form action="/per/test/token" method="get">
+  <label for="method">Choose a method:</label>
+  <select name="method" id="method">
+    <option value="googleDrive">Google Drive</option>
+    <option value="oneDrive">OneDrive</option>
+    <option value="Browser">Local File System</option>
+    <option value="Mobile">Mobile Device</option>
+  </select>
+  <input type="submit" value="New Token">
 </form>
-<p><h1>Store</h1></p>
+{{end}}
+
+
+{{if not (eq .MSToken "")}}
+
+<div>
+<h1>Store</h1>
 <form action="/per/store" method="get">
     <input name="msToken" type="hidden" value={{.MSToken}}>
     <input type="submit" value="Store">
 </form>
-<p><h1>Load</h1></p>
+</div>
+<p><h1>Load</h1>
 <form action="/per/load" method="get">
     <input name="msToken" type="hidden" value={{.MSToken}}>
     <input type="submit" value="Load">
 </form>
+</p>
+{{end}}
 
 
 <div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>

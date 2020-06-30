@@ -1,10 +1,7 @@
 package services
 
 import (
-	"testing"
-
 	"github.com/EC-SEAL/perseal/dto"
-	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/sm"
 )
 
@@ -30,6 +27,7 @@ func Init(pds string) dto.PersistenceDTO {
 	return obj
 }
 
+/*
 func TestAuxMethodsServices(t *testing.T) {
 
 	// Get Redirect URL Google Drive
@@ -90,3 +88,4 @@ func TestAuxMethodsServices(t *testing.T) {
 	}
 
 }
+*/

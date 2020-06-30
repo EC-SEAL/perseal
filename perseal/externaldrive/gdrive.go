@@ -35,8 +35,8 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 // Requests a token from the web, then returns the retrieved token.
 func GetGoogleLinkForDashboardRedirect(id string, config *oauth2.Config) string {
 	var authURL string
-	if model.Local {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"), oauth2.SetAuthURLParam("state", id))
+	if model.Test {
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"), oauth2.SetAuthURLParam("state", id), oauth2.SetAuthURLParam("user_id", "info@project-seal.eu"))
 	} else {
 		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")), oauth2.SetAuthURLParam("state", id))
 	}
@@ -166,7 +166,7 @@ func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err 
 
 func SetGoogleDriveCreds() model.GoogleDriveCreds {
 	googleCreds := &model.GoogleDriveCreds{}
-	if model.Local {
+	if model.Test {
 		googleCreds.Web.ClientId = "425112724933-9o8u2rk49pfurq9qo49903lukp53tbi5.apps.googleusercontent.com"
 		googleCreds.Web.ProjectId = "seal-274215"
 		googleCreds.Web.AuthURI = "https://accounts.google.com/o/oauth2/auth"

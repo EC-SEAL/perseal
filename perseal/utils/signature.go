@@ -8,19 +8,17 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/EC-SEAL/perseal/model"
 	"github.com/google/uuid"
 	"github.com/spacemonkeygo/httpsig"
 )
 
+// Signature
 func GetSignature(encypt string) (b64dec string, err error) {
 	interfacekey, err := getPrivateKey()
 	key := interfacekey.(*rsa.PrivateKey)
@@ -32,21 +30,6 @@ func GetSignature(encypt string) (b64dec string, err error) {
 		return
 	}
 	b64dec = base64.URLEncoding.EncodeToString(signature)
-	return
-}
-
-func ReadRequestBody(r *http.Request) (stringBody string, err *model.HTMLResponse) {
-
-	bodybytes, erro := ioutil.ReadAll(r.Body)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Read Body from Request",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-	stringBody = string(bodybytes)
 	return
 }
 
@@ -150,122 +133,4 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 	}
 
 	return newReq.Header.Get("Authorization"), nil
-}
-
-// For Postman Testing
-func StartSession() (tokenResp model.TokenResponse, err *model.HTMLResponse) {
-	url := "https://vm.project-seal.eu:9053/cl/session/start"
-
-	req, erro := http.NewRequest("GET", url, nil)
-
-	req.Header.Set("Accept", "application/json")
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate URL to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	fmt.Println(req.URL)
-	var client http.Client
-	resp, erro := client.Do(req)
-	fmt.Println("\n", resp)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Execute Request to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	body, erro := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Read Response from Request to  Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var dat interface{}
-	json.Unmarshal([]byte(body), &dat)
-	fmt.Println("\n", dat)
-	jsonM, erro := json.Marshal(dat)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	tokenResp = model.TokenResponse{}
-	json.Unmarshal(jsonM, &tokenResp)
-	fmt.Println(tokenResp.Payload)
-	return
-}
-
-func GenerateTokenAPI(method string, id string) (smResp model.TokenResponse, err *model.HTMLResponse) {
-
-	url := "https://vm.project-seal.eu:9053/cl/persistence/" + method + "/store?sessionID=" + id
-
-	req, erro := http.NewRequest("GET", url, nil)
-
-	var client http.Client
-
-	req.Header.Set("Accept", "application/json")
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate URL to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	fmt.Println(req.URL)
-	resp, erro := client.Do(req)
-	fmt.Println("\n", resp)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Execute Request to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	body, erro := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Read Response from Request to  Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var dat interface{}
-	json.Unmarshal([]byte(body), &dat)
-	fmt.Println("\n", dat)
-	jsonM, erro := json.Marshal(dat)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	json.Unmarshal(jsonM, &smResp)
-
-	return
 }

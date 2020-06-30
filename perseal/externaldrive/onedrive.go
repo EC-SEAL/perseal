@@ -79,7 +79,7 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 	createfolderjson := []byte(`{"name":"` + folderName + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
 	var req *http.Request
-	if model.Local {
+	if model.Test {
 		req, err = http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
 	} else {
 		req, _ = http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
@@ -105,7 +105,7 @@ func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 // PUT request to create a file in a given folder
 func CreateOneDriveFile(token *oauth2.Token, folderID string, filename string, blob []byte) (err error) {
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + filename + ":/content"
 	} else {
 		url = os.Getenv("CREATE_FILE_URL") + folderID + ":/" + filename + ":/content"
@@ -132,7 +132,7 @@ func CreateOneDriveFile(token *oauth2.Token, folderID string, filename string, b
 func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response, err error) {
 
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
 	} else {
 		url = os.Getenv("GET_FOLDER_URL") + ":/" + folder
@@ -152,7 +152,7 @@ func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response,
 
 func GetOneDriveItems(token *oauth2.Token, folder string) (folderchildren *FolderChildren, err error) {
 	var url string
-	if model.Local {
+	if model.Test {
 		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderId + "/children"
 	} else {
 		url = os.Getenv("GET_ITEMS_URL") + folderId + "/children"
@@ -230,29 +230,23 @@ func CheckOneDriveTokenExpiry(token oauth2.Token, creds *model.OneDriveCreds) (r
 // Afterwards, makes a POST request to retrive the new access_token, given necessary parameters
 // In order to use the One Drive API, the client needs the clientID, the redirect_uri and the scopes of the application in the Microsfot Graph
 // For more information, follow this link: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online
-func GetOneDriveRedirectURL(id string, creds *model.OneDriveCreds) (link string, err error) {
+func GetOneDriveRedirectURL(id string, creds *model.OneDriveCreds) (link string) {
 
 	var u *url.URL
 	//Retrieve the code
-	if model.Local {
-		u, err = url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
+	if model.Test {
+		u, _ = url.ParseRequestURI("https://login.live.com/oauth20_authorize.srf")
 	} else {
-		u, err = url.ParseRequestURI(os.Getenv("AUTH_URL"))
-	}
-	if err != nil {
-		return
+		u, _ = url.ParseRequestURI(os.Getenv("AUTH_URL"))
 	}
 	urlStr := u.String()
 
-	req, err := http.NewRequest("GET", urlStr, nil)
-	if err != nil {
-		return
-	}
+	req, _ := http.NewRequest("GET", urlStr, nil)
 
 	q := req.URL.Query()
 	q.Add("client_id", creds.OneDriveClientID)
 	q.Add("scope", creds.OneDriveScopes)
-	if model.Local {
+	if model.Test {
 		q.Add("redirect_uri", "http://localhost:8082/per/code")
 	} else {
 		q.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
@@ -263,7 +257,7 @@ func GetOneDriveRedirectURL(id string, creds *model.OneDriveCreds) (link string,
 
 	link = req.URL.String()
 
-	return link, nil
+	return link
 }
 func RequestToken(code string, clientID string) (token *oauth2.Token, err error) {
 
@@ -273,7 +267,7 @@ func RequestToken(code string, clientID string) (token *oauth2.Token, err error)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
 	var u *url.URL
-	if model.Local {
+	if model.Test {
 		values.Add("redirect_uri", "http://localhost:8082/per/code")
 		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	} else {
@@ -305,7 +299,7 @@ func requestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.To
 	values.Add("grant_type", "refresh_token")
 
 	var u *url.URL
-	if model.Local {
+	if model.Test {
 		values.Add("redirect_uri", "http://localhost:8082/per/code")
 		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
 	} else {
@@ -362,7 +356,7 @@ func tokenRequest(req *http.Request) (tok *oauth2.Token, err error) {
 func SetOneDriveCreds() (creds *model.OneDriveCreds) {
 	creds = &model.OneDriveCreds{}
 
-	if model.Local {
+	if model.Test {
 		creds.OneDriveClientID = "fff1cba9-7597-479d-b653-fd96c5d56b43"
 		creds.OneDriveScopes = "offline_access files.read files.read.all files.readwrite files.readwrite.all"
 	} else {
