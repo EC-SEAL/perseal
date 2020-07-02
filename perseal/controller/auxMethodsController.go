@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -126,5 +127,40 @@ func recieveSessionIdAndPassword(r *http.Request) (obj dto.PersistenceDTO, err *
 	}
 
 	obj, err = dto.PersistenceWithPasswordBuilder(id, sessionData, sha)
+	return
+}
+
+func fetchLocalDataStore(r *http.Request) (body []byte, err *model.HTMLResponse) {
+	var erro error
+
+	file, handler, erro := r.FormFile("file")
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         404,
+			Message:      "Could not find file contents",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	defer file.Close()
+	f, erro := handler.Open()
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         404,
+			Message:      "Could not open file",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	body, erro = ioutil.ReadAll(f)
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         404,
+			Message:      "Could not read file contents",
+			ErrorMessage: erro.Error(),
+		}
+	}
 	return
 }

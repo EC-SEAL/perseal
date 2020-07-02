@@ -52,7 +52,16 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	if dto.Method == "store" {
 		response, err = services.PersistenceStore(dto)
 	} else if dto.Method == "load" {
-		response, err = services.PersistenceLoad(dto, r)
+
+		if dto.PDS == "Browser" {
+			dto.LocalFileBytes, err = fetchLocalDataStore(r)
+			if err != nil {
+				writeResponseMessage(w, dto, *err)
+				return
+			}
+		}
+
+		response, err = services.PersistenceLoad(dto)
 	} else if dto.Method == "storeload" {
 		response, err = services.PersistenceStoreAndLoad(dto)
 	}
@@ -66,7 +75,7 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Save(w http.ResponseWriter, r *http.Request) {
+func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 

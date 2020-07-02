@@ -2,7 +2,6 @@ package dto
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
@@ -22,6 +21,7 @@ type PersistenceDTO struct {
 	Response           model.HTMLResponse
 	IsLocalLoad        bool
 	Image              string
+	LocalFileBytes     []byte
 }
 
 // Builds Standard Persistence DTO
@@ -99,7 +99,6 @@ func getGoogleAndOneDriveTokens(sessionData sm.SessionMngrResponse) (googleToken
 	var data2 interface{}
 	json.Unmarshal([]byte(sessionData.SessionData.SessionVariables["GoogleDriveAccessCreds"]), &data2)
 	googleTokenBytes, erro = json.Marshal(data2)
-	log.Println("\n\n\n\n", googleTokenBytes)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         400,

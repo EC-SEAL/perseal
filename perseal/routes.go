@@ -85,7 +85,7 @@ var perRoutes = routes{
 		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
 		"GET",
 		"/aux/{method}",
-		controller.Save,
+		controller.AuxiliaryEndpoints,
 	},
 
 	//external endpoints

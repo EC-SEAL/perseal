@@ -53,12 +53,6 @@ func storeCloudData(dto dto.PersistenceDTO, filename string) (dataStore *externa
 		dataStore, err = storeSessionDataGoogleDrive(dto, filename)
 	} else if dto.PDS == "oneDrive" {
 		dataStore, err = storeSessionDataOneDrive(dto, filename)
-	} else {
-		err = &model.HTMLResponse{
-			Code:    400,
-			Message: "Wrong Module Or No Module Found in Credentials",
-		}
-		return
 	}
 	return
 }

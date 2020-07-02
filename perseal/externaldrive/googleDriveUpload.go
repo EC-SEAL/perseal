@@ -5,10 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
-	"github.com/EC-SEAL/perseal/model"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 )
@@ -27,20 +24,9 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 		Blob:        data,
 		ContentType: "application/octet-stream",
 	}
-	file, err = SendFile(fp, client)
+	file, err = sendFile(fp, client)
 	log.Println(err)
 	return
-}
-
-// Requests a token from the web, then returns the retrieved token.
-func GetGoogleLinkForDashboardRedirect(id string, config *oauth2.Config) string {
-	var authURL string
-	if model.Test {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"), oauth2.SetAuthURLParam("state", id), oauth2.SetAuthURLParam("user_id", "info@project-seal.eu"))
-	} else {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")), oauth2.SetAuthURLParam("state", id))
-	}
-	return authURL
 }
 
 func isFolder(file *drive.File) bool {
@@ -66,43 +52,6 @@ func createGoogleDriveDir(service *drive.Service, name string, parentId string) 
 	}
 
 	file, err = service.Files.Create(d).Do()
-	return
-}
-
-func GetGoogleDriveFile(filename string, client *http.Client) (file *http.Response, err error) {
-	service, err := drive.New(client)
-	if err != nil {
-		return
-	}
-
-	list, err := service.Files.List().Do()
-	if err != nil {
-		return
-	}
-	var fileId string
-	for _, v := range list.Files {
-		if v.Name == filename {
-			fileId = v.Id
-		}
-	}
-	file, err = service.Files.Get(fileId).Download()
-	return
-}
-
-func GetGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
-	service, err := drive.New(client)
-	if err != nil {
-		return
-	}
-
-	list, err := service.Files.List().Do()
-	if err != nil {
-		return
-	}
-	fileList = make([]string, 0)
-	for _, v := range list.Files {
-		fileList = append(fileList, v.Name)
-	}
 	return
 }
 
@@ -141,7 +90,7 @@ type FileProps struct {
 }
 
 //SendFile gdrive file given encrypted blob and oauth token
-func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err error) {
+func sendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err error) {
 
 	service, err := drive.New(client)
 	if err != nil {
@@ -162,26 +111,4 @@ func SendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err 
 	// TODO check md5sum of data with CreatedFile
 	// md5sum := md5.Sum(fileProps.Blob)
 	return file, err
-}
-
-func SetGoogleDriveCreds() model.GoogleDriveCreds {
-	googleCreds := &model.GoogleDriveCreds{}
-	if model.Test {
-		googleCreds.Web.ClientId = "425112724933-9o8u2rk49pfurq9qo49903lukp53tbi5.apps.googleusercontent.com"
-		googleCreds.Web.ProjectId = "seal-274215"
-		googleCreds.Web.AuthURI = "https://accounts.google.com/o/oauth2/auth"
-		googleCreds.Web.TokenURI = "https://oauth2.googleapis.com/token"
-		googleCreds.Web.AuthProviderx509CertUrl = "https://www.googleapis.com/oauth2/v1/certs"
-		googleCreds.Web.ClientSecret = "0b3WtqfasYfWDmk31xa8UAht"
-		googleCreds.Web.RedirectURIS = []string{"http://localhost:8082/per/code"}
-	} else {
-		googleCreds.Web.ClientId = os.Getenv("GOOGLE_DRIVE_CLIENT_ID")
-		googleCreds.Web.ProjectId = os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT")
-		googleCreds.Web.AuthURI = os.Getenv("GOOGLE_DRIVE_AUTH_URI")
-		googleCreds.Web.TokenURI = os.Getenv("GOOGLE_DRIVE_TOKEN_URI")
-		googleCreds.Web.AuthProviderx509CertUrl = os.Getenv("GOOGLE_DRIVE_AUTH_PROVIDER")
-		googleCreds.Web.ClientSecret = os.Getenv("GOOGLE_DRIVE_CLIENT_SECRET")
-		googleCreds.Web.RedirectURIS = strings.Split([]string{os.Getenv("GOOGLE_DRIVE_REDIRECT_URIS")}[0], ",")
-	}
-	return *googleCreds
 }

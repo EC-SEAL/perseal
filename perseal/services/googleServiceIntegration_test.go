@@ -12,7 +12,6 @@ import (
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -67,6 +66,18 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
+	// Test Incorrect GoogleDrive Store
+	sessionData, _ = sm.GetSessionData(id, "")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
+	obj.GoogleAccessCreds.AccessToken += "123"
+	ds, err = storeCloudData(obj, "datastore.seal")
+	log.Println(ds)
+	if err == nil {
+		t.Error("Should have thrown error")
+	}
+
+	sessionData, _ = sm.GetSessionData(id, "")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
 	// Test Correct Load GoogleDrive Store
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
@@ -90,11 +101,37 @@ func TestGoogleService(t *testing.T) {
 	}
 
 	// Test Get Cloud Files No GoogleCreds
-	obj.GoogleAccessCreds = oauth2.Token{}
-	//Remove Line Above
+	obj.GoogleAccessCreds.AccessToken = "1234"
 	files, err = GetCloudFileNames(obj)
 	if err == nil {
 		t.Error("Should have thrown error")
+	}
+
+	session, _ := sm.GetSessionData(obj.ID, "")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
+	log.Println(session)
+	_, erro := PersistenceStore(obj)
+	log.Println(erro)
+	if erro != nil {
+		t.Error("Thrown error, got: ", err)
+	}
+
+	session, _ = sm.GetSessionData(obj.ID, "")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
+	log.Println(session)
+	_, erro = PersistenceLoad(obj)
+	log.Println(erro)
+	if erro != nil {
+		t.Error("Thrown error, got: ", err)
+	}
+
+	session, _ = sm.GetSessionData(obj.ID, "")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
+	log.Println(session)
+	_, erro = PersistenceStoreAndLoad(obj)
+	log.Println(erro)
+	if erro != nil {
+		t.Error("Thrown error, got: ", err)
 	}
 
 }

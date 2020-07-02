@@ -31,4 +31,5 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	google.golang.org/api v0.22.0
 	gopkg.in/headzoo/surf.v1 v1.0.0
+	software.sslmate.com/src/go-pkcs12 v0.0.0-20200619203921-c9ed90bd32dc
 )

@@ -14,7 +14,7 @@ import (
 )
 
 // Setup a persistence mechanism and load a secure storage into session.
-func PersistenceLoad(dto dto.PersistenceDTO, r *http.Request) (response, err *model.HTMLResponse) {
+func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
 	log.Println("persistanceLoad")
 
 	ds := &externaldrive.DataStore{}
@@ -24,12 +24,11 @@ func PersistenceLoad(dto dto.PersistenceDTO, r *http.Request) (response, err *mo
 	if dto.PDS == "googleDrive" || dto.PDS == "oneDrive" {
 		ds, err = fetchCloudDataStore(dto, "datastore.seal")
 	} else if dto.PDS == "Browser" {
-		ds = fetchLocalDataStore(r)
-	} else {
-		err = &model.HTMLResponse{
-			Code:    400,
-			Message: "Bad PDS Variable",
-		}
+		ds, err = readLocalFileDataStore(dto.LocalFileBytes)
+	}
+
+	if err != nil {
+		log.Println(err)
 		return
 	}
 
@@ -78,7 +77,7 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 }
 
 func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, err *model.HTMLResponse) {
-	dataStore, err := readCloudFileDataStore([]byte(dataSstr))
+	dataStore, err := readLocalFileDataStore([]byte(dataSstr))
 	if err != nil {
 		return
 	}
@@ -126,20 +125,6 @@ func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *ex
 	return
 }
 
-func fetchLocalDataStore(r *http.Request) (ds *externaldrive.DataStore) {
-	file, handler, _ := r.FormFile("file")
-	defer file.Close()
-	f, _ := handler.Open()
-	body, erro := ioutil.ReadAll(f)
-	if erro != nil {
-		return
-	}
-
-	ds, err := readLocalFileDataStore(body)
-	log.Println(err)
-	return
-}
-
 func validateSignature(encrypted string, sigToValidate string) bool {
 	sig, err := utils.GetSignature(encrypted)
 	if err != nil {
@@ -167,23 +152,31 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 	}
 
 	erro := dataStore.Decrypt(dto.Password)
+	log.Println("pre")
 	log.Println(erro)
 	dataStore.EncryptedData = ""
+	log.Println("pos")
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:    500,
 			Message: "Couldn't Decrypt DataStore. Check your password",
 		}
 		json.MarshalIndent(err, "", "\t")
+		return
 	}
 
-	jsonM, _ := marshallDataStore(dataStore, dto)
+	jsonM, err := marshallDataStore(dataStore, dto)
+	log.Println(err)
+	if err != nil {
+		return
+	}
 	_, err = sm.UpdateSessionData(dto.ID, string(jsonM), "dataStore")
 	return
 }
 
 func marshallDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDTO) (jsonM []byte, err *model.HTMLResponse) {
 	jsonM, erro := json.Marshal(dataStore)
+	log.Println(erro)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
@@ -213,14 +206,13 @@ func readCloudFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore
 
 func readLocalFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	var v string
-	log.Println("string", dataSstr)
 	json.Unmarshal(dataSstr, &v)
 	erro := json.Unmarshal([]byte(v), &dataStore)
 	log.Println(dataStore)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:    400,
-			Message: "Bad Structure of DataStore",
+			Message: "The File must contain only a valid DataStore",
 		}
 	}
 	return

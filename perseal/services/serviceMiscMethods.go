@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
-	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
 	"golang.org/x/oauth2"
 )
@@ -13,9 +12,9 @@ import (
 func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
 
 	if dto.PDS == "googleDrive" && dto.GoogleAccessCreds.AccessToken == "" {
-		url = getGoogleRedirectURL(dto)
+		url = getGoogleRedirectURL(dto.ID)
 	} else if dto.PDS == "oneDrive" && dto.OneDriveToken.AccessToken == "" {
-		url = getOneDriveRedirectURL(dto)
+		url = getOneDriveRedirectURL(dto.ID)
 	}
 
 	return
@@ -43,7 +42,7 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 		var client *http.Client
 		client = getGoogleDriveClient(dto.GoogleAccessCreds)
 		var erro error
-		files, erro = externaldrive.GetGoogleDriveFiles(client)
+		files, erro = getGoogleDriveFiles(client)
 		if erro != nil {
 			err = &model.HTMLResponse{
 				Code:         404,
@@ -55,11 +54,11 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 
 	} else if dto.PDS == "oneDrive" {
 		var token *oauth2.Token
-		token, err = checkOneDriveTokenExpiry(dto)
+		token, err = checkOneDriveTokenExpiry(dto.OneDriveToken)
 		if err != nil {
 			return
 		}
-		resp, erro := externaldrive.GetOneDriveItems(token, "SEAL")
+		resp, erro := getOneDriveItems(token, "SEAL")
 		if erro != nil {
 			err = &model.HTMLResponse{
 				Code:         404,
