@@ -31,7 +31,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(obj)
+	log.Println("Current Persistence Object: ", obj)
 	url := redirectToOperation(obj, w)
 	if url != "" {
 		http.Redirect(w, r, url, 302)
@@ -39,15 +39,14 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 }
 
 func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
-	log.Println("password inserted")
-
+	log.Println("DataStore Handling")
 	dto, err := recieveSessionIdAndPassword(r)
-	log.Println(dto)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
 	}
 
+	log.Println("Current Persistence Object: ", dto)
 	var response *model.HTMLResponse
 	if dto.Method == "store" {
 		response, err = services.PersistenceStore(dto)
@@ -77,10 +76,10 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 
 func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
+	log.Println("aux")
 	method := mux.Vars(r)["method"]
 
 	if method == "storeAndLoad" {
-
 		// Activated When Cloud Drive does not have files, so it can store and load the dataStore
 		log.Println("storeAndLoad")
 		id := r.FormValue("sessionId")
@@ -95,7 +94,6 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		dto.StoreAndLoad = true
 		insertPassword(dto, w)
 	} else if method == "save" {
-
 		//Downloads File for the localFile System
 		log.Println("save")
 		contents := getQueryParameter(r, "contents")
@@ -124,11 +122,6 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dto, err = services.UpdateTokenFromCode(dto, code)
-	if err != nil {
-		writeResponseMessage(w, dto, *err)
-		return
-	}
-	log.Println(dto.Method)
 	redirectToOperation(dto, w)
 }
 

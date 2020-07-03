@@ -69,14 +69,9 @@ func main() {
 		fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
 		server.ListenAndServe()
 	} else {
-		go listenAndServeTLS(server)
-		http.ListenAndServe(":8082", http.HandlerFunc(redirectTLS))
+		listenAndServeTLS(server)
 	}
 
-}
-
-func redirectTLS(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://"+r.RequestURI, http.StatusMovedPermanently)
 }
 
 func listenAndServeTLS(server *http.Server) {
@@ -85,7 +80,7 @@ func listenAndServeTLS(server *http.Server) {
 	if err != nil {
 		log.Println(err)
 	} else {
-		log.Println("I read it! ", p12_data)
+		log.Println("I read it!")
 	}
 	key, cert, err := pkcs12.Decode(p12_data, os.Getenv("SSL_KEY_PASS")) // Note the order of the return values.
 	if err != nil {
@@ -128,11 +123,11 @@ func listenAndServeTLS(server *http.Server) {
 	if err != nil {
 		log.Println(err)
 	} else {
-		log.Println("config certificates: ", config.Certificates)
+		log.Println("config certificates found")
+		fmt.Println("Persistent SEAL module running on HTTPS port " + os.Getenv("PERSEAL_EXT_PORT"))
 	}
 	defer ln.Close()
 
-	fmt.Println("Persistent SEAL module running on HTTPS port " + os.Getenv("PERSEAL_EXT_PORT"))
 	listen := tls.NewListener(ln, config)
 	server.Serve(listen)
 }

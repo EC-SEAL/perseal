@@ -52,7 +52,7 @@ h1 {
 
 {{$id := .ID}}
 
- <form action="/per/aux/storeAndLoad" method="post">
+ <form action="/per/aux/storeAndLoad" method="get">
   <p><h2>No Files Found!</h2></p>
   <p ><h2>Would You Like to Store a File? </h2></p>
   <input type="hidden" name="sessionId" value={{.ID}}>

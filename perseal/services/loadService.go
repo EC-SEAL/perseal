@@ -18,7 +18,6 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	log.Println("persistanceLoad")
 
 	ds := &externaldrive.DataStore{}
-	log.Println(dto.SMResp.SessionData.SessionVariables["dataStore"])
 
 	// Initialize Variables
 	if dto.PDS == "googleDrive" || dto.PDS == "oneDrive" {
@@ -28,19 +27,17 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	}
 
 	if err != nil {
-		log.Println(err)
 		return
 	}
 
 	// Validates signature of DataStore
 
 	err = signAndDecryptDataStore(ds, dto)
-	log.Println(ds)
-
 	if err != nil {
 		return
 	}
 
+	log.Println("Decrypted DataStore: ", ds)
 	response = &model.HTMLResponse{
 		Code:               200,
 		Message:            "Loaded DataStore " + ds.ID,
@@ -52,18 +49,14 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 
 // UC 1.06 - Stores and Loads Datastore
 func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-
-	log.Println(dto.SMResp.SessionData.SessionVariables["dataStore"])
-	log.Println(dto.ID)
-	log.Println(dto.PDS)
-
 	ds, err := storeCloudData(dto, "datastore.seal")
 	if err != nil {
 		return
 	}
 
 	err = signAndDecryptDataStore(ds, dto)
-	log.Println(ds)
+
+	log.Println("Decrypted DataStore: ", ds)
 	if err != nil {
 		return
 	}
@@ -86,6 +79,7 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 	if err != nil {
 		return
 	}
+	log.Println("Decrypted DataStore: ", dataStore)
 
 	response = &model.HTMLResponse{
 		Code:               200,
@@ -110,6 +104,7 @@ func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *ex
 			return
 		}
 	}
+	log.Println("Managed to Fetch the DataStore File")
 	body, erro := ioutil.ReadAll(file.Body)
 	if erro != nil {
 		err = &model.HTMLResponse{
@@ -119,9 +114,7 @@ func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *ex
 		return
 	}
 	dataStore, err = readCloudFileDataStore(body)
-	if err != nil {
-		return
-	}
+	log.Println("DataStore ID found: ", dataStore.ID)
 	return
 }
 
@@ -152,10 +145,7 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 	}
 
 	erro := dataStore.Decrypt(dto.Password)
-	log.Println("pre")
-	log.Println(erro)
 	dataStore.EncryptedData = ""
-	log.Println("pos")
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:    500,
@@ -166,11 +156,10 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 	}
 
 	jsonM, err := marshallDataStore(dataStore, dto)
-	log.Println(err)
 	if err != nil {
 		return
 	}
-	_, err = sm.UpdateSessionData(dto.ID, string(jsonM), "dataStore")
+	sm.UpdateSessionData(dto.ID, string(jsonM), "dataStore")
 	return
 }
 
@@ -208,7 +197,7 @@ func readLocalFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore
 	var v string
 	json.Unmarshal(dataSstr, &v)
 	erro := json.Unmarshal([]byte(v), &dataStore)
-	log.Println(dataStore)
+	log.Println("DataStore ID found: ", dataStore.ID)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:    400,

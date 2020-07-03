@@ -17,9 +17,6 @@ var (
 func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
 	log.Println("persistanceStore")
 
-	log.Println(dto.ID)
-	log.Println(dto.PDS)
-
 	if dto.PDS == "Mobile" || dto.PDS == "Browser" {
 		dto.IsLocalLoad = true
 		dataStore, _ := externaldrive.StoreSessionData(dto)

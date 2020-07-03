@@ -61,6 +61,9 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 	if dto.Response.ClientCallbackAddr == "" {
 		dto.Response.ClientCallbackAddr = dto.ClientCallbackAddr
 	}
+	if response.ErrorMessage != "" {
+		log.Println(response.ErrorMessage)
+	}
 	t, _ := template.ParseFiles("ui/message.html")
 	t.Execute(w, dto.Response)
 }
@@ -70,7 +73,6 @@ func getQueryParameter(r *http.Request, paramName string) string {
 	if keys, ok := r.URL.Query()[paramName]; ok {
 		param = keys[0]
 	}
-	log.Println(param)
 	return param
 }
 
@@ -99,6 +101,7 @@ func mobileLoad(dto dto.PersistenceDTO, w http.ResponseWriter) {
 	dto.Image = base64.StdEncoding.EncodeToString(img)
 	if err != nil {
 		fmt.Print(err)
+		return
 	}
 	t, _ := template.ParseFiles("ui/qr.html")
 	t.Execute(w, dto)

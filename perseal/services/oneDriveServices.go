@@ -27,8 +27,6 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (dataStor
 	if err != nil {
 		return
 	}
-	log.Println(token)
-
 	dataStore, _ = externaldrive.StoreSessionData(dto)
 
 	var contents []byte

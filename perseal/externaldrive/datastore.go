@@ -3,6 +3,7 @@ package externaldrive
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -210,6 +211,8 @@ func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) 
 			Signature:           tmpDataStore.Signature,
 			SignatureAlgorithm:  tmpDataStore.SignatureAlgorithm,
 		}
+	} else {
+		err = errors.New("Password is Empty")
 	}
 	return
 }

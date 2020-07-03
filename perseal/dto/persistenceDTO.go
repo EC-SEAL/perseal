@@ -26,8 +26,9 @@ type PersistenceDTO struct {
 
 // Builds Standard Persistence DTO
 func PersistenceBuilder(id string, sessionData sm.SessionMngrResponse, method ...string) (dto PersistenceDTO, err *model.HTMLResponse) {
-	client := sessionData.SessionData.SessionVariables["ClientCallback"]
-	if client == "" {
+	client := sessionData.SessionData.SessionVariables["ClientCallbackAddr"]
+
+	if client == "" && model.Test {
 		client = "https://vm.project-seal.eu:9053/swagger-ui.html"
 	}
 
@@ -58,8 +59,9 @@ func PersistenceBuilder(id string, sessionData sm.SessionMngrResponse, method ..
 // Builds Persistence DTO With Password
 func PersistenceWithPasswordBuilder(id string, sessionData sm.SessionMngrResponse, password string) (dto PersistenceDTO, err *model.HTMLResponse) {
 
-	client := sessionData.SessionData.SessionVariables["ClientCallback"]
-	if client == "" {
+	client := sessionData.SessionData.SessionVariables["ClientCallbackAddr"]
+
+	if client == "" && model.Test {
 		client = "https://vm.project-seal.eu:9053/swagger-ui.html"
 	}
 

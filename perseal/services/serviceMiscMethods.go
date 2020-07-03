@@ -23,16 +23,15 @@ func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
 func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.PersistenceDTO, err *model.HTMLResponse) {
 	var token *oauth2.Token
 	dtoWithToken = dto
-	log.Println(dtoWithToken)
 	if dto.PDS == "googleDrive" {
 		token, err = updateNewGoogleDriveTokenFromCode(dto.ID, code)
-		log.Println(token)
-		log.Println(err)
 		dtoWithToken.GoogleAccessCreds = *token
 	} else if dto.PDS == "oneDrive" {
 		token, err = updateNewOneDriveTokenFromCode(dto.ID, code)
 		dtoWithToken.OneDriveToken = *token
 	}
+	log.Println("Current Token: ", token)
+	log.Println(err)
 	return
 }
 

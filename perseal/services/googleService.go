@@ -23,8 +23,7 @@ import (
 //Attempts to Store the Session Data On Google Drive
 func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	client := getGoogleDriveClient(dto.GoogleAccessCreds)
-	log.Println(client)
-	log.Println(dto.GoogleAccessCreds)
+	log.Println("Current Google Client: ", client)
 	dataStore, _ = externaldrive.StoreSessionData(dto)
 
 	file, erro := dataStore.UploadGoogleDrive(&dto.GoogleAccessCreds, client, filename)
@@ -51,7 +50,6 @@ func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *
 	json.Unmarshal(jsonM, smr)
 
 	file, erro := getGoogleDriveFile(filename, client)
-	log.Println(file)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         404,
@@ -111,15 +109,9 @@ func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 
 // Uploads new GoogleDrive data
 func establishGoogleDriveCreds() (config *oauth2.Config) {
-
 	googleCreds := setGoogleDriveCreds()
-
-	fmt.Println(googleCreds)
 	b2, _ := json.Marshal(googleCreds)
-
 	config, _ = google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
-
-	log.Println(googleCreds)
 	return
 
 }
