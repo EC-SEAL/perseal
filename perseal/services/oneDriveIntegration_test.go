@@ -13,10 +13,10 @@ func TestOneDriveService(t *testing.T) {
 	obj := InitIntegration("oneDrive")
 
 	// Test OneDrive Store
-	session, _ := sm.GetSessionData(obj.ID, "")
+	session, _ := sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
-	ds, err := storeCloudData(obj, "datastore.seal")
+	ds, err := storeCloudData(obj)
 	log.Println(ds)
 	log.Println(err)
 	if err != nil {
@@ -25,11 +25,11 @@ func TestOneDriveService(t *testing.T) {
 
 	// Test Incorrect OneDrive Store
 	log.Println("\n\n\nNEW INCORRECT")
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
-	ds, err = storeCloudData(obj, "datastore.seal")
+	ds, err = storeCloudData(obj)
 	log.Println(ds)
 	log.Println(err)
 	if err == nil {
@@ -38,7 +38,7 @@ func TestOneDriveService(t *testing.T) {
 
 	// Test Incorrect OneDrive Store
 	log.Println("\n\n\nNEW INCORRECT")
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
@@ -50,7 +50,7 @@ func TestOneDriveService(t *testing.T) {
 	}
 
 	// Test Load OneDrive
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
@@ -67,7 +67,7 @@ func TestOneDriveService(t *testing.T) {
 		t.Error("no files found")
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro := PersistenceStore(obj)
@@ -77,7 +77,7 @@ func TestOneDriveService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro = PersistenceLoad(obj)
@@ -86,7 +86,7 @@ func TestOneDriveService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro = PersistenceStoreAndLoad(obj)

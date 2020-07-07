@@ -106,7 +106,7 @@ var perRoutes = routes{
 	route{
 		"Intitial Configuration And Main Entry Point For Local Operations",
 		"POST",
-		"/load/{sessionToken}",
-		controller.BackChannelDecryption,
+		"/{method}/{sessionToken}",
+		controller.BackChannelOperations,
 	},
 }

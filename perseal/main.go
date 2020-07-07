@@ -35,17 +35,19 @@ func main() {
 	// load systemOpts
 
 	log.Println("entered main function")
+	if model.Test {
+		model.TestEnvVariables()
+	} else {
+
+		log.Println("container")
+		model.ProductionEnvVariables()
+	}
 
 	r := newRouter()
 
-	var addr string
-	if model.Test {
-		addr = "localhost:8082"
-		fmt.Println("testing mode")
-	} else {
-		addr = os.Getenv("HOST")
-	}
+	addr := model.EnvVariables.Host
 
+	log.Println(addr)
 	tlsConfig := &tls.Config{
 		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,
@@ -66,9 +68,10 @@ func main() {
 	http.Handle("/per/ui/", http.StripPrefix("/per/ui/", http.FileServer(http.Dir("ui/"))))
 
 	if model.Test {
-		fmt.Println("Persistent SEAL module running on HTTP port " + os.Getenv("PERSEAL_EXT_PORT"))
+		fmt.Println("Persistent SEAL module running on HTTP port 8082")
 		server.ListenAndServe()
 	} else {
+		//server.ListenAndServe()
 		listenAndServeTLS(server)
 	}
 
@@ -76,7 +79,7 @@ func main() {
 
 func listenAndServeTLS(server *http.Server) {
 
-	p12_data, err := ioutil.ReadFile(os.Getenv("INTER_SSL"))
+	p12_data, err := ioutil.ReadFile(os.Getenv("SSL_P12"))
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -126,8 +129,6 @@ func listenAndServeTLS(server *http.Server) {
 		log.Println("config certificates found")
 		fmt.Println("Persistent SEAL module running on HTTPS port " + os.Getenv("PERSEAL_EXT_PORT"))
 	}
-	defer ln.Close()
-
 	listen := tls.NewListener(ln, config)
 	server.Serve(listen)
 }

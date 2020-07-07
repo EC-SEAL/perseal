@@ -6,12 +6,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EC-SEAL/perseal/model"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 )
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client, filename string) (file *drive.File, err error) {
+func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
 	data, err := ds.UploadingBlob()
 	if err != nil {
 		return
@@ -19,8 +20,8 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        filename, //TODO what should the name of the Blob be in Gdrive???
-		Path:        gdriveRootFolder,
+		Name:        model.EnvVariables.DataStore_File_Name, //TODO what should the name of the Blob be in Gdrive???
+		Path:        model.EnvVariables.DataStore_Folder_Name,
 		Blob:        data,
 		ContentType: "application/octet-stream",
 	}

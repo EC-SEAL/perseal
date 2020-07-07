@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
@@ -21,12 +19,20 @@ import (
 // GOOGLE DRIVE SERVICE METHODS
 
 //Attempts to Store the Session Data On Google Drive
-func storeSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
+func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	client := getGoogleDriveClient(dto.GoogleAccessCreds)
 	log.Println("Current Google Client: ", client)
-	dataStore, _ = externaldrive.StoreSessionData(dto)
+	dataStore, erro := externaldrive.StoreSessionData(dto)
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         500,
+			Message:      "Encryption Failed",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
 
-	file, erro := dataStore.UploadGoogleDrive(&dto.GoogleAccessCreds, client, filename)
+	file, erro := dataStore.UploadGoogleDrive(&dto.GoogleAccessCreds, client)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
@@ -109,7 +115,7 @@ func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 
 // Uploads new GoogleDrive data
 func establishGoogleDriveCreds() (config *oauth2.Config) {
-	googleCreds := setGoogleDriveCreds()
+	googleCreds := model.EnvVariables.GoogleDriveCreds
 	b2, _ := json.Marshal(googleCreds)
 	config, _ = google.ConfigFromJSON([]byte(b2), drive.DriveFileScope)
 	return
@@ -140,33 +146,11 @@ func getGoogleDriveFile(filename string, client *http.Client) (file *http.Respon
 func getGoogleLinkForDashboardRedirect(id string, config *oauth2.Config) string {
 	var authURL string
 	if model.Test {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", "http://localhost:8082/per/code"), oauth2.SetAuthURLParam("state", id), oauth2.SetAuthURLParam("user_id", "info@project-seal.eu"))
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", model.EnvVariables.Redirect_URL), oauth2.SetAuthURLParam("state", id), oauth2.SetAuthURLParam("user_id", model.EnvVariables.Project_SEAL_Email))
 	} else {
-		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", os.Getenv("REDIRECT_URL")), oauth2.SetAuthURLParam("state", id))
+		authURL = config.AuthCodeURL("state-token", oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("redirect_uri", model.EnvVariables.Redirect_URL), oauth2.SetAuthURLParam("state", id))
 	}
 	return authURL
-}
-
-func setGoogleDriveCreds() model.GoogleDriveCreds {
-	googleCreds := &model.GoogleDriveCreds{}
-	if model.Test {
-		googleCreds.Web.ClientId = "425112724933-9o8u2rk49pfurq9qo49903lukp53tbi5.apps.googleusercontent.com"
-		googleCreds.Web.ProjectId = "seal-274215"
-		googleCreds.Web.AuthURI = "https://accounts.google.com/o/oauth2/auth"
-		googleCreds.Web.TokenURI = "https://oauth2.googleapis.com/token"
-		googleCreds.Web.AuthProviderx509CertUrl = "https://www.googleapis.com/oauth2/v1/certs"
-		googleCreds.Web.ClientSecret = "0b3WtqfasYfWDmk31xa8UAht"
-		googleCreds.Web.RedirectURIS = []string{"http://localhost:8082/per/code"}
-	} else {
-		googleCreds.Web.ClientId = os.Getenv("GOOGLE_DRIVE_CLIENT_ID")
-		googleCreds.Web.ProjectId = os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT")
-		googleCreds.Web.AuthURI = os.Getenv("GOOGLE_DRIVE_AUTH_URI")
-		googleCreds.Web.TokenURI = os.Getenv("GOOGLE_DRIVE_TOKEN_URI")
-		googleCreds.Web.AuthProviderx509CertUrl = os.Getenv("GOOGLE_DRIVE_AUTH_PROVIDER")
-		googleCreds.Web.ClientSecret = os.Getenv("GOOGLE_DRIVE_CLIENT_SECRET")
-		googleCreds.Web.RedirectURIS = strings.Split([]string{os.Getenv("GOOGLE_DRIVE_REDIRECT_URIS")}[0], ",")
-	}
-	return *googleCreds
 }
 
 func getGoogleDriveFiles(client *http.Client) (fileList []string, err error) {

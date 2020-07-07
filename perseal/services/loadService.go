@@ -20,9 +20,9 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	ds := &externaldrive.DataStore{}
 
 	// Initialize Variables
-	if dto.PDS == "googleDrive" || dto.PDS == "oneDrive" {
-		ds, err = fetchCloudDataStore(dto, "datastore.seal")
-	} else if dto.PDS == "Browser" {
+	if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
+		ds, err = fetchCloudDataStore(dto, model.EnvVariables.DataStore_File_Name)
+	} else if dto.PDS == model.EnvVariables.Browser_PDS {
 		ds, err = readLocalFileDataStore(dto.LocalFileBytes)
 	}
 
@@ -49,7 +49,7 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 
 // UC 1.06 - Stores and Loads Datastore
 func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-	ds, err := storeCloudData(dto, "datastore.seal")
+	ds, err := storeCloudData(dto)
 	if err != nil {
 		return
 	}
@@ -80,11 +80,13 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 		return
 	}
 	log.Println("Decrypted DataStore: ", dataStore)
+	data, _ := json.Marshal(dataStore)
 
 	response = &model.HTMLResponse{
 		Code:               200,
 		Message:            "Loaded DataStore " + dataStore.ID,
 		ClientCallbackAddr: dto.ClientCallbackAddr,
+		DataStore:          string(data),
 	}
 	return
 }
@@ -93,12 +95,12 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	var file *http.Response
 
-	if dto.PDS == "googleDrive" {
+	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
 		file, err = loadSessionDataGoogleDrive(dto, filename)
 		if err != nil {
 			return
 		}
-	} else if dto.PDS == "oneDrive" {
+	} else if dto.PDS == model.EnvVariables.One_Drive_PDS {
 		file, err = loadSessionDataOneDrive(dto, filename)
 		if err != nil {
 			return
@@ -123,9 +125,6 @@ func validateSignature(encrypted string, sigToValidate string) bool {
 	if err != nil {
 		return false
 	}
-
-	log.Println("sig: ", sig)
-	log.Println("toValidate: ", sigToValidate)
 	if sig != sigToValidate {
 		return false
 	}

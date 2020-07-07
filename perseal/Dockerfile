@@ -22,35 +22,27 @@ RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/
       -lpthread -lstdc++\"" -buildmode pie -tags 'osusergo netgo static_build'
 
 FROM scratch
-ARG PERSEAL_INT_PORT
-ARG PERSEAL_EMAIL
+ARG PERSEAL_INT_PORT=$PERSEAL_INT_PORT
+ARG PERSEAL_EMAIL=$PERSEAL_EMAIL
 EXPOSE $PERSEAL_INT_PORT
 LABEL maintainer=$PERSEAL_EMAIL
+
 
 FROM alpine:latest as alpine
 RUN apk add -U --no-cache ca-certificates
 
 
 FROM tomcat:8.0.47-jre7 AS tomcat
-ARG SIGN_KEYSTORE_PATH=keystore.jks
-ARG SIGN_CERT_ALIAS=perseal
-ARG SIGN_KEY_PASS=keystorepass
-ARG INTER_SIGN=inter.p12
 
-COPY keystore.jks .
+ARG PERSEAL_SIGN_P12
+ARG SIGN_KEY_PASS
+
+COPY $PERSEAL_SIGN_P12 .
+RUN ls .
 COPY public.pub .
 
-RUN keytool -importkeystore -srckeystore ./$SIGN_KEYSTORE_PATH -srcstorepass $SIGN_KEY_PASS -srcalias $SIGN_CERT_ALIAS -destalias $SIGN_CERT_ALIAS -destkeystore $INTER_SIGN -deststoretype PKCS12 -deststorepass $SIGN_KEY_PASS
-RUN openssl pkcs12 -in $INTER_SIGN -nodes -nocerts -out private.key -passin pass:$SIGN_KEY_PASS
-
-#ARG SSL_KEYSTORE_PATH  
-#ARG SSL_CERT_ALIAS
-#ARG SSL_KEY_PASS
-#ARG INTER_SSL=inter_ssl.p12
-
-#RUN keytool -importkeystore -srckeystore ./$SSL_KEYSTORE_PATH -srcstorepass $SSL_KEY_PASS -srcalias $SSL_CERT_ALIAS -destalias $SSL_CERT_ALIAS -destkeystore $INTER_SSL -deststoretype PKCS12 -deststorepass $SSL_KEY_PASS
-#RUN openssl pkcs12 -in $INTER_SSL -nodes -nocerts -out private_ssl.key -passin pass:$SSL_KEY_PASS
-#RUN openssl pkcs12 -in $INTER_SSL -nodes -out certificate_ssl.crt -passin pass:$SSL_KEY_PASS
+#RUN keytool -importkeystore -srckeystore ./$SIGN_KEYSTORE_PATH -srcstorepass $SIGN_KEY_PASS -srcalias $SIGN_CERT_ALIAS -destalias $SIGN_CERT_ALIAS -destkeystore $INTER_SIGN -deststoretype PKCS12 -deststorepass $SIGN_KEY_PASS
+RUN openssl pkcs12 -in $PERSEAL_SIGN_P12 -nodes -nocerts -out private.key -passin pass:$SIGN_KEY_PASS
 
 RUN mkdir ./ui
 COPY ui ui

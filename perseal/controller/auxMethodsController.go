@@ -20,25 +20,26 @@ import (
 //Opens HTML of corresponding operation (store or load | local or cloud)
 func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url string) {
 
-	if dto.PDS == "Mobile" {
-		if dto.Method == "load" {
-			mobileLoad(dto, w)
-		} else if dto.Method == "store" {
-			insertPassword(dto, w)
+	if dto.PDS == model.EnvVariables.Mobile_PDS {
+		if dto.Method == model.EnvVariables.Load_Method {
+			mobileQRCode(dto, model.EnvVariables.Load_Method, w)
+		} else if dto.Method == model.EnvVariables.Store_Method {
+			mobileQRCode(dto, model.EnvVariables.Store_Method, w)
 		}
-	} else if dto.PDS == "Browser" {
-		if dto.Method == "load" {
+	} else if dto.PDS == model.EnvVariables.Browser_PDS {
+		if dto.Method == model.EnvVariables.Load_Method {
 			dto.IsLocalLoad = true
 		}
 		insertPassword(dto, w)
-	} else if dto.PDS == "googleDrive" || dto.PDS == "oneDrive" {
+	} else if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
 		url = services.GetRedirectURL(dto)
 
 		log.Println(url)
+		// Will redirect user to login on cloud account and send the Code to /per/code
 		if url != "" {
 			return
 		}
-		if dto.Method == "load" {
+		if dto.Method == model.EnvVariables.Load_Method {
 			files, _ := services.GetCloudFileNames(dto)
 			log.Println(files)
 
@@ -48,7 +49,7 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 
 				insertPassword(dto, w)
 			}
-		} else if dto.Method == "store" {
+		} else if dto.Method == model.EnvVariables.Store_Method {
 			insertPassword(dto, w)
 		}
 	}
@@ -77,7 +78,7 @@ func getQueryParameter(r *http.Request, paramName string) string {
 }
 
 func getSessionData(id string, w http.ResponseWriter) (smResp sm.SessionMngrResponse) {
-	smResp, err := sm.GetSessionData(id, "")
+	smResp, err := sm.GetSessionData(id)
 	if err != nil {
 		var obj dto.PersistenceDTO
 		obj, err = dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
@@ -96,8 +97,10 @@ func validateToken(token string, w http.ResponseWriter) (id string) {
 	return
 }
 
-func mobileLoad(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	img, err := qrcode.Encode(dto.ClientCallbackAddr+"/cl/persistence/"+dto.PDS+"/load?sessionID="+dto.ID, qrcode.Medium, 256)
+func mobileQRCode(dto dto.PersistenceDTO, method string, w http.ResponseWriter) {
+	// TODO: check if this variable is indeed the custom URL. Needs confirmation
+	customURL := dto.ClientCallbackAddr + "/cl/persistence/" + dto.PDS + "/" + method + "?sessionID=" + dto.ID
+	img, err := qrcode.Encode(customURL, qrcode.Medium, 256)
 	dto.Image = base64.StdEncoding.EncodeToString(img)
 	if err != nil {
 		fmt.Print(err)
@@ -109,7 +112,7 @@ func mobileLoad(dto dto.PersistenceDTO, w http.ResponseWriter) {
 }
 
 func noFilesFound(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	sm.UpdateSessionData(dto.ID, "storeload", "CurrentMethod")
+	sm.UpdateSessionData(dto.ID, model.EnvVariables.Store_Load_Method, "CurrentMethod")
 	t, _ := template.ParseFiles("ui/noFilesFound.html")
 	t.Execute(w, dto)
 }
@@ -124,7 +127,7 @@ func recieveSessionIdAndPassword(r *http.Request) (obj dto.PersistenceDTO, err *
 	password := r.FormValue("password")
 	sha := utils.HashSUM256(password)
 	id := r.FormValue("sessionId")
-	sessionData, err := sm.GetSessionData(id, "")
+	sessionData, err := sm.GetSessionData(id)
 	if err != nil {
 		return
 	}

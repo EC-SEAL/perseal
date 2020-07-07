@@ -84,10 +84,6 @@ import (
 }
 */
 
-var (
-	gdriveRootFolder string = "SEAL"
-)
-
 type DataStore struct {
 	ID                  string      `json:"id"`
 	EncryptedData       string      `json:"encryptedData"`

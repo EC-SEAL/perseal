@@ -48,11 +48,11 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Current Persistence Object: ", dto)
 	var response *model.HTMLResponse
-	if dto.Method == "store" {
+	if dto.Method == model.EnvVariables.Store_Method {
 		response, err = services.PersistenceStore(dto)
-	} else if dto.Method == "load" {
+	} else if dto.Method == model.EnvVariables.Load_Method {
 
-		if dto.PDS == "Browser" {
+		if dto.PDS == model.EnvVariables.Browser_PDS {
 			dto.LocalFileBytes, err = fetchLocalDataStore(r)
 			if err != nil {
 				writeResponseMessage(w, dto, *err)
@@ -61,7 +61,7 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response, err = services.PersistenceLoad(dto)
-	} else if dto.Method == "storeload" {
+	} else if dto.Method == model.EnvVariables.Store_Load_Method {
 		response, err = services.PersistenceStoreAndLoad(dto)
 	}
 
@@ -125,10 +125,11 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	redirectToOperation(dto, w)
 }
 
-func BackChannelDecryption(w http.ResponseWriter, r *http.Request) {
+func BackChannelOperations(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistenceLoadWithToken")
 
 	id := mux.Vars(r)["sessionToken"]
+	method := mux.Vars(r)["method"]
 	sessionData := getSessionData(id, w)
 
 	cipherPassword := getQueryParameter(r, "cipherPassword")
@@ -140,24 +141,39 @@ func BackChannelDecryption(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dataSstr := r.PostFormValue("dataStore")
-	if dataSstr == "" {
-		err := &model.HTMLResponse{
-			Code:    400,
-			Message: "Couldn't find DataStore",
+	if method == model.EnvVariables.Store_Method {
+		response, err := services.BackChannelStorage(dto)
+		if err != nil {
+			w.WriteHeader(err.Code)
+			w.Write([]byte(err.Message))
+		} else {
+			w.WriteHeader(response.Code)
+			w.Write([]byte(response.DataStore))
 		}
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
 		return
-	}
+	} else if method == model.EnvVariables.Load_Method {
+		dataSstr := r.PostFormValue("dataStore")
+		if dataSstr == "" {
+			err := &model.HTMLResponse{
+				Code:    400,
+				Message: "Couldn't find DataStore",
+			}
+			w.WriteHeader(err.Code)
+			w.Write([]byte(err.Message))
+			return
+		}
 
-	response, err := services.BackChannelDecryption(dto, dataSstr)
-	if err != nil {
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
+		response, err := services.BackChannelDecryption(dto, dataSstr)
+		if err != nil {
+			w.WriteHeader(err.Code)
+			w.Write([]byte(err.Message))
+		} else {
+			w.WriteHeader(response.Code)
+			w.Write([]byte(response.DataStore))
+		}
+		return
 	} else {
-		w.WriteHeader(response.Code)
-		w.Write([]byte(response.Message))
+		w.WriteHeader(404)
+		w.Write([]byte("Invalid Method"))
 	}
-	return
 }

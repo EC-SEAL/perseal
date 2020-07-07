@@ -13,7 +13,7 @@ func TestStoreService(t *testing.T) {
 
 	obj := InitIntegration("Browser")
 
-	session, _ := sm.GetSessionData(obj.ID, "")
+	session, _ := sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	ds, err := PersistenceStore(obj)
@@ -23,7 +23,7 @@ func TestStoreService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	sha := utils.HashSUM256("qwerty")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
 	log.Println(session)
@@ -36,7 +36,7 @@ func TestStoreService(t *testing.T) {
 	}
 
 	log.Println("\n\nIncorrect")
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	sha = utils.HashSUM256("qwerty12345")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
 	log.Println(session)
@@ -48,7 +48,7 @@ func TestStoreService(t *testing.T) {
 		t.Error("Should have thrown error")
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	sha = utils.HashSUM256("qwerty")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
 	log.Println(session)
@@ -60,7 +60,7 @@ func TestStoreService(t *testing.T) {
 	}
 
 	log.Println("\n\nIncorrect")
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	sha = utils.HashSUM256("qwerty")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
 	log.Println(session)
@@ -72,7 +72,7 @@ func TestStoreService(t *testing.T) {
 	}
 
 	log.Println("\n\nIncorrect")
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	sha = utils.HashSUM256("qwerty")
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
 	log.Println(session)
@@ -82,6 +82,18 @@ func TestStoreService(t *testing.T) {
 	log.Println(err)
 	if err == nil {
 		t.Error("Should have thrown error")
+	}
+
+	session, _ = sm.GetSessionData(obj.ID)
+	sha = utils.HashSUM256("qwerty")
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, sha)
+	log.Println(session)
+	obj.LocalFileBytes = []byte(`"{\"id12345678\":\"DS_22414843-3426-41ff-a9c0-c6f72269ff5d\",\"encryptedData\":\"jO1dKmrfUbwck6ayMTQ0e8RitNNxx-nTh5NcBh_ZxMZkvcK3JfIjHnsHYTCZeIM6tU-f_dfgZn7kCglP1f_s642UO8LD4iEb6C-bb1i4S9MuP8RHQs1elrWNZohlrSE=\",\"signature\":\"PF4VsdfghjklUQQNHNd5renk17haaAUUk2ife29F_dJZY2lwJWgUjNYQqG9fCyD8sFzvsxtaWxNUbwnuwP5CTjcRt63ZxWxQJS29b8iXPYD6UX5SBmVRbmGNrwTnV7B9SSY-AIcsrq7iSIfpac3iE5MJ15O7vedjIR2t84tpGPU65Rl7dAncoR_UuxfFltuQ4D375RfvuStIcFiPs_dAiGXy6TUIQNdadCHHIR4LiK8SNjXX9jozAbZG9POdsCp2H6uwuHLLiiGIk0OQeJtTLmmTjadqvJ1BrHUgVmEvM_bhvgKwAijWGnzh1rB8RUU4Z6BFZIyXF6M86BlUc7dF4QBvqWUpLQ==\",\"signatureAlgorithm\":\"rsa-sha256\",\"encryptionAlgorithm\":\"aes-cfb\"}"	`)
+	response, err := BackChannelStorage(obj)
+	log.Println(response)
+	log.Println(err)
+	if err != nil {
+		t.Error("Thrown Error: ", err)
 	}
 
 }

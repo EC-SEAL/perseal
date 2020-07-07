@@ -11,17 +11,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/EC-SEAL/perseal/model"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
-)
-
-const (
-	folderName string = "SEAL"
 )
 
 // TokenRequestResponse - The http response after token request to One Drive API
@@ -46,10 +41,10 @@ type FolderChildren struct {
 }
 
 // UploadOneDrive - Uploads file to One Drive
-func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filename string, folderName string) (file *drive.File, err error) {
 
+func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte) (file *drive.File, err error) {
 	//if the folder exists, only creats the datastore file
-	fileExists, err := GetOneDriveFolder(oauthToken, folderName)
+	fileExists, err := GetOneDriveFolder(oauthToken)
 	log.Println(fileExists)
 	if err != nil {
 		return
@@ -65,7 +60,7 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 		if err != nil {
 			return
 		}
-		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
+		err = CreateOneDriveFile(oauthToken, folderID, data)
 		if err != nil {
 			return
 		}
@@ -74,20 +69,16 @@ func (ds *DataStore) UploadOneDrive(oauthToken *oauth2.Token, data []byte, filen
 		if err != nil {
 			return
 		}
-		err = CreateOneDriveFile(oauthToken, folderID, filename, data)
+		err = CreateOneDriveFile(oauthToken, folderID, data)
 	}
 	return
 }
 
 // POST request to create a folder in the root
 func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
-	createfolderjson := []byte(`{"name":"` + folderName + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
-	var req *http.Request
-	if model.Test {
-		req, err = http.NewRequest("POST", "https://graph.microsoft.com/v1.0/me/drive/root/children", bytes.NewBuffer(createfolderjson))
-	} else {
-		req, _ = http.NewRequest("POST", os.Getenv("CREATE_FOLDER_URL"), bytes.NewBuffer(createfolderjson))
-	}
+	createfolderjson := []byte(`{"name":"` + model.EnvVariables.DataStore_Folder_Name + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
+	req, err := http.NewRequest("POST", model.EnvVariables.OneDriveURLs.Create_Folder, bytes.NewBuffer(createfolderjson))
+
 	if err != nil {
 		return
 	}
@@ -107,14 +98,8 @@ func CreateOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 }
 
 // PUT request to create a file in a given folder
-func CreateOneDriveFile(token *oauth2.Token, folderID string, filename string, blob []byte) (err error) {
-	var url string
-	if model.Test {
-		url = "https://graph.microsoft.com/v1.0/me/drive/items/" + folderID + ":/" + filename + ":/content"
-	} else {
-		url = os.Getenv("CREATE_FILE_URL") + folderID + ":/" + filename + ":/content"
-	}
-
+func CreateOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
+	url := model.EnvVariables.OneDriveURLs.Create_File + folderID + ":/" + model.EnvVariables.DataStore_File_Name + ":/content"
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(blob))
 	if err != nil {
 		return
@@ -133,15 +118,9 @@ func CreateOneDriveFile(token *oauth2.Token, folderID string, filename string, b
 }
 
 // GET request to fetch information of a given folder
-func GetOneDriveFolder(token *oauth2.Token, folder string) (resp *http.Response, err error) {
+func GetOneDriveFolder(token *oauth2.Token) (resp *http.Response, err error) {
 
-	var url string
-	if model.Test {
-		url = "https://graph.microsoft.com/v1.0/me/drive/root" + ":/" + folder
-	} else {
-		url = os.Getenv("GET_FOLDER_URL") + ":/" + folder
-	}
-
+	url := model.EnvVariables.OneDriveURLs.Get_Folder + ":/" + model.EnvVariables.DataStore_Folder_Name
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return
@@ -173,14 +152,9 @@ func RequestToken(code string, clientID string) (token *oauth2.Token, err error)
 	values.Add("client_id", clientID)
 	values.Add("code", code)
 	values.Add("grant_type", "authorization_code")
-	var u *url.URL
-	if model.Test {
-		values.Add("redirect_uri", "http://localhost:8082/per/code")
-		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
-	} else {
-		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
-		u, err = url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-	}
+	values.Add("redirect_uri", model.EnvVariables.Redirect_URL)
+
+	u, err := url.ParseRequestURI(model.EnvVariables.OneDriveURLs.Fetch_Token)
 	if err != nil {
 		return
 	}
@@ -204,15 +178,9 @@ func RequestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.To
 	values.Add("client_id", clientID)
 	values.Add("refresh_token", token.RefreshToken)
 	values.Add("grant_type", "refresh_token")
+	values.Add("redirect_uri", model.EnvVariables.Redirect_URL)
 
-	var u *url.URL
-	if model.Test {
-		values.Add("redirect_uri", "http://localhost:8082/per/code")
-		u, err = url.ParseRequestURI("https://login.microsoftonline.com/common/oauth2/v2.0/token")
-	} else {
-		values.Add("redirect_uri", os.Getenv("REDIRECT_URL_HTTPS"))
-		u, err = url.ParseRequestURI(os.Getenv("FETCH_TOKEN_URL"))
-	}
+	u, err := url.ParseRequestURI(model.EnvVariables.OneDriveURLs.Fetch_Token)
 	if err != nil {
 		return
 	}

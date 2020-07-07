@@ -39,9 +39,6 @@ func TestDataStore(t *testing.T) {
 	if ds != nil {
 		t.Error("DataStore Should Have been nil")
 	}
-	if err != nil {
-		t.Error("Error occurred, got: ", err)
-	}
 
 	//Test Store Session Data With Password (NewDataStore, Encrypt and Sign)
 	obj = Init("googleDrive")

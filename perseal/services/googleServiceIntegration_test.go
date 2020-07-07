@@ -56,27 +56,27 @@ func TestGoogleService(t *testing.T) {
 	obj := InitIntegration("googleDrive")
 
 	// Test Correct GoogleDrive Store
-	sessionData, _ := sm.GetSessionData(id, "")
+	sessionData, _ := sm.GetSessionData(id)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
 	log.Println("sessionData", sessionData)
 	obj.SMResp.SessionData.SessionVariables["dataStore"] = "{\"id\":\"DS_3a342b23-8b46-44ec-bb06-a03042135a5e\",\"encryptedData\":null,\"signature\":\"this is the signature\",\"signatureAlgorithm\":\"this is the signature algorithm\",\"encryptionAlgorithm\":\"this is the encryption algorithm\",\"clearData\":null}"
-	ds, err := storeCloudData(obj, "datastore.seal")
+	ds, err := storeCloudData(obj)
 	log.Println(ds)
 	if err != nil {
 		t.Error("Thrown error, got: ", err)
 	}
 
 	// Test Incorrect GoogleDrive Store
-	sessionData, _ = sm.GetSessionData(id, "")
+	sessionData, _ = sm.GetSessionData(id)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
 	obj.GoogleAccessCreds.AccessToken += "123"
-	ds, err = storeCloudData(obj, "datastore.seal")
+	ds, err = storeCloudData(obj)
 	log.Println(ds)
 	if err == nil {
 		t.Error("Should have thrown error")
 	}
 
-	sessionData, _ = sm.GetSessionData(id, "")
+	sessionData, _ = sm.GetSessionData(id)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
 	// Test Correct Load GoogleDrive Store
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
@@ -107,7 +107,7 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Should have thrown error")
 	}
 
-	session, _ := sm.GetSessionData(obj.ID, "")
+	session, _ := sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro := PersistenceStore(obj)
@@ -116,7 +116,7 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro = PersistenceLoad(obj)
@@ -125,7 +125,7 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID, "")
+	session, _ = sm.GetSessionData(obj.ID)
 	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
 	log.Println(session)
 	_, erro = PersistenceStoreAndLoad(obj)

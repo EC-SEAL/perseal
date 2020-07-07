@@ -8,11 +8,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"io"
-	"os"
-)
-
-var (
-	PBKDF2SALT string = os.Getenv("PBKDF2SALT") // to make
 )
 
 /*

@@ -1,7 +1,11 @@
 version: '3'
 services:
     perseal:
-        build: ./perseal
+        build: 
+            context: ./perseal
+            args:
+                PERSEAL_SIGN_P12: ${PERSEAL_SIGN_P12}
+                SIGN_KEY_PASS: ${SIGN_KEY_PASS}
         container_name: perseal
         env_file: .env
         command: /go/bin/perseal

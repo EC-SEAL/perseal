@@ -31,7 +31,7 @@ func Test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sm.UpdateSessionData(id, method, "CurrentMethod")
-	smResp, err := sm.GetSessionData(id, "")
+	smResp, err := sm.GetSessionData(id)
 
 	if err != nil {
 		obj, err := dto.PersistenceBuilder(id, sm.SessionMngrResponse{}, "")

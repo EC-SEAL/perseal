@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"os"
 
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/utils"
@@ -98,12 +98,7 @@ var (
 // ValidateToken - SessionManager function where the passed security token’s signature will be validated, as well as the validity as well as other validation measuresResponds by code: OK,
 // sessionData.sessionId the sessionId used to gen. the jwt, and additionalData: extraData that were used to generate the jwt
 func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
-	var url string
-	if model.Test {
-		url = "http://vm.project-seal.eu:9090/sm/validateToken?token=" + token
-	} else {
-		url = os.Getenv("SM_ENDPOINT") + "/validateToken?token=" + token
-	}
+	url := model.EnvVariables.SMURLs.EndPoint + model.EnvVariables.SMURLs.Validate_Token + token
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
@@ -126,7 +121,7 @@ func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
 		return
 	}
 
-	fmt.Println(req.URL)
+	log.Println(req.URL)
 	resp, erro := client.Do(req)
 	fmt.Println(resp)
 	if erro != nil {
@@ -169,13 +164,8 @@ func ValidateToken(token string) (sessionId string, err *model.HTMLResponse) {
 }
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
-func GetSessionData(sessionID string, variableName string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
-	var url string
-	if model.Test {
-		url = "http://vm.project-seal.eu:9090/sm/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
-	} else {
-		url = os.Getenv("SM_ENDPOINT") + "/getSessionData?sessionId=" + sessionID + "&variableName=" + variableName
-	}
+func GetSessionData(sessionID string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+	url := model.EnvVariables.SMURLs.EndPoint + model.EnvVariables.SMURLs.Get_Session_Data + sessionID
 	req, erro := http.NewRequest("GET", url, nil)
 
 	if erro != nil {
@@ -256,12 +246,8 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse) (err *model.HTMLRes
 
 //Updates a Session Variable, by providind the sessionID, the new value of the variable and the the variable name
 func UpdateSessionData(sessionId string, dataObject string, variableName string) (body string, err *model.HTMLResponse) {
-	var url string
-	if model.Test {
-		url = "http://vm.project-seal.eu:9090/sm/updateSessionData"
-	} else {
-		url = os.Getenv("SM_ENDPOINT") + "/updateSessionData"
-	}
+	url := model.EnvVariables.SMURLs.EndPoint + model.EnvVariables.SMURLs.Update_Session_Data
+
 	up := &UpdateDataRequest{
 		SessionId:    sessionId,
 		DataObject:   dataObject,
