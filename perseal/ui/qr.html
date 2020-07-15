@@ -24,6 +24,8 @@
 {{if (eq .Method "store")}}
 <p><h1>Store</h1></p>
 {{end}}
+
+{{if (eq .IsDesktop true)}}
 <h2>Scan The Following QR Code using your Mobile Device</h2>
     
 <div class="margin-body-log-in-worker">
@@ -33,6 +35,15 @@
       </div>
     </div>
 </div>
+{{end}}
+
+{{if (eq .IsDesktop false)}}
+<h2>Scan The Following QR Code using a Mobile Device or Click It</h2>
+    
+<a href={{.CustomURL}}>
+  <img class="c1" src="data:image/png;base64,{{.Image}}" class="img-fluid image-dashboard" />
+</a>
+{{end}}
 
 <div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
   

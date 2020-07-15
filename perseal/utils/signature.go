@@ -8,12 +8,15 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/google/uuid"
 	"github.com/spacemonkeygo/httpsig"
 )
@@ -133,4 +136,65 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 	}
 
 	return newReq.Header.Get("Authorization"), nil
+}
+
+func GenerateTokenAPI(method string, id string) (msToken string, err *model.HTMLResponse) {
+
+	url := model.EnvVariables.SMURLs.APIGW_Endpoint + "/cl/persistence/" + method + "/store?sessionID=" + id
+
+	req, erro := http.NewRequest("GET", url, nil)
+
+	var client http.Client
+
+	req.Header.Set("Accept", "application/json")
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         500,
+			Message:      "Couldn't Generate URL to Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	fmt.Println(req.URL)
+	resp, erro := client.Do(req)
+	fmt.Println("\n", resp)
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         404,
+			Message:      "Couldn't Execute Request to Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	body, erro := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		err = &model.HTMLResponse{
+			Code:         500,
+			Message:      "Couldn't Read Response from Request to  Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	var dat interface{}
+	json.Unmarshal([]byte(body), &dat)
+	fmt.Println("\n", dat)
+	jsonM, erro := json.Marshal(dat)
+	if erro != nil {
+		err = &model.HTMLResponse{
+			Code:         500,
+			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
+			ErrorMessage: erro.Error(),
+		}
+		return
+	}
+
+	var tokenResp model.TokenResponse
+	json.Unmarshal(jsonM, &tokenResp)
+
+	msToken = tokenResp.Payload
+	return
 }

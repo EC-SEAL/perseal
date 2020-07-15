@@ -109,7 +109,7 @@ func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 		return
 	}
 
-	_, err = sm.UpdateSessionData(id, string(b), "GoogleDriveAccessCreds")
+	_, err = sm.UpdateSessionData(id, string(b), model.EnvVariables.SessionVariables.GoogleDriveToken)
 	return
 }
 

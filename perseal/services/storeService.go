@@ -7,6 +7,7 @@ import (
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
+	"github.com/EC-SEAL/perseal/utils"
 )
 
 // Save session data to the configured persistence mechanism (front channel)
@@ -44,11 +45,16 @@ func BackChannelStorage(dto dto.PersistenceDTO) (response, err *model.HTMLRespon
 	}
 	data, _ := json.Marshal(dataStore)
 
+	token, err := utils.GenerateTokenAPI(dto.PDS, dto.ID)
+	if err != nil {
+		return
+	}
 	response = &model.HTMLResponse{
 		Code:               200,
 		Message:            "Stored DataStore " + dataStore.ID,
 		ClientCallbackAddr: dto.ClientCallbackAddr,
 		DataStore:          string(data),
+		MSToken:            token,
 	}
 	return
 }

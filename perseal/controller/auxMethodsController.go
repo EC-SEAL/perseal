@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/base64"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -22,9 +21,9 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 
 	if dto.PDS == model.EnvVariables.Mobile_PDS {
 		if dto.Method == model.EnvVariables.Load_Method {
-			mobileQRCode(dto, model.EnvVariables.Load_Method, w)
+			mobileQRCode(dto, w)
 		} else if dto.Method == model.EnvVariables.Store_Method {
-			mobileQRCode(dto, model.EnvVariables.Store_Method, w)
+			insertPassword(dto, w)
 		}
 	} else if dto.PDS == model.EnvVariables.Browser_PDS {
 		if dto.Method == model.EnvVariables.Load_Method {
@@ -97,40 +96,72 @@ func validateToken(token string, w http.ResponseWriter) (id string) {
 	return
 }
 
-func mobileQRCode(dto dto.PersistenceDTO, method string, w http.ResponseWriter) {
+func mobileQRCode(dto dto.PersistenceDTO, w http.ResponseWriter) {
 	// TODO: check if this variable is indeed the custom URL. Needs confirmation
-	customURL := dto.ClientCallbackAddr + "/cl/persistence/" + dto.PDS + "/" + method + "?sessionID=" + dto.ID
-	img, err := qrcode.Encode(customURL, qrcode.Medium, 256)
+	token, _ := utils.GenerateTokenAPI(dto.PDS, dto.ID)
+	dto.CustomURL = model.EnvVariables.Dashboard_Custom_URL + token
+
+	img, _ := qrcode.Encode(dto.CustomURL, qrcode.Medium, 256)
 	dto.Image = base64.StdEncoding.EncodeToString(img)
-	if err != nil {
-		fmt.Print(err)
-		return
-	}
 	t, _ := template.ParseFiles("ui/qr.html")
+
+	userDevice := dto.SMResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.UserDevice]
+	if userDevice == "Desktop" {
+		dto.IsDesktop = true
+	} else if userDevice == "Mobile" {
+		dto.IsDesktop = false
+	}
+
+	log.Println(userDevice)
+	log.Println(dto.CustomURL)
 	t.Execute(w, dto)
 	return
 }
 
 func noFilesFound(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	sm.UpdateSessionData(dto.ID, model.EnvVariables.Store_Load_Method, "CurrentMethod")
+	sm.UpdateSessionData(dto.ID, model.EnvVariables.Store_Load_Method, model.EnvVariables.SessionVariables.CurrentMethod)
+	var err *model.HTMLResponse
+	dto.MSToken, err = utils.GenerateTokenAPI(dto.PDS, dto.ID)
+	if err != nil {
+		writeResponseMessage(w, dto, *err)
+	}
 	t, _ := template.ParseFiles("ui/noFilesFound.html")
 	t.Execute(w, dto)
 }
 
 func insertPassword(dto dto.PersistenceDTO, w http.ResponseWriter) {
+	var err *model.HTMLResponse
+	dto.MSToken, err = utils.GenerateTokenAPI(dto.PDS, dto.ID)
+	if err != nil {
+		writeResponseMessage(w, dto, *err)
+	}
 	t, _ := template.ParseFiles("ui/insertPassword.html")
 	t.Execute(w, dto)
 }
 
 // Retrieves Password and SessionID from recieving request
-func recieveSessionIdAndPassword(r *http.Request) (obj dto.PersistenceDTO, err *model.HTMLResponse) {
-	password := r.FormValue("password")
-	sha := utils.HashSUM256(password)
-	id := r.FormValue("sessionId")
+func recieveSessionIdAndPassword(w http.ResponseWriter, r *http.Request) (obj dto.PersistenceDTO, err *model.HTMLResponse) {
+	msToken := r.FormValue("msToken")
+	id := validateToken(msToken, w)
 	sessionData, err := sm.GetSessionData(id)
 	if err != nil {
 		return
 	}
+	log.Println(id)
+	password := r.FormValue("password")
+	if password == "" {
+		err = &model.HTMLResponse{
+			Code:               400,
+			Message:            "No Password Found",
+			ClientCallbackAddr: sessionData.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr],
+		}
+
+		if err.ClientCallbackAddr == "" && model.Test {
+			err.ClientCallbackAddr = model.EnvVariables.TestURLs.MockRedirectDashboard
+		}
+		return
+	}
+	sha := utils.HashSUM256(password)
 
 	obj, err = dto.PersistenceWithPasswordBuilder(id, sessionData, sha)
 	return

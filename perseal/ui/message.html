@@ -36,6 +36,7 @@
 <h3>{{ .Message }}</h3>
 
 <form id="form" action="/per/aux/save" method="get">
+  <input name="msToken" type="hidden" value={{.MSToken}}>
   <input name="contents" type="hidden" value={{.DataStore}}>
 </form>
 

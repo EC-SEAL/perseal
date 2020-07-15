@@ -30,7 +30,7 @@ func Test(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sm.UpdateSessionData(id, method, "CurrentMethod")
+	sm.UpdateSessionData(id, method, model.EnvVariables.SessionVariables.ClientCallbackAddr)
 	smResp, err := sm.GetSessionData(id)
 
 	if err != nil {
@@ -86,8 +86,8 @@ func Token(w http.ResponseWriter, r *http.Request) {
 	if keys, ok := r.URL.Query()["method"]; ok {
 		method = keys[0]
 	}
-	resp, _ := utils.GenerateTokenAPI(method, model.TestUser)
-	model.MSToken = resp.Payload
+	model.MSToken, _ = utils.GenerateTokenAPI(method, model.TestUser)
+
 	var url string
 	if model.Test {
 		url = "http://localhost:8082"

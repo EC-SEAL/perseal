@@ -3,10 +3,10 @@ package externaldrive
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"log"
 
 	"github.com/EC-SEAL/perseal/dto"
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
 )
@@ -98,7 +98,7 @@ func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
 
 	currentDs := &DataStore{}
 	var inter interface{}
-	json.Unmarshal([]byte(data.SessionData.SessionVariables["dataStore"]), &inter)
+	json.Unmarshal([]byte(data.SessionData.SessionVariables[model.EnvVariables.SessionVariables.DataStore]), &inter)
 
 	jsonM, err := json.Marshal(inter)
 	if err != nil {
@@ -110,7 +110,7 @@ func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
 	log.Println(currentDs)
 
 	sessionWithoutDataStore := data.SessionData.SessionVariables
-	delete(sessionWithoutDataStore, "dataStore")
+	delete(sessionWithoutDataStore, model.EnvVariables.SessionVariables.DataStore)
 
 	ds = &DataStore{
 		ID:        currentDs.ID,
@@ -189,26 +189,24 @@ func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) 
 		return
 	}
 	// Encrypt blob if cipherPassword param is set
-	if dto.Password != "" {
-		if err != nil {
-			return
-		}
-		err = tmpDataStore.Encrypt(dto.Password)
-		log.Println("Encrypted blob: ", tmpDataStore.EncryptedData)
-		err = tmpDataStore.SignDataStore()
-		if err != nil {
-			return
-		}
-		log.Println("DataStore Signed: ", tmpDataStore)
-		dataStore = &DataStore{
-			ID:                  tmpDataStore.ID,
-			EncryptedData:       tmpDataStore.EncryptedData,
-			EncryptionAlgorithm: tmpDataStore.EncryptionAlgorithm,
-			Signature:           tmpDataStore.Signature,
-			SignatureAlgorithm:  tmpDataStore.SignatureAlgorithm,
-		}
-	} else {
-		err = errors.New("Password is Empty")
+	err = tmpDataStore.Encrypt(dto.Password)
+	if err != nil {
+		return
+	}
+
+	log.Println("Encrypted blob: ", tmpDataStore.EncryptedData)
+	err = tmpDataStore.SignDataStore()
+	if err != nil {
+		return
+	}
+
+	log.Println("DataStore Signed: ", tmpDataStore)
+	dataStore = &DataStore{
+		ID:                  tmpDataStore.ID,
+		EncryptedData:       tmpDataStore.EncryptedData,
+		EncryptionAlgorithm: tmpDataStore.EncryptionAlgorithm,
+		Signature:           tmpDataStore.Signature,
+		SignatureAlgorithm:  tmpDataStore.SignatureAlgorithm,
 	}
 	return
 }

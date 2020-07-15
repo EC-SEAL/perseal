@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
+	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -19,10 +21,11 @@ var (
 )
 
 func InitIntegration(platform string) dto.PersistenceDTO {
+	godotenv.Load("../.env")
+	model.SetEnvVariables()
 	tokenResp, _ := utils.StartSession()
 	id = tokenResp.Payload
-	smResp, _ := utils.GenerateTokenAPI(platform, id)
-	msToken := smResp.Payload
+	msToken, _ := utils.GenerateTokenAPI(platform, id)
 
 	reqBodyBytes := new(bytes.Buffer)
 	json.NewEncoder(reqBodyBytes).Encode(msToken)
@@ -44,10 +47,18 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	obj, _ := dto.PersistenceBuilder(id, session)
 
 	url := GetRedirectURL(obj)
-	exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	if url != "" {
+		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	}
 
 	//wait to select account and store token in session
 	time.Sleep(5 * time.Second)
+	return obj
+}
+
+func preCloudConfig(obj dto.PersistenceDTO, password string) dto.PersistenceDTO {
+	sessionData, _ := sm.GetSessionData(obj.ID)
+	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, password)
 	return obj
 }
 
@@ -56,9 +67,7 @@ func TestGoogleService(t *testing.T) {
 	obj := InitIntegration("googleDrive")
 
 	// Test Correct GoogleDrive Store
-	sessionData, _ := sm.GetSessionData(id)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
-	log.Println("sessionData", sessionData)
+	obj = preCloudConfig(obj, "qwerty")
 	obj.SMResp.SessionData.SessionVariables["dataStore"] = "{\"id\":\"DS_3a342b23-8b46-44ec-bb06-a03042135a5e\",\"encryptedData\":null,\"signature\":\"this is the signature\",\"signatureAlgorithm\":\"this is the signature algorithm\",\"encryptionAlgorithm\":\"this is the encryption algorithm\",\"clearData\":null}"
 	ds, err := storeCloudData(obj)
 	log.Println(ds)
@@ -67,8 +76,7 @@ func TestGoogleService(t *testing.T) {
 	}
 
 	// Test Incorrect GoogleDrive Store
-	sessionData, _ = sm.GetSessionData(id)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
+	obj = preCloudConfig(obj, "qwerty")
 	obj.GoogleAccessCreds.AccessToken += "123"
 	ds, err = storeCloudData(obj)
 	log.Println(ds)
@@ -76,8 +84,7 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Should have thrown error")
 	}
 
-	sessionData, _ = sm.GetSessionData(id)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, sessionData, "qwerty")
+	obj = preCloudConfig(obj, "qwerty")
 	// Test Correct Load GoogleDrive Store
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
@@ -107,27 +114,21 @@ func TestGoogleService(t *testing.T) {
 		t.Error("Should have thrown error")
 	}
 
-	session, _ := sm.GetSessionData(obj.ID)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
-	log.Println(session)
+	obj = preCloudConfig(obj, "qwerty")
 	_, erro := PersistenceStore(obj)
 	log.Println(erro)
 	if erro != nil {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
-	log.Println(session)
+	obj = preCloudConfig(obj, "qwerty")
 	_, erro = PersistenceLoad(obj)
 	log.Println(erro)
 	if erro != nil {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	session, _ = sm.GetSessionData(obj.ID)
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, session, "qwerty")
-	log.Println(session)
+	obj = preCloudConfig(obj, "qwerty")
 	_, erro = PersistenceStoreAndLoad(obj)
 	log.Println(erro)
 	if erro != nil {

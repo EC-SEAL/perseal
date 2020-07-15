@@ -94,6 +94,8 @@ github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca h1:utFgFwgxaqx5OthzE3DS
 github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca/go.mod h1:8926sG02TCOX4RFRzIMFIzRw4xuc/TwO2gtN7teMJZ4=
 github.com/huandu/xstrings v1.2.0/go.mod h1:DvyZB1rfVYsBIigL8HwpZgxHwXozlTgGqn63UyNX5k4=
 github.com/imdario/mergo v0.3.6/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
+github.com/joho/godotenv v1.3.0 h1:Zjp+RcGpHhGlrMbJzXTrZZPrWj+1vfm90La1wgB6Bhc=
+github.com/joho/godotenv v1.3.0/go.mod h1:7hK45KPybAkOC6peb+G5yklZfMxEjkZhHbwpqxOKXbg=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/lestrrat/go-libxml2 v0.0.0-20180221004755-bb78334e2019 h1:en8rJ3VyEHu5PsxCAusCcUORe6l4tJ85jgs5eZgLxdU=

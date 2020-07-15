@@ -1,12 +1,8 @@
 # Persistence module for SEAL
-## Microservice running on HTTP port 8082
+## Microservice running on HTTPS port 8082
 Endpoint routes referenced in [perseal/routes.go](perseal/routes.go)
 
 ## To Do
-### Mobile Storage
-```
-Affects: UC 1.07 and 8.03
-```
 
 ## Usage
 

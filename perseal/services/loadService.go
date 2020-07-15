@@ -158,7 +158,7 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 	if err != nil {
 		return
 	}
-	sm.UpdateSessionData(dto.ID, string(jsonM), "dataStore")
+	sm.UpdateSessionData(dto.ID, string(jsonM), model.EnvVariables.SessionVariables.DataStore)
 	return
 }
 

@@ -55,7 +55,7 @@ h1 {
  <form action="/per/aux/storeAndLoad" method="get">
   <p><h2>No Files Found!</h2></p>
   <p ><h2>Would You Like to Store a File? </h2></p>
-  <input type="hidden" name="sessionId" value={{.ID}}>
+  <input type="hidden" name="msToken" value={{.MSToken}}>
   <input type="submit" value="Yes">
 </form> 
 <a href={{.ClientCallbackAddr}}>

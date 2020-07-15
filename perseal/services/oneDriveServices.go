@@ -97,13 +97,15 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 		return
 	}
 
-	_, err = sm.UpdateSessionData(id, string(jsonM), "OneDriveToken")
+	_, err = sm.UpdateSessionData(id, string(jsonM), model.EnvVariables.SessionVariables.OneDriveToken)
 	return
 }
 
 func getOneDriveItems(token *oauth2.Token) (folderchildren *externaldrive.FolderChildren, err error) {
 
-	url := model.EnvVariables.OneDriveURLs.Get_Items + model.EnvVariables.DataStore_Folder_ID + "/children"
+	id, err := getOneDriveId(token)
+
+	url := model.EnvVariables.OneDriveURLs.Get_Items + id.ID + "/children"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -131,7 +133,7 @@ func getOneDriveItems(token *oauth2.Token) (folderchildren *externaldrive.Folder
 func getOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err error) {
 
 	var url string
-	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name + item + "/:/content"
+	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name + "/" + item + "/:/content"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return
@@ -141,6 +143,30 @@ func getOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err
 
 	client := &http.Client{}
 	resp, err = client.Do(req)
+
+	return
+}
+
+func getOneDriveId(token *oauth2.Token) (id *externaldrive.FolderProps, err error) {
+
+	var url string
+	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+	auth := "Bearer " + token.AccessToken
+	req.Header.Add("Authorization", auth)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	var v interface{}
+	json.Unmarshal([]byte(body), &v)
+	jsonM, _ := json.Marshal(v)
+
+	json.Unmarshal(jsonM, &id)
 	return
 }
 

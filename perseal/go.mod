@@ -16,6 +16,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/headzoo/surf v1.0.0 // indirect
 	github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/lestrrat/go-libxml2 v0.0.0-20180221004755-bb78334e2019
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pavel-v-chernykh/keystore-go v2.1.0+incompatible

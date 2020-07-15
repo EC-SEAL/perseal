@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/EC-SEAL/perseal/model"
+	"github.com/joho/godotenv"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -33,15 +34,13 @@ type systemOpts struct {
 
 func main() {
 	// load systemOpts
-
-	log.Println("entered main function")
 	if model.Test {
-		model.TestEnvVariables()
-	} else {
-
-		log.Println("container")
-		model.ProductionEnvVariables()
+		godotenv.Load(".env")
+		log.Println("testing")
 	}
+
+	model.SetEnvVariables()
+	log.Println(model.EnvVariables)
 
 	r := newRouter()
 
@@ -63,6 +62,7 @@ func main() {
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
 	}
+
 	//start listening on port 8082
 
 	http.Handle("/per/ui/", http.StripPrefix("/per/ui/", http.FileServer(http.Dir("ui/"))))

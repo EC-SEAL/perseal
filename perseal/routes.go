@@ -18,6 +18,7 @@ type route struct {
 type routes []route
 
 func newRouter() *mux.Router {
+
 	router := mux.NewRouter().StrictSlash(true)
 	rest := router.PathPrefix("/per").Subrouter()
 	if model.Test {
@@ -76,13 +77,13 @@ var perRoutes = routes{
 
 	//internal endpoints
 	route{
-		"Setup a persistence mechanism and load a secure storage into session.",
+		"Operations after inserting the Password for Store or Load of the DataStore",
 		"POST",
 		"/insertPassword",
 		controller.DataStoreHandling,
 	},
 	route{
-		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+		"Auxiliary Endpoints",
 		"GET",
 		"/aux/{method}",
 		controller.AuxiliaryEndpoints,
@@ -90,23 +91,22 @@ var perRoutes = routes{
 
 	//external endpoints
 	route{
-		"Internal Method to Send Code from Cloud Login to Retrieve the Access Token",
+		"Recieves Code from Cloud Login to Retrieve the Access Token",
 		"GET",
 		"/code",
 		controller.RetrieveCode,
 	},
-
 	route{
-		"Initial Configuration And Main Entry Point For Cloud Operations",
+		"Initial Configuration And Main Entry Point For Front-Channel Operations",
 		"GET",
 		"/{method}",
 		controller.FrontChannelOperations,
 	},
 
 	route{
-		"Intitial Configuration And Main Entry Point For Local Operations",
+		"Initial Configuration And Main Entry Point For Back-Channel Operations",
 		"POST",
-		"/{method}/{sessionToken}",
+		"/{method}",
 		controller.BackChannelOperations,
 	},
 }

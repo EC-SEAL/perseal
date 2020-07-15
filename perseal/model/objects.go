@@ -11,6 +11,7 @@ type HTMLResponse struct {
 	ErrorMessage       string `json:"error"`
 	ClientCallbackAddr string
 	DataStore          string
+	MSToken            string
 }
 
 type TokenResponse struct {
@@ -39,7 +40,8 @@ type OneDriveCreds struct {
 	OneDriveRefreshToken string `json:"oneDrivetRefreshToken"`
 }
 
-var Test = false
+//Review Env Variables Before Deploy
+var Test = true
 
 var EnvVariables struct {
 	Store_Method      string
@@ -52,16 +54,30 @@ var EnvVariables struct {
 	Browser_PDS      string
 
 	DataStore_Folder_Name string
-	DataStore_Folder_ID   string
 	DataStore_File_Name   string
 
-	Redirect_URL string
-	Host         string
+	Redirect_URL         string
+	Dashboard_Custom_URL string
+	Host                 string
 
 	Project_SEAL_Email string
 
 	GoogleDriveCreds GoogleDriveCreds
 	OneDriveCreds    OneDriveCreds
+
+	SessionVariables struct {
+		CurrentMethod      string
+		ClientCallbackAddr string
+		PDS                string
+		OneDriveToken      string
+		GoogleDriveToken   string
+		DataStore          string
+		UserDevice         string
+	}
+
+	TestURLs struct {
+		MockRedirectDashboard string
+	}
 
 	OneDriveURLs struct {
 		Auth          string
@@ -78,53 +94,11 @@ var EnvVariables struct {
 		Validate_Token      string
 		Get_Session_Data    string
 		Update_Session_Data string
+		APIGW_Endpoint      string
 	}
 }
 
-func TestEnvVariables() {
-	EnvVariables.Google_Drive_PDS = "googleDrive"
-	EnvVariables.One_Drive_PDS = "oneDrive"
-	EnvVariables.Browser_PDS = "Browser"
-	EnvVariables.Mobile_PDS = "Mobile"
-
-	EnvVariables.Store_Method = "store"
-	EnvVariables.Load_Method = "load"
-	EnvVariables.Store_Load_Method = "storeload"
-
-	EnvVariables.DataStore_Folder_Name = "SEAL"
-	EnvVariables.DataStore_File_Name = "datastore.seal"
-
-	EnvVariables.Redirect_URL = "http://localhost:8082/per/code"
-	EnvVariables.Host = "localhost:8082"
-
-	EnvVariables.Project_SEAL_Email = "info@project-seal.eu"
-
-	EnvVariables.OneDriveURLs.Auth = "https://login.live.com/oauth20_authorize.srf"
-	EnvVariables.OneDriveURLs.Create_Folder = "https://graph.microsoft.com/v1.0/me/drive/root/children"
-	EnvVariables.OneDriveURLs.Create_File = "https://graph.microsoft.com/v1.0/me/drive/items/"
-	EnvVariables.OneDriveURLs.Get_Folder = "https://graph.microsoft.com/v1.0/me/drive/root"
-	EnvVariables.OneDriveURLs.Fetch_Token = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-	EnvVariables.OneDriveURLs.Get_Items = "https://graph.microsoft.com/v1.0/me/drive/items/"
-	EnvVariables.OneDriveURLs.Get_Item = "https://graph.microsoft.com/v1.0/me/drive/root:/SEAL/"
-
-	EnvVariables.GoogleDriveCreds.Web.ClientId = "425112724933-9o8u2rk49pfurq9qo49903lukp53tbi5.apps.googleusercontent.com"
-	EnvVariables.GoogleDriveCreds.Web.ProjectId = "seal-274215"
-	EnvVariables.GoogleDriveCreds.Web.AuthURI = "https://accounts.google.com/o/oauth2/auth"
-	EnvVariables.GoogleDriveCreds.Web.TokenURI = "https://oauth2.googleapis.com/token"
-	EnvVariables.GoogleDriveCreds.Web.AuthProviderx509CertUrl = "https://www.googleapis.com/oauth2/v1/certs"
-	EnvVariables.GoogleDriveCreds.Web.ClientSecret = "0b3WtqfasYfWDmk31xa8UAht"
-	EnvVariables.GoogleDriveCreds.Web.RedirectURIS = []string{"http://localhost:8082/per/code"}
-
-	EnvVariables.OneDriveCreds.OneDriveClientID = "fff1cba9-7597-479d-b653-fd96c5d56b43"
-	EnvVariables.OneDriveCreds.OneDriveScopes = "offline_access files.read files.read.all files.readwrite files.readwrite.all"
-
-	EnvVariables.SMURLs.EndPoint = "http://vm.project-seal.eu:9090/sm"
-	EnvVariables.SMURLs.Validate_Token = "/validateToken?token="
-	EnvVariables.SMURLs.Get_Session_Data = "/getSessionData?sessionId="
-	EnvVariables.SMURLs.Update_Session_Data = "/updateSessionData"
-}
-
-func ProductionEnvVariables() {
+func SetEnvVariables() {
 
 	EnvVariables.Google_Drive_PDS = os.Getenv("GOOGLE_DRIVE_PDS")
 	EnvVariables.One_Drive_PDS = os.Getenv("ONE_DRIVE_PDS")
@@ -136,6 +110,7 @@ func ProductionEnvVariables() {
 	EnvVariables.Store_Load_Method = os.Getenv("STORE_LOAD_METHOD")
 
 	EnvVariables.DataStore_Folder_Name = os.Getenv("DATASTORE_FOLDER_NAME")
+	EnvVariables.Dashboard_Custom_URL = os.Getenv("DASHBOARD_CUSTOM_URL")
 	EnvVariables.DataStore_File_Name = os.Getenv("DATASTORE_FILE_NAME")
 
 	EnvVariables.Redirect_URL = os.Getenv("REDIRECT_URL")
@@ -149,6 +124,7 @@ func ProductionEnvVariables() {
 	EnvVariables.OneDriveURLs.Get_Folder = os.Getenv("GET_FOLDER_URL")
 	EnvVariables.OneDriveURLs.Fetch_Token = os.Getenv("FETCH_TOKEN_URL")
 	EnvVariables.OneDriveURLs.Get_Items = os.Getenv("GET_ITEMS_URL")
+	EnvVariables.OneDriveURLs.Get_Item = os.Getenv("GET_ITEM_URL")
 
 	EnvVariables.GoogleDriveCreds.Web.ClientId = os.Getenv("GOOGLE_DRIVE_CLIENT_ID")
 	EnvVariables.GoogleDriveCreds.Web.ProjectId = os.Getenv("GOOGLE_DRIVE_CLIENT_PROJECT")
@@ -165,6 +141,17 @@ func ProductionEnvVariables() {
 	EnvVariables.SMURLs.Validate_Token = os.Getenv("VALIDATE_TOKEN")
 	EnvVariables.SMURLs.Get_Session_Data = os.Getenv("GET_SESSION_DATA")
 	EnvVariables.SMURLs.Update_Session_Data = os.Getenv("UPDATE_SESSION_DATA")
+	EnvVariables.SMURLs.APIGW_Endpoint = os.Getenv("APIGW_ENDPOINT")
+
+	EnvVariables.TestURLs.MockRedirectDashboard = os.Getenv("MOCK_REDIRECT_DASHBOARD")
+
+	EnvVariables.SessionVariables.ClientCallbackAddr = os.Getenv("CLIENT_CALLBACK_ADDR_VARIABLE")
+	EnvVariables.SessionVariables.CurrentMethod = os.Getenv("CURRENT_METHOD_VARIABLE")
+	EnvVariables.SessionVariables.PDS = os.Getenv("PDS_VARIABLE")
+	EnvVariables.SessionVariables.OneDriveToken = os.Getenv("ONE_DRIVE_TOKEN_VARIABLE")
+	EnvVariables.SessionVariables.GoogleDriveToken = os.Getenv("GOOGLE_DRIVE_TOKEN_VARIABLE")
+	EnvVariables.SessionVariables.DataStore = os.Getenv("DATASTORE_VARIABLE")
+	EnvVariables.SessionVariables.UserDevice = os.Getenv("USER_DEVICE_VARIABLE")
 }
 
 var TestUser string

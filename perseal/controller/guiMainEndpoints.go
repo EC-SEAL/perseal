@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
 	"strconv"
@@ -10,7 +11,9 @@ import (
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/services"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/EC-SEAL/perseal/utils"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/webdav"
 )
 
 // Main Entry Point For Cloud. Verifies Token, Retrieves Session and checks if has Cloud Token.
@@ -22,7 +25,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	token := getQueryParameter(r, "msToken")
 
 	id := validateToken(token, w)
-	sm.UpdateSessionData(id, method, "CurrentMethod")
+	sm.UpdateSessionData(id, method, model.EnvVariables.SessionVariables.CurrentMethod)
 	smResp := getSessionData(id, w)
 
 	obj, err := dto.PersistenceBuilder(id, smResp, method)
@@ -40,7 +43,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 
 func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	log.Println("DataStore Handling")
-	dto, err := recieveSessionIdAndPassword(r)
+	dto, err := recieveSessionIdAndPassword(w, r)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
@@ -50,6 +53,10 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	var response *model.HTMLResponse
 	if dto.Method == model.EnvVariables.Store_Method {
 		response, err = services.PersistenceStore(dto)
+		if err != nil {
+			writeResponseMessage(w, dto, *err)
+			return
+		}
 	} else if dto.Method == model.EnvVariables.Load_Method {
 
 		if dto.PDS == model.EnvVariables.Browser_PDS {
@@ -79,10 +86,12 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 	log.Println("aux")
 	method := mux.Vars(r)["method"]
 
+	msToken := getQueryParameter(r, "msToken")
+	id := validateToken(msToken, w)
+
 	if method == "storeAndLoad" {
 		// Activated When Cloud Drive does not have files, so it can store and load the dataStore
 		log.Println("storeAndLoad")
-		id := r.FormValue("sessionId")
 
 		sessionData := getSessionData(id, w)
 
@@ -128,11 +137,17 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 func BackChannelOperations(w http.ResponseWriter, r *http.Request) {
 	log.Println("persistenceLoadWithToken")
 
-	id := mux.Vars(r)["sessionToken"]
 	method := mux.Vars(r)["method"]
-	sessionData := getSessionData(id, w)
+	msToken := r.FormValue("msToken")
+	id := validateToken(msToken, w)
+	sessionData, err := sm.GetSessionData(id)
 
 	cipherPassword := getQueryParameter(r, "cipherPassword")
+
+	if model.Test {
+		cipherPassword = utils.HashSUM256(cipherPassword)
+		log.Println(cipherPassword)
+	}
 
 	dto, err := dto.PersistenceWithPasswordBuilder(id, sessionData, cipherPassword)
 	if err != nil {
@@ -176,4 +191,29 @@ func BackChannelOperations(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		w.Write([]byte("Invalid Method"))
 	}
+}
+
+func TestWebDav(w http.ResponseWriter, r *http.Request) {
+
+	dirFlag := flag.String("d", "./", "Directory to serve from. Default is CWD")
+
+	flag.Parse()
+
+	dir := *dirFlag
+
+	srv := &webdav.Handler{
+		FileSystem: webdav.Dir(dir),
+		LockSystem: webdav.NewMemLS(),
+		Logger: func(r *http.Request, err error) {
+			if err != nil {
+				log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
+			} else {
+				log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+			}
+		},
+	}
+
+	r.Method = "GET"
+	r.URL.Path = ""
+	srv.ServeHTTP(w, r)
 }
