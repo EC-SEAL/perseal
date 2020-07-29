@@ -97,7 +97,7 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 		return
 	}
 
-	_, err = sm.UpdateSessionData(id, string(jsonM), model.EnvVariables.SessionVariables.OneDriveToken)
+	err = sm.UpdateSessionData(id, string(jsonM), model.EnvVariables.SessionVariables.OneDriveToken)
 	return
 }
 

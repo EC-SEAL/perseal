@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -31,8 +30,7 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 		}
 		return
 	}
-
-	file, erro := dataStore.UploadGoogleDrive(&dto.GoogleAccessCreds, client)
+	erro = dataStore.UploadGoogleDrive(client)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
@@ -41,8 +39,6 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 		}
 		return
 	}
-
-	fmt.Println("file", file)
 	return
 }
 
@@ -50,11 +46,6 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *http.Response, err *model.HTMLResponse) {
 
 	client := getGoogleDriveClient(dto.GoogleAccessCreds)
-
-	jsonM, _ := json.Marshal(dto.SMResp)
-	smr := &sm.SessionMngrResponse{}
-	json.Unmarshal(jsonM, smr)
-
 	file, erro := getGoogleDriveFile(filename, client)
 	if erro != nil {
 		err = &model.HTMLResponse{
@@ -109,7 +100,7 @@ func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 		return
 	}
 
-	_, err = sm.UpdateSessionData(id, string(b), model.EnvVariables.SessionVariables.GoogleDriveToken)
+	err = sm.UpdateSessionData(id, string(b), model.EnvVariables.SessionVariables.GoogleDriveToken)
 	return
 }
 

@@ -3,14 +3,17 @@ package services
 import (
 	"log"
 	"testing"
+
+	"github.com/EC-SEAL/perseal/sm"
 )
 
 func TestOneDriveService(t *testing.T) {
 
 	obj := InitIntegration("oneDrive")
+	smResp, _ := sm.GetSessionData(obj.ID)
 
 	// Test OneDrive Store
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	ds, err := storeCloudData(obj)
 	log.Println(ds)
 	log.Println(err)
@@ -20,7 +23,7 @@ func TestOneDriveService(t *testing.T) {
 
 	// Test Incorrect OneDrive Store
 	log.Println("\n\n\nNEW INCORRECT")
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
 	ds, err = storeCloudData(obj)
@@ -32,7 +35,7 @@ func TestOneDriveService(t *testing.T) {
 
 	// Test Incorrect OneDrive Store
 	log.Println("\n\n\nNEW INCORRECT")
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
@@ -43,7 +46,7 @@ func TestOneDriveService(t *testing.T) {
 	}
 
 	// Test Load OneDrive
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
 		t.Error("Thrown error, got: ", err)
@@ -59,7 +62,7 @@ func TestOneDriveService(t *testing.T) {
 		t.Error("no files found")
 	}
 
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro := PersistenceStore(obj)
 	log.Println(ds)
 	log.Println(erro)
@@ -67,14 +70,14 @@ func TestOneDriveService(t *testing.T) {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceLoad(obj)
 	log.Println(erro)
 	if erro != nil {
 		t.Error("Thrown error, got: ", err)
 	}
 
-	obj = preCloudConfig(obj, "qwerty")
+	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceStoreAndLoad(obj)
 	log.Println(erro)
 	if erro != nil {

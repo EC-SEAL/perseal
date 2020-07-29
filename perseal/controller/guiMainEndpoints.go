@@ -25,8 +25,14 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	token := getQueryParameter(r, "msToken")
 
 	id := validateToken(token, w)
-	sm.UpdateSessionData(id, method, model.EnvVariables.SessionVariables.CurrentMethod)
 	smResp := getSessionData(id, w)
+	log.Println("Current Session Id: " + id)
+	// EXCEPTION: Mobile Storage can be enable if cipherPassword is sent immediatly in the GET request
+	cipherPassword := getQueryParameter(r, "cipherPassword")
+	if cipherPassword != "" {
+		BackChannelStoring(w, id, cipherPassword, method, smResp)
+		return
+	}
 
 	obj, err := dto.PersistenceBuilder(id, smResp, method)
 	if err != nil {
@@ -43,11 +49,14 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 
 func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	log.Println("DataStore Handling")
-	dto, err := recieveSessionIdAndPassword(w, r)
+
+	method := mux.Vars(r)["method"]
+	dto, err := recieveSessionIdAndPassword(w, r, method)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
 	}
+	log.Println(sm.NewSearch(dto.ID))
 
 	log.Println("Current Persistence Object: ", dto)
 	var response *model.HTMLResponse
@@ -81,6 +90,69 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.RequestURI)
+	log.Println("persistenceLoadBackChannel")
+
+	method := mux.Vars(r)["method"]
+	msToken := r.FormValue("msToken")
+	id := validateToken(msToken, w)
+	log.Println(msToken)
+	smResp := getSessionData(id, w)
+
+	cipherPassword := getQueryParameter(r, "cipherPassword")
+
+	if model.Test {
+		cipherPassword = utils.HashSUM256(cipherPassword)
+		log.Println(cipherPassword)
+	}
+
+	dto, err := dto.PersistenceWithPasswordBuilder(id, cipherPassword, smResp, method)
+	if err != nil {
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
+		return
+	}
+
+	dataSstr := r.PostFormValue("dataStore")
+	if dataSstr == "" {
+		err := &model.HTMLResponse{
+			Code:    400,
+			Message: "Couldn't find DataStore",
+		}
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
+		return
+	}
+
+	response, err := services.BackChannelDecryption(dto, dataSstr)
+	if err != nil {
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
+	} else {
+		w.WriteHeader(response.Code)
+		w.Write([]byte(response.DataStore))
+	}
+	return
+}
+
+func BackChannelStoring(w http.ResponseWriter, id, cipherPassword, method string, smResp sm.SessionMngrResponse) {
+	obj, err := dto.PersistenceWithPasswordBuilder(id, cipherPassword, smResp, method)
+	if err != nil {
+		writeResponseMessage(w, obj, *err)
+		return
+	}
+
+	response, err := services.BackChannelStorage(obj)
+	if err != nil {
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
+	} else {
+		w.WriteHeader(response.Code)
+		w.Write([]byte(response.DataStore))
+	}
+	return
+}
 func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("aux")
@@ -89,20 +161,7 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 	msToken := getQueryParameter(r, "msToken")
 	id := validateToken(msToken, w)
 
-	if method == "storeAndLoad" {
-		// Activated When Cloud Drive does not have files, so it can store and load the dataStore
-		log.Println("storeAndLoad")
-
-		sessionData := getSessionData(id, w)
-
-		dto, err := dto.PersistenceBuilder(id, sessionData)
-		if err != nil {
-			writeResponseMessage(w, dto, *err)
-			return
-		}
-		dto.StoreAndLoad = true
-		insertPassword(dto, w)
-	} else if method == "save" {
+	if method == "save" {
 		//Downloads File for the localFile System
 		log.Println("save")
 		contents := getQueryParameter(r, "contents")
@@ -111,6 +170,20 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(contents)
 
 		return
+	} else if method == "generateQRcode" {
+		log.Println("generateQRcode")
+
+		smResp := getSessionData(id, w)
+		operation := getQueryParameter(r, "operation")
+		log.Println(operation)
+
+		dto, err := dto.PersistenceBuilder(id, smResp, operation)
+		if err != nil {
+			writeResponseMessage(w, dto, *err)
+			return
+		}
+
+		mobileQRCode(dto, w)
 	}
 }
 
@@ -122,9 +195,8 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	id := getQueryParameter(r, "state")
 	code := getQueryParameter(r, "code")
 
-	sessionData := getSessionData(id, w)
-
-	dto, err := dto.PersistenceBuilder(id, sessionData)
+	smResp := getSessionData(id, w)
+	dto, err := dto.PersistenceBuilder(id, smResp)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
@@ -132,65 +204,6 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 
 	dto, err = services.UpdateTokenFromCode(dto, code)
 	redirectToOperation(dto, w)
-}
-
-func BackChannelOperations(w http.ResponseWriter, r *http.Request) {
-	log.Println("persistenceLoadWithToken")
-
-	method := mux.Vars(r)["method"]
-	msToken := r.FormValue("msToken")
-	id := validateToken(msToken, w)
-	sessionData, err := sm.GetSessionData(id)
-
-	cipherPassword := getQueryParameter(r, "cipherPassword")
-
-	if model.Test {
-		cipherPassword = utils.HashSUM256(cipherPassword)
-		log.Println(cipherPassword)
-	}
-
-	dto, err := dto.PersistenceWithPasswordBuilder(id, sessionData, cipherPassword)
-	if err != nil {
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
-		return
-	}
-
-	if method == model.EnvVariables.Store_Method {
-		response, err := services.BackChannelStorage(dto)
-		if err != nil {
-			w.WriteHeader(err.Code)
-			w.Write([]byte(err.Message))
-		} else {
-			w.WriteHeader(response.Code)
-			w.Write([]byte(response.DataStore))
-		}
-		return
-	} else if method == model.EnvVariables.Load_Method {
-		dataSstr := r.PostFormValue("dataStore")
-		if dataSstr == "" {
-			err := &model.HTMLResponse{
-				Code:    400,
-				Message: "Couldn't find DataStore",
-			}
-			w.WriteHeader(err.Code)
-			w.Write([]byte(err.Message))
-			return
-		}
-
-		response, err := services.BackChannelDecryption(dto, dataSstr)
-		if err != nil {
-			w.WriteHeader(err.Code)
-			w.Write([]byte(err.Message))
-		} else {
-			w.WriteHeader(response.Code)
-			w.Write([]byte(response.DataStore))
-		}
-		return
-	} else {
-		w.WriteHeader(404)
-		w.Write([]byte("Invalid Method"))
-	}
 }
 
 func TestWebDav(w http.ResponseWriter, r *http.Request) {

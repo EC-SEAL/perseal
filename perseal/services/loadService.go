@@ -36,8 +36,10 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	if err != nil {
 		return
 	}
+	b, _ := json.MarshalIndent(ds, "", "\t")
+	log.Println("Decrypted DataStore: ", string(b))
 
-	log.Println("Decrypted DataStore: ", ds)
+	log.Println(sm.NewSearch(dto.ID))
 	response = &model.HTMLResponse{
 		Code:               200,
 		Message:            "Loaded DataStore " + ds.ID,
@@ -49,23 +51,45 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 
 // UC 1.06 - Stores and Loads Datastore
 func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-	ds, err := storeCloudData(dto)
+	response = &model.HTMLResponse{}
+	var ds *externaldrive.DataStore
+	if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
+		ds, err = storeCloudData(dto)
+	} else if dto.PDS == model.EnvVariables.Browser_PDS {
+		var erro error
+		ds, erro = externaldrive.StoreSessionData(dto)
+		if erro != nil {
+			err = &model.HTMLResponse{
+				Code:         500,
+				Message:      "Encryption Failed",
+				ErrorMessage: erro.Error(),
+			}
+			return
+		}
+		data, _ := json.Marshal(ds)
+		response.DataStore = string(data)
+		response.MSToken, err = utils.GenerateTokenAPI(dto.PDS, dto.ID)
+	}
 	if err != nil {
+		log.Println(err)
 		return
 	}
+	log.Println("Stored DataStore")
 
 	err = signAndDecryptDataStore(ds, dto)
 
-	log.Println("Decrypted DataStore: ", ds)
+	log.Println(sm.NewSearch(dto.ID))
+
+	b, _ := json.MarshalIndent(ds, "", "\t")
+	log.Println("Decrypted DataStore: ", string(b))
 	if err != nil {
 		return
 	}
 
-	response = &model.HTMLResponse{
-		Code:               200,
-		Message:            "Loaded DataStore " + ds.ID,
-		ClientCallbackAddr: dto.ClientCallbackAddr,
-	}
+	response.Code = 200
+	response.Message = "Loaded DataStore " + ds.ID
+	response.ClientCallbackAddr = dto.ClientCallbackAddr
+
 	return
 }
 
@@ -80,6 +104,8 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 		return
 	}
 	log.Println("Decrypted DataStore: ", dataStore)
+
+	log.Println(sm.NewSearch(dto.ID))
 	data, _ := json.Marshal(dataStore)
 
 	response = &model.HTMLResponse{
@@ -117,6 +143,7 @@ func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *ex
 	}
 	dataStore, err = readCloudFileDataStore(body)
 	log.Println("DataStore ID found: ", dataStore.ID)
+	log.Println("DataStore ClearData: ", dataStore.ClearData)
 	return
 }
 
@@ -154,11 +181,10 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 		return
 	}
 
-	jsonM, err := marshallDataStore(dataStore, dto)
-	if err != nil {
-		return
-	}
-	sm.UpdateSessionData(dto.ID, string(jsonM), model.EnvVariables.SessionVariables.DataStore)
+	log.Println(dataStore)
+	sm.NewDelete(dto.ID)
+	sm.NewAdd(dto.ID, dataStore.ClearData.(string), "dataSet")
+	log.Println(sm.NewSearch(dto.ID))
 	return
 }
 

@@ -1,52 +1,125 @@
 <!DOCTYPE html>
 
 <html>
-<head>
-  <style> 
-  h1, h2 {
-   margin-left: 50px; 
-  }
-  img.c1 {
-    margin-left: 45px;
-  }
+  <head>
+    <style>
+    .botLogo {
+        height: 25%;
+        text-align: center;
+      }
 
-  </style>
-</head>
+      .footer {
+        margin-bottom: 500px;
+        overflow: auto;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        margin: 0;
+        background-color: #c4c4c4;
+      }
+      h1 {
+        text-align: justify;
+        margin: 5 auto;
+        margin-left: 5%;
+        font-size: 50px;
 
+        font-weight: 400;
+      }
 
-<div><img src="/ui/logo.png" height="150px"></div>
+      h2 {
+        text-align: justify;
+        margin: 5 auto;
+        margin-left: 5%;
+        font-size: 35px;
 
-<body>
+        font-weight: 200;
+      }
+      .center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-{{if (eq .Method "load")}}
-<p><h1>Load</h1></p>
-{{end}}
-{{if (eq .Method "store")}}
-<p><h1>Store</h1></p>
-{{end}}
+      .btn-isolated {
+        margin-top: auto;
+        margin-bottom: 25px;
+        display: block;
+        color: #003399;
+        text-decoration: none;
+        line-height: 1.5;
+        border-radius: 0.25rem;
+        background-color: transparent;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        padding: 0.75rem 0.95rem;
+        font-weight: 400;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
 
-{{if (eq .IsDesktop true)}}
-<h2>Scan The Following QR Code using your Mobile Device</h2>
-    
-<div class="margin-body-log-in-worker">
-    <div class="row">
-      <div class="col-4 col-sm-4 col-md-3 col-xl-2 center">
-            <img class="c1" src="data:image/png;base64,{{.Image}}" class="img-fluid image-dashboard" />
+      .btn-isolated-primary {
+        width: 18.5%;
+        font-size: 25px;
+        color: #003399;
+        border-color: #003399;
+      }
+
+      .btn-isolated-primary:hover {
+        color: #fff;
+        background-color: #ffcc00;
+        border-color: #ffcc00;
+      }
+
+      p {
+        margin-bottom: 220px;
+      }
+
+      a {
+        font-size: 30px;
+      }
+      
+    </style>
+  </head>
+
+  <img class="topLogo" src="/ui/logo.png" height="200px" />
+
+  <body>
+    {{if (eq .Method "load")}}
+    <h1>Load</h1>
+    {{end}} {{if (eq .Method "store")}}
+    <h1>Save Your Current Data</h1>
+    {{end}}
+
+    <h2>Scan The Following QR Code using a Mobile Device</h2>
+
+    <div
+      class="margin-body-log-in-worker"
+      style="display: flex; justify-content: center; align-items: center;"
+    >
+      <div class="row">
+        <div class="col-4 col-sm-4 col-md-3 col-xl-2 center">
+          <img
+            class="c1"
+            src="data:image/png;base64,{{.Image}}"
+            class="img-fluid image-dashboard"
+          />
+        </div>
       </div>
     </div>
-</div>
-{{end}}
 
-{{if (eq .IsDesktop false)}}
-<h2>Scan The Following QR Code using a Mobile Device or Click It</h2>
-    
-<a href={{.CustomURL}}>
-  <img class="c1" src="data:image/png;base64,{{.Image}}" class="img-fluid image-dashboard" />
-</a>
-{{end}}
+    {{if (eq .UserDevice "Mobile")}}
 
-<div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
-  
-</body>
+    <div class="center">
+      <a href="{{.CustomURL}}">Use this Device</a>
+    </div>
+    {{end}}
+    <p></p>
+    <div class="footer">
+      <div class="botLogo">
+        <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />
+      </div>
+    </div>
+  </body>
 </html>
-  

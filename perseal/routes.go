@@ -79,7 +79,7 @@ var perRoutes = routes{
 	route{
 		"Operations after inserting the Password for Store or Load of the DataStore",
 		"POST",
-		"/insertPassword",
+		"/insertPassword/{method}",
 		controller.DataStoreHandling,
 	},
 	route{
@@ -104,9 +104,9 @@ var perRoutes = routes{
 	},
 
 	route{
-		"Initial Configuration And Main Entry Point For Back-Channel Operations",
+		"Initial Configuration And Main Entry Point For Back-Channel Loading",
 		"POST",
 		"/{method}",
-		controller.BackChannelOperations,
+		controller.BackChannelLoading,
 	},
 }

@@ -10,7 +10,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -56,7 +55,6 @@ func PrepareRequestHeaders(req *http.Request, url string) (*http.Request, error)
 		if err != nil {
 			return nil, err
 		}
-
 		sha256value = sha256.Sum256(x)
 	} else if req.Method == "GET" {
 		sha256value = sha256.Sum256([]byte{})
@@ -116,6 +114,9 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 		heads = append(heads, strings.ToLower(k))
 	}
 	key, err := getPrivateKey()
+	if err != nil {
+		return "", err
+	}
 	rsaPubKey, err := ioutil.ReadFile("./public.pub")
 	if err != nil {
 		return "", err
@@ -128,7 +129,6 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 
 	sha256sum := sha256.Sum256(b64dec)
 	shahex := hex.EncodeToString(sha256sum[:])
-
 	signer := httpsig.NewSigner(shahex, key, httpsig.RSASHA256, heads)
 	err = signer.Sign(newReq)
 	if err != nil {
@@ -156,9 +156,7 @@ func GenerateTokenAPI(method string, id string) (msToken string, err *model.HTML
 		return
 	}
 
-	fmt.Println(req.URL)
 	resp, erro := client.Do(req)
-	fmt.Println("\n", resp)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         404,
@@ -170,7 +168,7 @@ func GenerateTokenAPI(method string, id string) (msToken string, err *model.HTML
 
 	body, erro := ioutil.ReadAll(resp.Body)
 
-	if err != nil {
+	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         500,
 			Message:      "Couldn't Read Response from Request to  Generate Token",
@@ -181,7 +179,6 @@ func GenerateTokenAPI(method string, id string) (msToken string, err *model.HTML
 
 	var dat interface{}
 	json.Unmarshal([]byte(body), &dat)
-	fmt.Println("\n", dat)
 	jsonM, erro := json.Marshal(dat)
 	if erro != nil {
 		err = &model.HTMLResponse{

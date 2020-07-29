@@ -41,7 +41,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
@@ -73,6 +73,8 @@ var EnvVariables struct {
 		GoogleDriveToken   string
 		DataStore          string
 		UserDevice         string
+		MockUserData       string
+		SessionId          string
 	}
 
 	TestURLs struct {
@@ -94,6 +96,9 @@ var EnvVariables struct {
 		Validate_Token      string
 		Get_Session_Data    string
 		Update_Session_Data string
+		New_Add             string
+		New_Search          string
+		New_Delete          string
 		APIGW_Endpoint      string
 	}
 }
@@ -138,6 +143,9 @@ func SetEnvVariables() {
 	EnvVariables.OneDriveCreds.OneDriveScopes = os.Getenv("ONE_DRIVE_SCOPES")
 
 	EnvVariables.SMURLs.EndPoint = os.Getenv("SM_ENDPOINT")
+	EnvVariables.SMURLs.New_Add = os.Getenv("NEW_ADD")
+	EnvVariables.SMURLs.New_Search = os.Getenv("NEW_SEARCH")
+	EnvVariables.SMURLs.New_Delete = os.Getenv("NEW_DELETE")
 	EnvVariables.SMURLs.Validate_Token = os.Getenv("VALIDATE_TOKEN")
 	EnvVariables.SMURLs.Get_Session_Data = os.Getenv("GET_SESSION_DATA")
 	EnvVariables.SMURLs.Update_Session_Data = os.Getenv("UPDATE_SESSION_DATA")
@@ -145,13 +153,15 @@ func SetEnvVariables() {
 
 	EnvVariables.TestURLs.MockRedirectDashboard = os.Getenv("MOCK_REDIRECT_DASHBOARD")
 
-	EnvVariables.SessionVariables.ClientCallbackAddr = os.Getenv("CLIENT_CALLBACK_ADDR_VARIABLE")
 	EnvVariables.SessionVariables.CurrentMethod = os.Getenv("CURRENT_METHOD_VARIABLE")
+	EnvVariables.SessionVariables.ClientCallbackAddr = os.Getenv("CLIENT_CALLBACK_ADDR_VARIABLE")
+	EnvVariables.SessionVariables.MockUserData = os.Getenv("MOCK_USER_DATA_VARIABLE")
 	EnvVariables.SessionVariables.PDS = os.Getenv("PDS_VARIABLE")
 	EnvVariables.SessionVariables.OneDriveToken = os.Getenv("ONE_DRIVE_TOKEN_VARIABLE")
 	EnvVariables.SessionVariables.GoogleDriveToken = os.Getenv("GOOGLE_DRIVE_TOKEN_VARIABLE")
 	EnvVariables.SessionVariables.DataStore = os.Getenv("DATASTORE_VARIABLE")
 	EnvVariables.SessionVariables.UserDevice = os.Getenv("USER_DEVICE_VARIABLE")
+	EnvVariables.SessionVariables.SessionId = os.Getenv("SESSION_ID")
 }
 
 var TestUser string

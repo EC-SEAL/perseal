@@ -4,13 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/model"
 )
 
-func StartSession() (tokenResp model.TokenResponse, err *model.HTMLResponse) {
-	url := "https://vm.project-seal.eu:9053/cl/session/start"
+func StartSession(sessionId string) (tokenResp model.TokenResponse, err *model.HTMLResponse) {
+	var url string
+	if sessionId == "" {
+		url = "https://vm.project-seal.eu:9154/cl/session/start"
+	} else {
+		url = "https://vm.project-seal.eu:9154/cl/session/start?sessionID=" + sessionId
+	}
 
 	req, erro := http.NewRequest("GET", url, nil)
 
@@ -24,10 +30,9 @@ func StartSession() (tokenResp model.TokenResponse, err *model.HTMLResponse) {
 		return
 	}
 
-	fmt.Println(req.URL)
 	var client http.Client
+	log.Println(req)
 	resp, erro := client.Do(req)
-	fmt.Println("\n", resp)
 	if erro != nil {
 		err = &model.HTMLResponse{
 			Code:         404,
@@ -50,7 +55,6 @@ func StartSession() (tokenResp model.TokenResponse, err *model.HTMLResponse) {
 
 	var dat interface{}
 	json.Unmarshal([]byte(body), &dat)
-	fmt.Println("\n", dat)
 	jsonM, erro := json.Marshal(dat)
 	if erro != nil {
 		err = &model.HTMLResponse{

@@ -7,12 +7,11 @@ import (
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/model"
-	"golang.org/x/oauth2"
 	"google.golang.org/api/drive/v3"
 )
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Client) (file *drive.File, err error) {
+func (ds DataStore) UploadGoogleDrive(client *http.Client) (err error) {
 	data, err := ds.UploadingBlob()
 	if err != nil {
 		return
@@ -25,7 +24,7 @@ func (ds DataStore) UploadGoogleDrive(oauthToken *oauth2.Token, client *http.Cli
 		Blob:        data,
 		ContentType: "application/octet-stream",
 	}
-	file, err = sendFile(fp, client)
+	err = sendFile(fp, client)
 	log.Println(err)
 	return
 }
@@ -56,7 +55,7 @@ func createGoogleDriveDir(service *drive.Service, name string, parentId string) 
 	return
 }
 
-func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (file *drive.File, err error) {
+func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (err error) {
 	files, err := service.Files.List().Do()
 	if err != nil {
 		return
@@ -77,8 +76,8 @@ func createGoogleDriveFile(service *drive.Service, name string, mimeType string,
 		}
 	}
 
-	file, err = service.Files.Create(f).Media(content).Do()
-	return file, nil
+	_, err = service.Files.Create(f).Media(content).Do()
+	return
 }
 
 type FileProps struct {
@@ -91,7 +90,7 @@ type FileProps struct {
 }
 
 //SendFile gdrive file given encrypted blob and oauth token
-func sendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err error) {
+func sendFile(fileProps *FileProps, client *http.Client) (err error) {
 
 	service, err := drive.New(client)
 	if err != nil {
@@ -103,13 +102,13 @@ func sendFile(fileProps *FileProps, client *http.Client) (file *drive.File, err 
 	dir, err := createGoogleDriveDir(service, fileProps.Path, "root")
 
 	if err != nil {
-		return nil, err
+		return
 	}
-	file, err = createGoogleDriveFile(service, fileProps.Name, fileProps.ContentType, bytes.NewReader(fileProps.Blob), dir.Id)
+	err = createGoogleDriveFile(service, fileProps.Name, fileProps.ContentType, bytes.NewReader(fileProps.Blob), dir.Id)
 	if err != nil {
-		return nil, err
+		return
 	}
 	// TODO check md5sum of data with CreatedFile
 	// md5sum := md5.Sum(fileProps.Blob)
-	return file, err
+	return
 }

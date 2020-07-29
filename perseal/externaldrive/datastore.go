@@ -6,9 +6,9 @@ import (
 	"log"
 
 	"github.com/EC-SEAL/perseal/dto"
-	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"github.com/EC-SEAL/perseal/utils"
+	"github.com/google/uuid"
 )
 
 // // DataStore sent in POST /per/load/{sessionToken} and received in POST /per/store/{sessionToken}
@@ -94,27 +94,14 @@ type DataStore struct {
 }
 
 // NewDataStore creates a new DataStore object
-func NewDataStore(data sm.SessionMngrResponse) (ds *DataStore, err error) {
+func NewDataStore(data dto.PersistenceDTO) (ds *DataStore, err error) {
 
-	currentDs := &DataStore{}
-	var inter interface{}
-	json.Unmarshal([]byte(data.SessionData.SessionVariables[model.EnvVariables.SessionVariables.DataStore]), &inter)
+	dataStore, _ := sm.NewSearch(data.ID)
 
-	jsonM, err := json.Marshal(inter)
-	if err != nil {
-		return
-	}
-	json.Unmarshal(jsonM, &currentDs)
-
-	log.Println(data)
-	log.Println(currentDs)
-
-	sessionWithoutDataStore := data.SessionData.SessionVariables
-	delete(sessionWithoutDataStore, model.EnvVariables.SessionVariables.DataStore)
-
+	log.Println("Variables in Additional Data: ", dataStore.AdditionalData)
 	ds = &DataStore{
-		ID:        currentDs.ID,
-		ClearData: sessionWithoutDataStore,
+		ID:        uuid.New().String(),
+		ClearData: dataStore.AdditionalData,
 	}
 	return
 }
@@ -184,7 +171,7 @@ func (ds *DataStore) UploadingBlob() (data []byte, err error) {
 }
 
 func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) {
-	tmpDataStore, err := NewDataStore(dto.SMResp)
+	tmpDataStore, err := NewDataStore(dto)
 	if err != nil {
 		return
 	}

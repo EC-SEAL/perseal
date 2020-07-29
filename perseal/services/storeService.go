@@ -14,8 +14,7 @@ import (
 func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
 	log.Println("persistanceStore")
 
-	if dto.PDS == model.EnvVariables.Mobile_PDS || dto.PDS == model.EnvVariables.Browser_PDS {
-		dto.IsLocalLoad = true
+	if dto.PDS == model.EnvVariables.Browser_PDS {
 		response, err = BackChannelStorage(dto)
 	} else if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
 		var dataStore *externaldrive.DataStore

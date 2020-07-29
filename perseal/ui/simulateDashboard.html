@@ -1,87 +1,160 @@
 <!DOCTYPE html>
 
 <html>
-<head>
-<style>
-h1 {
-   margin-left: 50px; 
-  }
-  h2 {
-    margin-left: 50px;
-  }
-  form {
+  <head>
+    <style>
+     .botLogo {
+        height: 25%;
+        text-align: center;
+      }
 
-    margin-left: 50px;
-  }
+      .footer {
+        margin-bottom: 500px;
+        overflow: auto;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        margin: 0;
+        background-color: #c4c4c4;
+      }
+      h1 {
+        text-align: justify;
+        margin: 5 auto;
+        margin-left: 5%;
+        font-size: 50px;
+        
+        font-weight: 400;
+      }
 
-  input[type=password] {
-    margin: 8px 0;
-    box-sizing: border-box; 
-    padding: 5px;
-    border-radius: 8px;
-    width: calc(33.333333% - 20px);
-    box-sizing: border-box;
-  }
-  
-  input[type=button], input[type=submit], input[type=reset] {   
-    background-color: #252ed3;
-    border: none;
-    color: white;
-    text-decoration: none;
-    padding: 5px;
-    cursor: pointer;
-    margin-left: 50px;
-  }
-</style>
+      input::-webkit-input-placeholder {
+        font-size: 28 px;
+        line-height: 3;
+      }
+      input[type="password"] {
+        background: transparent;
+        color: mix(#003399, #424242, 70%);
+        font-size: 18px;
+        padding: 10px 10px 10px 0;
+        display: block;
+        border: 2px solid blue;
+        border-radius: 10;
+        -webkit-appearance: none;
+        outline: none;
+        position: relative;
+        border-style: solid;
+        border-top-style: none;
+        border-right-style: none;
+        border-left-style: none;
+        border-bottom-width: 2px;
+      }
+      .center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+      }
+      .btn-isolated {
+        margin-top: auto;
+        margin-bottom: 25px;
+        display: block;
+        color: #003399;
+        text-decoration: none;
+        line-height: 1.5;
+        border-radius: 0.25rem;
+        background-color: transparent;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        padding: 0.75rem 0.95rem;
+        font-weight: 400;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
 
-</head>
+      .btn-isolated-primary {
+        width: 18.5%;
+        font-size: 25px;
+        color: #003399;
+        border-color: #003399;
+      }
 
-<body>
+      .btn-isolated-primary:hover {
+        color: #fff;
+        background-color: #ffcc00;
+        border-color: #ffcc00;
+      }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  </head>
 
-<div><img src="/ui/logo.png" height="150px"></div>
+  <body>
+    <img class="topLogo" src="/ui/logo.png" height="200px" />
 
+    <h1>PERSISTENCE MODULE</h1>
+    <div class="center">
+      <form action="/per/test/session" method="get">
+        <input
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          type="submit"
+          value="New Session"
+        />
+      </form>
+    </div>
 
-<p><h1>Start New Session</h1></p>
- <form action="/per/test/session" method="get">
-  <input type="submit" value="New Session">
-</form>
+    {{if not (eq .ID "")}}
 
-{{if not (eq .ID "")}}
+    <h1>Current SessionId {{ .ID }}</h1>
 
-<p><h2>Current SessionId {{ .ID }}</h2></p>
-<p><h1>Create New Token</h1></p>
-<form action="/per/test/token" method="get">
-  <label for="method">Choose a method:</label>
-  <select name="method" id="method">
-    <option value="googleDrive">Google Drive</option>
-    <option value="oneDrive">OneDrive</option>
-    <option value="Browser">Local File System</option>
-    <option value="Mobile">Mobile Device</option>
-  </select>
-  <input type="submit" value="New Token">
-</form>
-{{end}}
+    <div class="center">
+      <form action="/per/test/token" method="get">
+        <label for="method">Choose a method:</label>
+        <select style="margin-bottom: 25px;" name="method" id="method">
+          <option value="googleDrive">Google Drive</option>
+          <option value="oneDrive">OneDrive</option>
+          <option value="Browser">Local File System</option>
+          <option value="Mobile">Mobile Device</option>
+        </select>
+        <input
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          type="submit"
+          value="New Token"
+        />
+      </form>
+    </div>
+    {{end}} {{if not (eq .MSToken "")}}
 
+    <div class="center">
+      <form action="/per/store" method="get">
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          type="submit"
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          value="Store"
+        />
+      </form>
+    </div>
 
-{{if not (eq .MSToken "")}}
+    <div class="center">
+      <form action="/per/load" method="get">
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          type="submit"
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          value="Load"
+        />
+      </form>
+    </div>
+    {{end}}
 
-<div>
-<h1>Store</h1>
-<form action="/per/store" method="get">
-    <input name="msToken" type="hidden" value={{.MSToken}}>
-    <input type="submit" value="Store">
-</form>
-</div>
-<p><h1>Load</h1>
-<form action="/per/load" method="get">
-    <input name="msToken" type="hidden" value={{.MSToken}}>
-    <input type="submit" value="Load">
-</form>
-</p>
-{{end}}
-
-
-<div><img src="/ui/en_horizontal_cef_logo_2.png" width="500px"></div>
-
-</body>
+    <p></p>
+    <div class="footer">
+      <div class="botLogo">
+        <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />
+      </div>
+    </div>
+  </body>
 </html>

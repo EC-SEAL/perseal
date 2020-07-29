@@ -23,6 +23,7 @@ func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
 func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.PersistenceDTO, err *model.HTMLResponse) {
 	var token *oauth2.Token
 	dtoWithToken = dto
+	log.Println("Current Persistence Object: ", dto)
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
 		token, err = updateNewGoogleDriveTokenFromCode(dto.ID, code)
 		dtoWithToken.GoogleAccessCreds = *token
