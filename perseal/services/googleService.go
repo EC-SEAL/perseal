@@ -23,20 +23,12 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 	log.Println("Current Google Client: ", client)
 	dataStore, erro := externaldrive.StoreSessionData(dto)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Encryption Failed",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
 	erro = dataStore.UploadGoogleDrive(client)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Store DataStore",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
 		return
 	}
 	return
@@ -48,11 +40,7 @@ func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *
 	client := getGoogleDriveClient(dto.GoogleAccessCreds)
 	file, erro := getGoogleDriveFile(filename, client)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Get Google Drive File",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFile+model.EnvVariables.Google_Drive_PDS, erro.Error())
 	}
 	return
 }
@@ -82,21 +70,13 @@ func updateNewGoogleDriveTokenFromCode(id string, code string) (tok *oauth2.Toke
 
 	tok, erro := config.Exchange(oauth2.NoContext, code)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Could not Fetch Google Drive Access Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetToken+model.EnvVariables.Google_Drive_PDS, erro.Error())
 		return
 	}
 
 	b, erro := json.Marshal(tok)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Parse the Google Drive Access Token to byte array",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedParseToken+model.EnvVariables.Google_Drive_PDS, erro.Error())
 		return
 	}
 

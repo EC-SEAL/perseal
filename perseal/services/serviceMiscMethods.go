@@ -44,11 +44,7 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 		var erro error
 		files, erro = getGoogleDriveFiles(client)
 		if erro != nil {
-			err = &model.HTMLResponse{
-				Code:         404,
-				Message:      "Could not Get GoogleDrive Files",
-				ErrorMessage: erro.Error(),
-			}
+			err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFiles+model.EnvVariables.Google_Drive_PDS, erro.Error())
 			return
 		}
 
@@ -60,11 +56,7 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 		}
 		resp, erro := getOneDriveItems(token)
 		if erro != nil {
-			err = &model.HTMLResponse{
-				Code:         404,
-				Message:      "Couldn't Get One Drive Items",
-				ErrorMessage: erro.Error(),
-			}
+			err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFiles+model.EnvVariables.One_Drive_PDS, erro.Error())
 			return
 		}
 		for _, v := range resp.Values {

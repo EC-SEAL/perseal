@@ -27,11 +27,7 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.
 	}
 	dataStore, erro := externaldrive.StoreSessionData(dto)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Encryption Failed",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
 
@@ -42,11 +38,7 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.
 	file, erro = dataStore.UploadOneDrive(token, contents)
 	fmt.Println(file)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Upload DataStore One Drive",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
 	}
 	return
 }
@@ -60,12 +52,13 @@ func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (file *htt
 	}
 
 	file, erro := getOneDriveItem(token, filename)
+	if erro != nil {
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedExecuteRequest, erro.Error())
+		return
+	}
 	log.Println(file.StatusCode)
-	if erro != nil || file.StatusCode != 200 {
-		err = &model.HTMLResponse{
-			Code:    404,
-			Message: "Couldn't Get One Drive Item",
-		}
+	if file.StatusCode != 200 {
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFile+model.EnvVariables.One_Drive_PDS)
 		return
 	}
 	log.Println(file)
@@ -79,21 +72,13 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 	oauthToken, erro = externaldrive.RequestToken(code, creds.OneDriveClientID)
 	log.Println(oauthToken)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Request One Drive Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetToken+model.EnvVariables.One_Drive_PDS, erro.Error())
 		return
 	}
 
 	jsonM, erro := json.Marshal(oauthToken)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Marshal One Drive Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedParseToken+model.EnvVariables.One_Drive_PDS, erro.Error())
 		return
 	}
 
@@ -107,7 +92,7 @@ func getOneDriveItems(token *oauth2.Token) (folderchildren *externaldrive.Folder
 
 	url := model.EnvVariables.OneDriveURLs.Get_Items + id.ID + "/children"
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
 	}
@@ -134,7 +119,7 @@ func getOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err
 
 	var url string
 	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name + "/" + item + "/:/content"
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
 	}
@@ -151,7 +136,7 @@ func getOneDriveId(token *oauth2.Token) (id *externaldrive.FolderProps, err erro
 
 	var url string
 	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return
 	}
@@ -185,11 +170,7 @@ func checkOneDriveTokenExpiry(token oauth2.Token) (rtoken *oauth2.Token, err *mo
 	rtoken, erro := externaldrive.RequestRefreshToken(creds.OneDriveClientID, &token)
 
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Error in Request to Refresh Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedRefreshToken, erro.Error())
 		return
 	}
 	//if the access token has expired. Makes a refresh token request
@@ -203,7 +184,7 @@ func checkOneDriveTokenExpiry(token oauth2.Token) (rtoken *oauth2.Token, err *mo
 // For more information, follow this link: https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/graph-oauth?view=odsp-graph-online
 func getOneDriveRedirectURL(id string) (link string) {
 	creds := model.EnvVariables.OneDriveCreds
-	req, _ := http.NewRequest("GET", model.EnvVariables.OneDriveURLs.Auth, nil)
+	req, _ := http.NewRequest(http.MethodGet, model.EnvVariables.OneDriveURLs.Auth, nil)
 
 	q := req.URL.Query()
 	q.Add("client_id", creds.OneDriveClientID)

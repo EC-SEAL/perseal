@@ -133,7 +133,208 @@
     {{$id := .ID}}
 
     <div id="choose"><h1>Choose an operation</h1></div>
-    {{if (eq .MenuOption "NoFilesFound")}}
+
+    
+{{if or (eq .MenuOption "Password") (eq .MenuOption "File")}}
+    {{if or (eq .PDS "googleDrive") (eq .PDS "oneDrive")}}
+    {{if (eq .Method "load")}}
+    <h1>Load Current Data From a Cloud File</h1>
+    {{end}}
+    
+    {{if (eq .Method "store")}}
+    <h1>Save Your Current Data</h1>
+    <h2>
+      <p>
+        A File With Your Data will be added to your Cloud Storage.
+      </p>
+      <p>
+       Insert a Password in order to Encrypt your Data
+      </p>
+    </h2>
+    {{end}}
+
+    <div class="center">
+      <form id="normalInsert" action="/per/insertPassword/{{.Method}}" method="post">
+        <input placeholder="Password" type="password" name="password">
+        <input name="msToken" type="hidden" value={{.MSToken}}>
+        <input type="submit" class="btn outline-primary" value="Submit">
+      </form>
+      </div>
+      <h2 style="color: red;"><p>Your Password Is Incorrect</p><p>Please Insert a Valid Password</p></h2>
+    {{end}}
+
+    {{if (eq .PDS "Browser")}}
+    <div class="center">
+      <button id="storeAndLoad" class="btn-isolated btn-isolated-primary">
+        Save Your Current Data
+      </button>
+    </div>
+    <div class="center">
+      <button id="loadBrowser" class="btn-isolated btn-isolated-primary">
+        Load Existing Data
+      </button>
+    </div>
+
+    <div class="center">
+      <button id="exit" class="btn-isolated btn-isolated-primary">
+        <a href="{{.ClientCallbackAddr}}">Exit</a>
+      </button>
+    </div>
+
+    <div id="title">
+      <h2>
+        <p>
+          A File With Your Data will be downloaded to your Local File System.
+        </p>
+        <p>
+          Check your Browser's definitions if you wish to change your download
+          location.
+        </p>
+        <p>
+          Insert a Password in order to Encrypt your Data
+        </p>
+      </h2>
+    </div>
+
+    <div class="center">
+      <form id="storeForm" action="/per/insertPassword/storeload" method="post">
+        <input placeholder="Password" type="password" name="password" />
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          type="submit"
+          class="btn outline-primary"
+          style="width: 100%;"
+          value="Confirm"
+        />
+      </form>
+    </div>
+
+    <div id="instruction">
+      <h2>
+        <p>Loading User's Data From a Local File</p>
+        <p>Click the following button to select your desired file</p>
+      </h2>
+    </div>
+
+    <div class="center">
+      <form
+        id="loadForm"
+        enctype="multipart/form-data"
+        action="/per/insertPassword/{{.Method}}"
+        method="post"
+      >
+        <label
+          class="btn outline-primary"
+          style="border: 2px solid #003399;"
+          for="file"
+          >Upload</label
+        >
+        <input id="file" type="file" name="file" style="display: none;" />
+        <input
+          id="pass"
+          placeholder="Password"
+          type="password"
+          name="password"
+        />
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          id="submit"
+          type="submit"
+          class="btn outline-primary"
+          style="width: 100%;"
+          value="Confirm"
+        />
+      </form>
+    </div>
+    <div class="center">
+      <button
+        id="goBack"
+        style="
+          margin-bottom: 275px;
+          bottom: 0;
+          margin-left: -35%;
+          position: absolute;
+        "
+        class="btn-isolated btn-isolated-primary"
+      >
+        Go Back
+      </button>
+    </div>
+    {{if (eq .MenuOption "File")}}
+    <h2 style="color: red;"><p>Your File Does Not Contain Valid Data!</p></h2>
+    {{end}}
+    
+
+    {{if (eq .MenuOption "Password")}}
+    <h2 style="color: red;"><p>Your Password Is Incorrect!</p></h2>
+    {{end}}
+    <script>
+      $("#storeForm").hide();
+      $("#loadForm").show();
+      $("#title").hide();
+      $("#goBack").show();
+      $("#instruction").show();
+      $("#storeAndLoad").hide();
+      $("#loadBrowser").hide();
+      $("#exit").hide();
+      $("#pass").hide();
+      $("#submit").hide();
+      $("#file").on("change", function () {
+        $("#pass").show();
+        $("#submit").show();
+        var i = $(this).prev("label").clone();
+          var file = $("#file")[0].files[0].name;
+          $(this).prev("label").text(file);
+      });
+      $("#storeAndLoad").on("click", function () {
+        $("#exit").hide();
+        $("#goBack").show();
+        $("#choose").hide();
+        $("#storeAndLoad").hide();
+        $("#loadBrowser").hide();
+        $("#title").show();
+        $("#storeForm").show();
+      });
+      $("#loadBrowser").on("click", function () {
+        $("#instruction").show();
+        $("#exit").hide();
+        $("#goBack").show();
+        $("#choose").hide();
+        $("#storeAndLoad").hide();
+        $("#loadBrowser").hide();
+        $("#loadForm").show();
+        console.log($("#file").val());
+        $("#pass").hide();
+        $("#submit").hide();
+        $("#file").on("change", function () {
+          $("#pass").show();
+          $("#submit").show();
+          console.log($("#file").val());
+          var i = $(this).prev("label").clone();
+          var file = $("#file")[0].files[0].name;
+          $(this).prev("label").text(file);
+        });
+      });
+      $("#goBack").on("click", function () {
+        $("#instruction").hide();
+        $("#storeForm").hide();
+        $("#loadForm").hide();
+        $("#title").hide();
+        $("#choose").show();
+        $("#storeAndLoad").show();
+        $("#loadBrowser").show();
+        $("#goBack").hide();
+        $("#exit").show();
+      });
+    </script>
+    {{end}}
+    
+    <script>
+      $("#choose").hide();
+    </script>
+{{end}}
+
+{{if (eq .MenuOption "NoFilesFound")}}
     <div class="center">
       <button id="storeAndLoad" class="btn-isolated btn-isolated-primary">
         Save Your Current Data
@@ -174,7 +375,7 @@
       <button
         id="goBack"
         style="
-          margin-bottom: 250px;
+          margin-bottom: 275px;
           bottom: 0;
           margin-left: -35%;
           position: absolute;
@@ -295,9 +496,9 @@
       <button
         id="goBack"
         style="
-          margin-bottom: 250px;
+          margin-bottom: 275px;
           bottom: 0;
-          margin-left: -32%;
+          margin-left: -35%;
           position: absolute;
         "
         class="btn-isolated btn-isolated-primary"

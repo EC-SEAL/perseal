@@ -5,7 +5,9 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -107,7 +109,8 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 		log.Println(cipherPassword)
 	}
 
-	dto, err := dto.PersistenceWithPasswordBuilder(id, cipherPassword, smResp, method)
+	dto, err := dto.PersistenceBuilder(id, smResp, method)
+	dto.Password = cipherPassword
 	if err != nil {
 		w.WriteHeader(err.Code)
 		w.Write([]byte(err.Message))
@@ -116,10 +119,7 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 
 	dataSstr := r.PostFormValue("dataStore")
 	if dataSstr == "" {
-		err := &model.HTMLResponse{
-			Code:    400,
-			Message: "Couldn't find DataStore",
-		}
+		err := model.BuildResponse(http.StatusBadRequest, model.Messages.FailedFoundDataStore)
 		w.WriteHeader(err.Code)
 		w.Write([]byte(err.Message))
 		return
@@ -137,13 +137,17 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 }
 
 func BackChannelStoring(w http.ResponseWriter, id, cipherPassword, method string, smResp sm.SessionMngrResponse) {
-	obj, err := dto.PersistenceWithPasswordBuilder(id, cipherPassword, smResp, method)
+	obj, err := dto.PersistenceBuilder(id, smResp, method)
+	obj.Password = cipherPassword
 	if err != nil {
 		writeResponseMessage(w, obj, *err)
 		return
 	}
 
 	response, err := services.BackChannelStorage(obj)
+	token, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, obj.ID)
+	response.MSToken = token.AdditionalData
+
 	if err != nil {
 		w.WriteHeader(err.Code)
 		w.Write([]byte(err.Message))
@@ -164,8 +168,9 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 	if method == "save" {
 		//Downloads File for the localFile System
 		log.Println("save")
+		log.Println(msToken)
 		contents := getQueryParameter(r, "contents")
-		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote("datastore.seal"))
+		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(model.EnvVariables.DataStore_File_Name))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		json.NewEncoder(w).Encode(contents)
 
@@ -184,6 +189,20 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mobileQRCode(dto, w)
+	} else if method == "redirect" {
+
+		token := getQueryParameter(r, "token")
+		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
+
+		hc := http.Client{}
+		form := url.Values{}
+		form.Add("msToken", token)
+
+		log.Println(clientCallbackAddr)
+		req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
+		log.Println(req)
+		log.Println(hc.Do(req))
+		return
 	}
 }
 

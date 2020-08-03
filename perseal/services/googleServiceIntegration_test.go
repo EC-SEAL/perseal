@@ -58,7 +58,8 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 }
 
 func preCloudConfig(obj dto.PersistenceDTO, smResp sm.SessionMngrResponse, password string) dto.PersistenceDTO {
-	obj, _ = dto.PersistenceWithPasswordBuilder(obj.ID, password, smResp, obj.Method)
+	obj, _ = dto.PersistenceBuilder(obj.ID, smResp, obj.Method)
+	obj.Password = password
 	return obj
 }
 

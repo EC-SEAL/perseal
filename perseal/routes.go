@@ -41,12 +41,6 @@ func newRouter() *mux.Router {
 				"/test/simulateDashboard",
 				controller.SimulateDashboard,
 			},
-			route{
-				"Generate msToken",
-				"POST",
-				"/test/{method}",
-				controller.Test,
-			},
 		}
 		perRoutes = append(testRoutes, perRoutes...)
 	}

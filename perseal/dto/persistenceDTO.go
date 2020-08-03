@@ -3,6 +3,7 @@ package dto
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
@@ -50,7 +51,7 @@ func PersistenceBuilder(id string, smResp sm.SessionMngrResponse, method ...stri
 
 	log.Println(client)
 	if client == "" && model.Test {
-		client = model.EnvVariables.TestURLs.MockRedirectDashboard
+		client = model.EnvVariables.TestURLs.APIGW_Endpoint
 	}
 	pds := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.PDS]
 	userDevice := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.OneDriveToken]
@@ -75,40 +76,6 @@ func PersistenceBuilder(id string, smResp sm.SessionMngrResponse, method ...stri
 		dto.Method = smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.CurrentMethod]
 	}
 
-	dto.UserDevice = "Mobile"
-	return
-}
-
-// Builds Persistence DTO With Password
-func PersistenceWithPasswordBuilder(id, password string, smResp sm.SessionMngrResponse, method ...string) (dto PersistenceDTO, err *model.HTMLResponse) {
-
-	client := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr]
-
-	log.Println(client)
-	if client == "" && model.Test {
-		client = model.EnvVariables.TestURLs.MockRedirectDashboard
-	}
-
-	pds := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.PDS]
-
-	dto = PersistenceDTO{
-		ID:                 id,
-		PDS:                pds,
-		ClientCallbackAddr: client,
-		Password:           password,
-	}
-	googleTokenBytes, oneDriveTokenBytes, err := getGoogleAndOneDriveTokens(dto, smResp)
-	if err != nil {
-		return
-	}
-	if len(method) > 0 || method != nil {
-		dto.Method = method[0]
-	} else {
-		dto.Method = smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.CurrentMethod]
-	}
-
-	json.Unmarshal(googleTokenBytes, &dto.GoogleAccessCreds)
-	json.Unmarshal(oneDriveTokenBytes, &dto.OneDriveToken)
 	return
 }
 
@@ -119,11 +86,7 @@ func getGoogleAndOneDriveTokens(dto PersistenceDTO, smResp sm.SessionMngrRespons
 	json.Unmarshal([]byte(oneDriveToken), &token1)
 	oneDriveTokenBytes, erro := json.Marshal(token1)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         400,
-			Message:      "Could Not Marshall One Drive Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedMarshall+model.EnvVariables.SessionVariables.OneDriveToken, erro.Error())
 		return
 	}
 
@@ -132,11 +95,7 @@ func getGoogleAndOneDriveTokens(dto PersistenceDTO, smResp sm.SessionMngrRespons
 	json.Unmarshal([]byte(googleDrive), &token2)
 	googleTokenBytes, erro = json.Marshal(token2)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         400,
-			Message:      "Could Not Marshall One Drive Token",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedMarshall+model.EnvVariables.SessionVariables.GoogleDriveToken, erro.Error())
 	}
 	return
 }

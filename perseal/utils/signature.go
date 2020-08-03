@@ -8,14 +8,12 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/EC-SEAL/perseal/model"
 	"github.com/google/uuid"
 	"github.com/spacemonkeygo/httpsig"
 )
@@ -43,7 +41,7 @@ func PrepareRequestHeaders(req *http.Request, url string) (*http.Request, error)
 
 	var sha256value [32]byte
 	//verifies request method to fomrulate Digest
-	if req.Method == "POST" {
+	if req.Method == http.MethodPost {
 		y, err := req.GetBody()
 
 		if err != nil {
@@ -56,7 +54,7 @@ func PrepareRequestHeaders(req *http.Request, url string) (*http.Request, error)
 			return nil, err
 		}
 		sha256value = sha256.Sum256(x)
-	} else if req.Method == "GET" {
+	} else if req.Method == http.MethodGet {
 		sha256value = sha256.Sum256([]byte{})
 	}
 
@@ -136,62 +134,4 @@ func signRequest(r *http.Request, headers map[string]string) (string, error) {
 	}
 
 	return newReq.Header.Get("Authorization"), nil
-}
-
-func GenerateTokenAPI(method string, id string) (msToken string, err *model.HTMLResponse) {
-
-	url := model.EnvVariables.SMURLs.APIGW_Endpoint + "/cl/persistence/" + method + "/store?sessionID=" + id
-
-	req, erro := http.NewRequest("GET", url, nil)
-
-	var client http.Client
-
-	req.Header.Set("Accept", "application/json")
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate URL to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	resp, erro := client.Do(req)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         404,
-			Message:      "Couldn't Execute Request to Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	body, erro := ioutil.ReadAll(resp.Body)
-
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Read Response from Request to  Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var dat interface{}
-	json.Unmarshal([]byte(body), &dat)
-	jsonM, erro := json.Marshal(dat)
-	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Generate JSON From Response Body of Generate Token",
-			ErrorMessage: erro.Error(),
-		}
-		return
-	}
-
-	var tokenResp model.TokenResponse
-	json.Unmarshal(jsonM, &tokenResp)
-
-	msToken = tokenResp.Payload
-	return
 }

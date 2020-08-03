@@ -50,7 +50,6 @@
     {{$code := .Code}}
 
     <div id="ds" type="hidden">{{ .DataStore }}</div>
-    <div id="url" type="hidden">{{ .ClientCallbackAddr }}</div>
 
     {{if (eq $code 200) }}
     <h1>Success!</h1>
@@ -62,8 +61,13 @@
     <h2>{{ .Message }}</h2>
 
     <form id="form" action="/per/aux/save" method="get">
-      <input name="msToken" type="hidden" value="{{.MSToken}}" />
+      <input name="msToken" type="hidden" value="{{.MSTokenDownload}}" />
       <input name="contents" type="hidden" value="{{.DataStore}}" />
+    </form>
+    <form id="redirect" action="/per/aux/redirect" method="get">
+      <input name="msToken" type="hidden" value="{{.MSToken}}" />
+      <input name="token" type="hidden" value="{{.MSTokenRedirect}}" />
+      <input name="clientCallbackAddr" type="hidden" value="{{.ClientCallbackAddr}}" />
     </form>
 
     <div class="footer">
@@ -78,10 +82,8 @@
       if (ds !== "") {
         document.getElementById("form").submit();
       }
-      document.getElementById("url").style.display = "none";
-      var div = document.getElementById("url").innerHTML;
       var timer = setTimeout(function () {
-        window.location = div;
+        document.getElementById("redirect").submit();
       }, 3000);
     </script>
   </body>

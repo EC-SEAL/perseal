@@ -40,18 +40,12 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	log.Println("Decrypted DataStore: ", string(b))
 
 	log.Println(sm.NewSearch(dto.ID))
-	response = &model.HTMLResponse{
-		Code:               200,
-		Message:            "Loaded DataStore " + ds.ID,
-		ClientCallbackAddr: dto.ClientCallbackAddr,
-	}
-
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID)
 	return
 }
 
 // UC 1.06 - Stores and Loads Datastore
 func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-	response = &model.HTMLResponse{}
 	var ds *externaldrive.DataStore
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
 		ds, err = storeCloudData(dto)
@@ -59,16 +53,9 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 		var erro error
 		ds, erro = externaldrive.StoreSessionData(dto)
 		if erro != nil {
-			err = &model.HTMLResponse{
-				Code:         500,
-				Message:      "Encryption Failed",
-				ErrorMessage: erro.Error(),
-			}
+			err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 			return
 		}
-		data, _ := json.Marshal(ds)
-		response.DataStore = string(data)
-		response.MSToken, err = utils.GenerateTokenAPI(dto.PDS, dto.ID)
 	}
 	if err != nil {
 		log.Println(err)
@@ -86,10 +73,12 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 		return
 	}
 
-	response.Code = 200
-	response.Message = "Loaded DataStore " + ds.ID
-	response.ClientCallbackAddr = dto.ClientCallbackAddr
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID)
 
+	if dto.PDS == model.EnvVariables.Browser_PDS {
+		data, _ := json.Marshal(ds)
+		response.DataStore = string(data)
+	}
 	return
 }
 
@@ -108,12 +97,9 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 	log.Println(sm.NewSearch(dto.ID))
 	data, _ := json.Marshal(dataStore)
 
-	response = &model.HTMLResponse{
-		Code:               200,
-		Message:            "Loaded DataStore " + dataStore.ID,
-		ClientCallbackAddr: dto.ClientCallbackAddr,
-		DataStore:          string(data),
-	}
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+dataStore.ID)
+	//response.ClientCallbackAddr = dto.ClientCallbackAddr
+	response.DataStore = string(data)
 	return
 }
 
@@ -135,10 +121,7 @@ func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *ex
 	log.Println("Managed to Fetch the DataStore File")
 	body, erro := ioutil.ReadAll(file.Body)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:    500,
-			Message: "Error Reading Responses",
-		}
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FileContentsNotFound, erro.Error())
 		return
 	}
 	dataStore, err = readCloudFileDataStore(body)
@@ -163,21 +146,15 @@ func validateSignature(encrypted string, sigToValidate string) bool {
 func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDTO) (err *model.HTMLResponse) {
 	log.Println(dataStore)
 	if !validateSignature(dataStore.EncryptedData, dataStore.Signature) {
-		err = &model.HTMLResponse{
-			Code:    500,
-			Message: "Error Validating Signature",
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.InvalidSignature)
 		return
 	}
 
 	erro := dataStore.Decrypt(dto.Password)
 	dataStore.EncryptedData = ""
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:    500,
-			Message: "Couldn't Decrypt DataStore. Check your password",
-		}
-		json.MarshalIndent(err, "", "\t")
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.InvalidPassword, erro.Error())
+		err.FailedInput = "Password"
 		return
 	}
 
@@ -192,11 +169,7 @@ func marshallDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDT
 	jsonM, erro := json.Marshal(dataStore)
 	log.Println(erro)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Couldn't Parse Response Body from DataStore to Object",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedParseResponse+"DataStore", erro.Error())
 		json.MarshalIndent(err, "", "\t")
 	}
 	return
@@ -209,10 +182,7 @@ func readCloudFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore
 	erro := json.Unmarshal(jsonM, &dataStore)
 	log.Println(dataStore)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:    400,
-			Message: "Bad Structure of DataStore",
-		}
+		err = model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidDataStore, erro.Error())
 	}
 	return
 
@@ -222,13 +192,12 @@ func readLocalFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore
 	var v string
 	json.Unmarshal(dataSstr, &v)
 	erro := json.Unmarshal([]byte(v), &dataStore)
-	log.Println("DataStore ID found: ", dataStore.ID)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:    400,
-			Message: "The File must contain only a valid DataStore",
-		}
+		err = model.BuildResponse(http.StatusBadRequest, model.Messages.FileContainsDataStore, erro.Error())
+		err.FailedInput = "File"
+		return
 	}
+	log.Println("DataStore ID found: ", dataStore.ID)
 	return
 
 }

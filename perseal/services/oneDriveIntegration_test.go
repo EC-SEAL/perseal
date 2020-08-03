@@ -38,8 +38,9 @@ func TestOneDriveService(t *testing.T) {
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
-	ds, err = fetchCloudDataStore(obj, "datastore.seal")
-	log.Println(ds)
+	ds1, err := fetchCloudDataStore(obj, "datastore.seal")
+	log.Println("Ups")
+	log.Println(ds1)
 	log.Println(err)
 	if err == nil {
 		t.Error("Should have thrown error")

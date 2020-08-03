@@ -3,11 +3,11 @@ package services
 import (
 	"encoding/json"
 	"log"
+	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
 	"github.com/EC-SEAL/perseal/model"
-	"github.com/EC-SEAL/perseal/utils"
 )
 
 // Save session data to the configured persistence mechanism (front channel)
@@ -22,11 +22,7 @@ func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse
 		if err != nil {
 			return
 		}
-		response = &model.HTMLResponse{
-			Code:               200,
-			Message:            "Stored DataStore " + dataStore.ID,
-			ClientCallbackAddr: dto.ClientCallbackAddr,
-		}
+		response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
 	}
 	return
 
@@ -35,26 +31,14 @@ func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse
 func BackChannelStorage(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
 	dataStore, erro := externaldrive.StoreSessionData(dto)
 	if erro != nil {
-		err = &model.HTMLResponse{
-			Code:         500,
-			Message:      "Encryption Failed",
-			ErrorMessage: erro.Error(),
-		}
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
 	data, _ := json.Marshal(dataStore)
 
-	token, err := utils.GenerateTokenAPI(dto.PDS, dto.ID)
-	if err != nil {
-		return
-	}
-	response = &model.HTMLResponse{
-		Code:               200,
-		Message:            "Stored DataStore " + dataStore.ID,
-		ClientCallbackAddr: dto.ClientCallbackAddr,
-		DataStore:          string(data),
-		MSToken:            token,
-	}
+	response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
+	response.DataStore = string(data)
+
 	return
 }
 
