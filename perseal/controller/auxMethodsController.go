@@ -65,12 +65,6 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 
 func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 	log.Println(dto.Response)
-	log.Println(dto.Response.MSToken)
-	log.Println(dto.Response.MSTokenRedirect)
-	if dto.Response.DataStore != "" {
-		msToken, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
-		dto.Response.MSTokenDownload = msToken.AdditionalData
-	}
 	t, _ := template.ParseFiles("ui/message.html")
 	w.WriteHeader(dto.Response.Code)
 	t.Execute(w, dto.Response)

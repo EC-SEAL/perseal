@@ -169,6 +169,20 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		//Downloads File for the localFile System
 		log.Println("save")
 		log.Println(msToken)
+
+		token := getQueryParameter(r, "token")
+		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
+
+		hc := http.Client{}
+		form := url.Values{}
+
+		form.Add("msToken", token)
+
+		log.Println(clientCallbackAddr)
+		req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
+		log.Println(req)
+		log.Println(hc.Do(req))
+
 		contents := getQueryParameter(r, "contents")
 		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(model.EnvVariables.DataStore_File_Name))
 		w.Header().Set("Content-Type", "application/octet-stream")

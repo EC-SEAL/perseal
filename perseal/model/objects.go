@@ -12,7 +12,6 @@ type HTMLResponse struct {
 	DataStore          string
 	MSToken            string
 	MSTokenRedirect    string
-	MSTokenDownload    string
 	FailedInput        string
 	ClientCallbackAddr string
 }
