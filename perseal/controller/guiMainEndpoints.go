@@ -5,9 +5,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -26,13 +24,26 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	method := mux.Vars(r)["method"]
 	token := getQueryParameter(r, "msToken")
 
-	id := validateToken(token, w)
-	smResp := getSessionData(id, w)
-	log.Println("Current Session Id: " + id)
-	// EXCEPTION: Mobile Storage can be enable if cipherPassword is sent immediatly in the GET request
+	var id string
 	cipherPassword := getQueryParameter(r, "cipherPassword")
 	if cipherPassword != "" {
-		BackChannelStoring(w, id, cipherPassword, method, smResp)
+		smResp, err := sm.ValidateToken(token)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(model.Messages.NoMSTokenErrorMsg))
+			return
+		}
+		id = smResp.SessionData.SessionID
+	} else {
+		id = validateToken(token, w)
+	}
+
+	smResp := getSessionData(id, w)
+	log.Println("Current Session Id: " + id)
+
+	// EXCEPTION: Mobile Storage can be enable if cipherPassword is sent immediatly in the GET request
+	if cipherPassword != "" {
+		backChannelStoring(w, id, cipherPassword, method, smResp)
 		return
 	}
 
@@ -98,9 +109,17 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 	msToken := r.FormValue("msToken")
-	id := validateToken(msToken, w)
+	smResp, err := sm.ValidateToken(msToken)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(model.Messages.NoMSTokenErrorMsg))
+		return
+	}
+
+	id := smResp.SessionData.SessionID
+
 	log.Println(msToken)
-	smResp := getSessionData(id, w)
+	smResp = getSessionData(id, w)
 
 	cipherPassword := getQueryParameter(r, "cipherPassword")
 
@@ -112,48 +131,53 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	dto, err := dto.PersistenceBuilder(id, smResp, method)
 	dto.Password = cipherPassword
 	if err != nil {
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
+		writeBackChannelResponse(dto, w, err.Code, err.Message)
 		return
 	}
 
 	dataSstr := r.PostFormValue("dataStore")
 	if dataSstr == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.FailedFoundDataStore)
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
+		writeBackChannelResponse(dto, w, err.Code, err.Message)
 		return
 	}
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
+	log.Println(response)
 	if err != nil {
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
+		writeBackChannelResponse(dto, w, err.Code, err.Message)
 	} else {
-		w.WriteHeader(response.Code)
-		w.Write([]byte(response.DataStore))
+		writeBackChannelResponse(dto, w, response.Code, response.DataStore)
 	}
 	return
 }
 
-func BackChannelStoring(w http.ResponseWriter, id, cipherPassword, method string, smResp sm.SessionMngrResponse) {
+func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string, smResp sm.SessionMngrResponse) {
 	obj, err := dto.PersistenceBuilder(id, smResp, method)
 	obj.Password = cipherPassword
 	if err != nil {
-		writeResponseMessage(w, obj, *err)
+		writeBackChannelResponse(obj, w, err.Code, err.Message)
 		return
 	}
 
 	response, err := services.BackChannelStorage(obj)
+	if err != nil {
+		writeBackChannelResponse(obj, w, err.Code, err.Message)
+		return
+	}
+
 	token, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, obj.ID)
+	if err != nil {
+		writeBackChannelResponse(obj, w, err.Code, err.Message)
+		return
+	}
+
 	response.MSToken = token.AdditionalData
 
 	if err != nil {
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
+		writeBackChannelResponse(obj, w, err.Code, err.Message)
 	} else {
-		w.WriteHeader(response.Code)
-		w.Write([]byte(response.DataStore))
+		writeBackChannelResponse(obj, w, response.Code, response.DataStore)
 	}
 	return
 }
@@ -163,25 +187,11 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 	method := mux.Vars(r)["method"]
 
 	msToken := getQueryParameter(r, "msToken")
-	id := validateToken(msToken, w)
+	validateToken(msToken, w)
 
 	if method == "save" {
 		//Downloads File for the localFile System
 		log.Println("save")
-		log.Println(msToken)
-
-		token := getQueryParameter(r, "token")
-		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
-
-		hc := http.Client{}
-		form := url.Values{}
-
-		form.Add("msToken", token)
-
-		log.Println(clientCallbackAddr)
-		req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
-		log.Println(req)
-		log.Println(hc.Do(req))
 
 		contents := getQueryParameter(r, "contents")
 		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(model.EnvVariables.DataStore_File_Name))
@@ -189,35 +199,34 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(contents)
 
 		return
-	} else if method == "generateQRcode" {
-		log.Println("generateQRcode")
 
-		smResp := getSessionData(id, w)
-		operation := getQueryParameter(r, "operation")
-		log.Println(operation)
-
-		dto, err := dto.PersistenceBuilder(id, smResp, operation)
-		if err != nil {
-			writeResponseMessage(w, dto, *err)
-			return
-		}
-
-		mobileQRCode(dto, w)
 	} else if method == "redirect" {
 
 		token := getQueryParameter(r, "token")
 		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
+		clientCallbackAddrPost(token, clientCallbackAddr)
 
-		hc := http.Client{}
-		form := url.Values{}
-		form.Add("msToken", token)
-
-		log.Println(clientCallbackAddr)
-		req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
-		log.Println(req)
-		log.Println(hc.Do(req))
 		return
 	}
+}
+
+func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
+	log.Println("generateQRcode")
+
+	method := mux.Vars(r)["method"]
+	log.Println(method)
+	msToken := getQueryParameter(r, "msToken")
+	id := validateToken(msToken, w)
+
+	smResp := getSessionData(id, w)
+
+	dto, err := dto.PersistenceBuilder(id, smResp, method)
+	if err != nil {
+		writeResponseMessage(w, dto, *err)
+		return
+	}
+
+	mobileQRCode(dto, w)
 }
 
 // Recieves Token and SessionId from Cloud Redirect

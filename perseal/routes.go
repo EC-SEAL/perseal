@@ -90,6 +90,13 @@ var perRoutes = routes{
 		"/code",
 		controller.RetrieveCode,
 	},
+
+	route{
+		"Generates QR code",
+		"GET",
+		"/{method}/QRcode",
+		controller.GenerateQRCode,
+	},
 	route{
 		"Initial Configuration And Main Entry Point For Front-Channel Operations",
 		"GET",

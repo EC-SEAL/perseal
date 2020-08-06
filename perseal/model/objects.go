@@ -12,6 +12,7 @@ type HTMLResponse struct {
 	DataStore          string
 	MSToken            string
 	MSTokenRedirect    string
+	MSTokenDownload    string
 	FailedInput        string
 	ClientCallbackAddr string
 }
@@ -43,7 +44,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
@@ -59,7 +60,6 @@ var EnvVariables struct {
 	DataStore_File_Name   string
 
 	Redirect_URL            string
-	Dashboard_Custom_URL    string
 	Host                    string
 	Perseal_Sender_Receiver string
 
@@ -75,13 +75,11 @@ var EnvVariables struct {
 		OneDriveToken      string
 		GoogleDriveToken   string
 		DataStore          string
-		UserDevice         string
 		MockUserData       string
 		SessionId          string
 	}
 
 	TestURLs struct {
-		// To eliminate + MockDashboard
 		APIGW_Endpoint string
 	}
 
@@ -96,11 +94,9 @@ var EnvVariables struct {
 	}
 
 	SMURLs struct {
-		EndPoint string
-		//New
-		Generate_Token string
-		Validate_Token string
-		//Modified
+		EndPoint            string
+		Generate_Token      string
+		Validate_Token      string
 		Get_Session_Data    string
 		Update_Session_Data string
 		New_Add             string
@@ -160,7 +156,6 @@ func SetEnvVariables() {
 	EnvVariables.Store_Load_Method = os.Getenv("STORE_LOAD_METHOD")
 
 	EnvVariables.DataStore_Folder_Name = os.Getenv("DATASTORE_FOLDER_NAME")
-	EnvVariables.Dashboard_Custom_URL = os.Getenv("DASHBOARD_CUSTOM_URL")
 	EnvVariables.DataStore_File_Name = os.Getenv("DATASTORE_FILE_NAME")
 
 	EnvVariables.Redirect_URL = os.Getenv("REDIRECT_URL")
@@ -206,7 +201,6 @@ func SetEnvVariables() {
 	EnvVariables.SessionVariables.OneDriveToken = os.Getenv("ONE_DRIVE_TOKEN_VARIABLE")
 	EnvVariables.SessionVariables.GoogleDriveToken = os.Getenv("GOOGLE_DRIVE_TOKEN_VARIABLE")
 	EnvVariables.SessionVariables.DataStore = os.Getenv("DATASTORE_VARIABLE")
-	EnvVariables.SessionVariables.UserDevice = os.Getenv("USER_DEVICE_VARIABLE")
 	EnvVariables.SessionVariables.SessionId = os.Getenv("SESSION_ID")
 
 	Messages.NoPassword = "No Password Found"

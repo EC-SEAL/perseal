@@ -153,7 +153,7 @@ func signAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.Persist
 	erro := dataStore.Decrypt(dto.Password)
 	dataStore.EncryptedData = ""
 	if erro != nil {
-		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.InvalidPassword, erro.Error())
+		err = model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidPassword, erro.Error())
 		err.FailedInput = "Password"
 		return
 	}

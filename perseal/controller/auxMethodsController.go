@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/skip2/go-qrcode"
 
@@ -64,7 +66,11 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 }
 
 func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	log.Println(dto.Response)
+	log.Println("ref: ", dto.Response)
+	if dto.PDS == model.EnvVariables.Browser_PDS {
+		tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
+		dto.Response.MSTokenDownload = tok.AdditionalData
+	}
 	t, _ := template.ParseFiles("ui/message.html")
 	w.WriteHeader(dto.Response.Code)
 	t.Execute(w, dto.Response)
@@ -83,9 +89,16 @@ func buildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 		dash.AdditionalData = message[0]
 	}
 	b, _ := json.Marshal(dash)
-	tok1, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, model.TestUser, string(b))
-	tok2, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, model.TestUser)
-
+	tok1, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
+	if err != nil {
+		log.Println(err)
+		return "", ""
+	}
+	tok2, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, id)
+	if err != nil {
+		log.Println(err)
+		return "", ""
+	}
 	return tok1.AdditionalData, tok2.AdditionalData
 }
 
@@ -114,8 +127,35 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 		}
 		dto.Response.MSTokenRedirect = tok1
 		dto.Response.MSToken = tok2
+		if tok1 != "" && tok2 != "" {
+			log.Println("Generated both tokens")
+		}
 		openResponse(dto, w)
 	}
+}
+
+func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter, code int, message string) {
+	w.WriteHeader(code)
+	w.Write([]byte(message))
+
+	var tok string
+	if dto.Response.Code == http.StatusOK {
+		tok, _ = buildDataOfMSToken(dto.ID, "OK", dto.Response.ClientCallbackAddr)
+	} else {
+		tok, _ = buildDataOfMSToken(dto.ID, "ERROR", dto.Response.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
+	}
+	clientCallbackAddrPost(tok, dto.ClientCallbackAddr)
+}
+
+func clientCallbackAddrPost(token, clientCallbackAddr string) {
+	hc := http.Client{}
+	form := url.Values{}
+	form.Add("msToken", token)
+
+	log.Println(clientCallbackAddr)
+	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
+	log.Println(req)
+	log.Println(hc.Do(req))
 }
 
 func getQueryParameter(r *http.Request, paramName string) string {
@@ -145,24 +185,26 @@ func getSessionData(id string, w http.ResponseWriter) (smResp sm.SessionMngrResp
 		var obj dto.PersistenceDTO
 		obj, err = dto.PersistenceBuilder(id, sm.SessionMngrResponse{})
 		writeResponseMessage(w, obj, *err)
-		return
 	}
 	return
 }
 
 func mobileQRCode(obj dto.PersistenceDTO, w http.ResponseWriter) {
-	token, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, obj.ID)
-	if err != nil {
-		writeResponseMessage(w, obj, *err)
+
+	type QRVariables struct {
+		SessionId string `json:"sessionId"`
+		Method    string `json:"method"`
 	}
 
-	obj.CustomURL = model.EnvVariables.Dashboard_Custom_URL + obj.Method + "/" + token.AdditionalData
+	variables := QRVariables{
+		SessionId: obj.ID,
+		Method:    obj.Method,
+	}
+	qrCodeContents, _ := json.Marshal(variables)
 
-	img, _ := qrcode.Encode(obj.CustomURL, qrcode.Medium, 380)
+	img, _ := qrcode.Encode(string(qrCodeContents), qrcode.Medium, 380)
 	obj.Image = base64.StdEncoding.EncodeToString(img)
 	t, _ := template.ParseFiles("ui/qr.html")
-	log.Println(obj.UserDevice)
-	log.Println(obj.CustomURL)
 	t.Execute(w, obj)
 	return
 }

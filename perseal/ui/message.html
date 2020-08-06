@@ -61,7 +61,7 @@
     <h2>{{ .Message }}</h2>
 
     <form id="form" action="/per/aux/save" method="get">
-      <input name="msToken" type="hidden" value="{{.MSToken}}" />
+      <input name="msToken" type="hidden" value="{{.MSTokenDownload}}" />
       <input name="token" type="hidden" value="{{.MSTokenRedirect}}" />
       <input name="contents" type="hidden" value="{{.DataStore}}" />
       <input name="clientCallbackAddr" type="hidden" value="{{.ClientCallbackAddr}}" />
@@ -83,11 +83,11 @@
       var ds = document.getElementById("ds").innerHTML;
       if (ds !== "") {
         document.getElementById("form").submit();
-      }else{
+      }
       var timer = setTimeout(function () {
         document.getElementById("redirect").submit();
       }, 3000);
-      }
+      
     </script>
   </body>
 </html>

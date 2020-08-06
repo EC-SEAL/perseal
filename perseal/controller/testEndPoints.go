@@ -31,7 +31,6 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 	respo, _ := utils.StartSession("")
 	log.Println(respo)
 	model.TestUser = respo.Payload
-	sm.UpdateSessionData(model.TestUser, "Mobile", model.EnvVariables.SessionVariables.UserDevice)
 
 	var url string
 	if model.Test {

@@ -558,8 +558,7 @@
     {{end}} {{if (eq .MenuOption "GenerateQRCode")}}
 
     <div class="center">
-      <form action="/per/aux/generateQRcode" method="get">
-        <input name="operation" type="hidden" value="store" />
+      <form action="/per/store/QRcode" method="get">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -571,8 +570,7 @@
     </div>
 
     <div class="center">
-      <form action="/per/aux/generateQRcode" method="get">
-        <input name="operation" type="hidden" value="load" />
+      <form action="/per/load/QRcode" method="get">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -582,7 +580,7 @@
         />
       </form>
     </div>
-    {{end}}
+    {{end}} 
 
     <div class="footer">
       <div class="botLogo">

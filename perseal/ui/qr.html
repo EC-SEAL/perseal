@@ -87,12 +87,14 @@
 
   <body>
     {{if (eq .Method "load")}}
-    <h1>Load</h1>
+    <h1>Load Existing Data</h1>
+    <h2>Scan The Following QR Code using your SEAL Mobile App</h2> 
+    <h2>If you don't have the app instaled, it is recommended that you select the "Local File" Option in order to select a file containing your data from your device</h2>
     {{end}} {{if (eq .Method "store")}}
     <h1>Save Your Current Data</h1>
+    <h2>Scan The Following QR Code using your SEAL Mobile App</h2>
+    <h2>If you don't have the app instaled, it is recommended that you select the "Local File" Option in order to store your data on a file in your device</h2>
     {{end}}
-
-    <h2>Scan The Following QR Code using a Mobile Device</h2>
 
     <div
       class="margin-body-log-in-worker"
@@ -109,12 +111,6 @@
       </div>
     </div>
 
-    {{if (eq .UserDevice "Mobile")}}
-
-    <div class="center">
-      <a href="{{.CustomURL}}">Use this Device</a>
-    </div>
-    {{end}}
     <p></p>
     <div class="footer">
       <div class="botLogo">

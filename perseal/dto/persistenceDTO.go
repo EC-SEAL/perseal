@@ -21,8 +21,6 @@ type PersistenceDTO struct {
 	Method string
 	//The URL that the persistence redirects to when finishing its processes
 	ClientCallbackAddr string
-	//The Custom URL, used in Mobile implementation
-	CustomURL string
 
 	//The password to encrypt or decrypt the DataStore
 	Password string
@@ -38,8 +36,6 @@ type PersistenceDTO struct {
 
 	//Option to be used in the Persistence Menus
 	MenuOption string
-	//Current User Device (Desktop or Mobile)
-	UserDevice string
 	//The QRcode to be shown in the HTML, used in the Mobile implementation
 	Image string
 }
@@ -54,13 +50,11 @@ func PersistenceBuilder(id string, smResp sm.SessionMngrResponse, method ...stri
 		client = model.EnvVariables.TestURLs.APIGW_Endpoint
 	}
 	pds := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.PDS]
-	userDevice := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.OneDriveToken]
 
 	dto = PersistenceDTO{
 		ID:                 id,
 		PDS:                pds,
 		ClientCallbackAddr: client,
-		UserDevice:         userDevice,
 	}
 	googleTokenBytes, oneDriveTokenBytes, err := getGoogleAndOneDriveTokens(dto, smResp)
 	if err != nil {
