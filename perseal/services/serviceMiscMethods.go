@@ -9,8 +9,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Generates URL for user to select cloud account
 func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
-
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS && dto.GoogleAccessCreds.AccessToken == "" {
 		url = getGoogleRedirectURL(dto.ID)
 	} else if dto.PDS == model.EnvVariables.One_Drive_PDS && dto.OneDriveToken.AccessToken == "" {
@@ -39,8 +39,7 @@ func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.
 func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLResponse) {
 
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
-		var client *http.Client
-		client = getGoogleDriveClient(dto.GoogleAccessCreds)
+		client := getGoogleDriveClient(dto.GoogleAccessCreds)
 		var erro error
 		files, erro = getGoogleDriveFiles(client)
 		if erro != nil {

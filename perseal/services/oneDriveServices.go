@@ -1,11 +1,14 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -13,7 +16,6 @@ import (
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
-	"google.golang.org/api/drive/v3"
 )
 
 // ONE DRIVE SERVICE METHODS
@@ -31,12 +33,10 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.
 		return
 	}
 
-	var contents []byte
-	contents, _ = dataStore.UploadingBlob()
+	contents, _ := dataStore.UploadingBlob()
 
-	var file *drive.File
-	file, erro = dataStore.UploadOneDrive(token, contents)
-	fmt.Println(file)
+	erro = uploadOneDrive(dataStore, token, contents)
+
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
 	}
@@ -56,12 +56,10 @@ func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (file *htt
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedExecuteRequest, erro.Error())
 		return
 	}
-	log.Println(file.StatusCode)
 	if file.StatusCode != 200 {
 		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFile+model.EnvVariables.One_Drive_PDS)
 		return
 	}
-	log.Println(file)
 	return
 }
 
@@ -69,7 +67,7 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 	creds := model.EnvVariables.OneDriveCreds
 
 	var erro error
-	oauthToken, erro = externaldrive.RequestToken(code, creds.OneDriveClientID)
+	oauthToken, erro = requestToken(code, creds.OneDriveClientID)
 	log.Println(oauthToken)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetToken+model.EnvVariables.One_Drive_PDS, erro.Error())
@@ -86,7 +84,7 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 	return
 }
 
-func getOneDriveItems(token *oauth2.Token) (folderchildren *externaldrive.FolderChildren, err error) {
+func getOneDriveItems(token *oauth2.Token) (folderchildren *FolderChildren, err error) {
 
 	id, err := getOneDriveId(token)
 
@@ -132,7 +130,7 @@ func getOneDriveItem(token *oauth2.Token, item string) (resp *http.Response, err
 	return
 }
 
-func getOneDriveId(token *oauth2.Token) (id *externaldrive.FolderProps, err error) {
+func getOneDriveId(token *oauth2.Token) (id *FolderProps, err error) {
 
 	var url string
 	url = model.EnvVariables.OneDriveURLs.Get_Item + model.EnvVariables.DataStore_Folder_Name
@@ -167,7 +165,7 @@ func checkOneDriveTokenExpiry(token oauth2.Token) (rtoken *oauth2.Token, err *mo
 		return
 	}
 
-	rtoken, erro := externaldrive.RequestRefreshToken(creds.OneDriveClientID, &token)
+	rtoken, erro := requestRefreshToken(creds.OneDriveClientID, &token)
 
 	if erro != nil {
 		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedRefreshToken, erro.Error())
@@ -197,4 +195,203 @@ func getOneDriveRedirectURL(id string) (link string) {
 	link = req.URL.String()
 
 	return link
+}
+
+// One Drive Upload Methods
+
+// TokenRequestResponse - The http response after token request to One Drive API
+type TokenRequestResponse struct {
+	TokenType    string `json:"token_type"`
+	Scope        string `json:"scope"`
+	ExpiresIn    int    `json:"expires_in"`
+	ExtExpiresIn int    `json:"ext_expires_in"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// FolderProps - The properties of the One Drive folder
+type FolderProps struct {
+	ID string `json:"id"`
+}
+
+type FolderChildren struct {
+	Values []struct {
+		Name string `json:"name"`
+	} `json:"value"`
+}
+
+// UploadOneDrive - Uploads file to One Drive
+func uploadOneDrive(dataStore *externaldrive.DataStore, oauthToken *oauth2.Token, data []byte) (err error) {
+	//if the folder exists, only creats the datastore file
+	fileExists, err := getOneDriveFolder(oauthToken)
+	log.Println(fileExists)
+	if err != nil {
+		return
+	}
+	if fileExists.StatusCode == 401 {
+		err = errors.New(model.Messages.UnauthorizedRequest)
+		return
+	}
+
+	var folderID string
+	if fileExists.StatusCode == 404 {
+		folderID, err = createOneDriveFolder(oauthToken)
+		if err != nil {
+			return
+		}
+		err = createOneDriveFile(oauthToken, folderID, data)
+		if err != nil {
+			return
+		}
+	} else {
+		folderID, err = getOneDriveFolderID(fileExists)
+		if err != nil {
+			return
+		}
+		err = createOneDriveFile(oauthToken, folderID, data)
+	}
+	return
+}
+
+// POST request to create a folder in the root
+func createOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
+	createfolderjson := []byte(`{"name":"` + model.EnvVariables.DataStore_Folder_Name + `","folder": {},"@microsoft.graph.conflictBehavior": "rename"}`)
+	req, err := http.NewRequest(http.MethodPost, model.EnvVariables.OneDriveURLs.Create_Folder, bytes.NewBuffer(createfolderjson))
+
+	if err != nil {
+		return
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := oneDriveStorageOperationsRequest(req, *token)
+	folderID, err = getOneDriveFolderID(resp)
+	return
+}
+
+// PUT request to create a file in a given folder
+func createOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
+	url := model.EnvVariables.OneDriveURLs.Create_File + folderID + ":/" + model.EnvVariables.DataStore_File_Name + ":/content"
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(blob))
+	if err != nil {
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+	_, err = oneDriveStorageOperationsRequest(req, *token)
+
+	return
+}
+
+// GET request to fetch information of a given folder
+func getOneDriveFolder(token *oauth2.Token) (resp *http.Response, err error) {
+
+	url := model.EnvVariables.OneDriveURLs.Get_Folder + ":/" + model.EnvVariables.DataStore_Folder_Name
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return
+	}
+	return oneDriveStorageOperationsRequest(req, *token)
+}
+
+// Auxiliary method: returns ID of a given folder (from previous http response)
+func getOneDriveFolderID(resp *http.Response) (id string, err error) {
+	var folderprops FolderProps
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	json.Unmarshal([]byte(body), &folderprops)
+	id = folderprops.ID
+	return
+}
+
+func requestToken(code string, clientID string) (token *oauth2.Token, err error) {
+
+	//Retrieve the access token
+	values := url.Values{}
+	values.Add("client_id", clientID)
+	values.Add("code", code)
+	values.Add("grant_type", "authorization_code")
+	values.Add("redirect_uri", model.EnvVariables.Redirect_URL)
+
+	u, err := url.ParseRequestURI(model.EnvVariables.OneDriveURLs.Fetch_Token)
+	if err != nil {
+		return
+	}
+
+	urlStr := u.String()
+	req, err := http.NewRequest(http.MethodPost, urlStr, strings.NewReader(values.Encode()))
+	if err != nil {
+		return
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	log.Println(req.Body)
+	token, err = tokenRequest(req)
+	return
+}
+
+// POST request to retrieve a new access and refresh tokens
+func requestRefreshToken(clientID string, token *oauth2.Token) (tokne *oauth2.Token, err error) {
+	values := url.Values{}
+	values.Add("client_id", clientID)
+	values.Add("refresh_token", token.RefreshToken)
+	values.Add("grant_type", "refresh_token")
+	values.Add("redirect_uri", model.EnvVariables.Redirect_URL)
+
+	u, err := url.ParseRequestURI(model.EnvVariables.OneDriveURLs.Fetch_Token)
+	if err != nil {
+		return
+	}
+
+	urlStr := u.String()
+	req, err := http.NewRequest(http.MethodPost, urlStr, strings.NewReader(values.Encode()))
+	if err != nil {
+		return
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	token, err = tokenRequest(req)
+	return
+}
+
+func oneDriveStorageOperationsRequest(req *http.Request, token oauth2.Token) (resp *http.Response, err error) {
+	auth := "Bearer " + token.AccessToken
+	req.Header.Add("Authorization", auth)
+
+	client := &http.Client{}
+	return client.Do(req)
+}
+
+//Auxiliary method: performs a token-related http request
+func tokenRequest(req *http.Request) (tok *oauth2.Token, err error) {
+
+	client := &http.Client{}
+	var respo TokenRequestResponse
+
+	resp, err := client.Do(req)
+
+	if err != nil {
+		return
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal([]byte(body), &respo)
+	if err != nil {
+		return
+	}
+
+	tok = &oauth2.Token{
+		AccessToken:  respo.AccessToken,
+		RefreshToken: respo.RefreshToken,
+		TokenType:    respo.TokenType,
+		Expiry:       time.Now().Local().Add(time.Second * time.Duration(respo.ExpiresIn)),
+	}
+	return
 }

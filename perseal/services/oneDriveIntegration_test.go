@@ -39,7 +39,6 @@ func TestOneDriveService(t *testing.T) {
 	obj.OneDriveToken.AccessToken = ""
 	log.Println("\n\n", obj.OneDriveToken.AccessToken)
 	ds1, err := fetchCloudDataStore(obj, "datastore.seal")
-	log.Println("Ups")
 	log.Println(ds1)
 	log.Println(err)
 	if err == nil {

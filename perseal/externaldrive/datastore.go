@@ -171,29 +171,20 @@ func (ds *DataStore) UploadingBlob() (data []byte, err error) {
 }
 
 func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) {
-	tmpDataStore, err := NewDataStore(dto)
+	dataStore, err = NewDataStore(dto)
 	if err != nil {
 		return
 	}
 	// Encrypt blob if cipherPassword param is set
-	err = tmpDataStore.Encrypt(dto.Password)
+	err = dataStore.Encrypt(dto.Password)
+	if err != nil {
+		return
+	}
+	err = dataStore.SignDataStore()
 	if err != nil {
 		return
 	}
 
-	log.Println("Encrypted blob: ", tmpDataStore.EncryptedData)
-	err = tmpDataStore.SignDataStore()
-	if err != nil {
-		return
-	}
-
-	log.Println("DataStore Signed: ", tmpDataStore)
-	dataStore = &DataStore{
-		ID:                  tmpDataStore.ID,
-		EncryptedData:       tmpDataStore.EncryptedData,
-		EncryptionAlgorithm: tmpDataStore.EncryptionAlgorithm,
-		Signature:           tmpDataStore.Signature,
-		SignatureAlgorithm:  tmpDataStore.SignatureAlgorithm,
-	}
+	log.Println("DataStore Signed: ", dataStore)
 	return
 }

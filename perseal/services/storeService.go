@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -12,8 +11,6 @@ import (
 
 // Save session data to the configured persistence mechanism (front channel)
 func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-	log.Println("persistanceStore")
-
 	if dto.PDS == model.EnvVariables.Browser_PDS {
 		response, err = BackChannelStorage(dto)
 	} else if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {

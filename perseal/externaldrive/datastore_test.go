@@ -30,7 +30,7 @@ func Init(pds string) dto.PersistenceDTO {
 	sessionData.SessionVariables = variables
 	session.SessionData = sessionData
 
-	obj, _ := dto.PersistenceBuilder(mockID, session)
+	obj, _ := dto.PersistenceFactory(mockID, session)
 	return obj
 }
 

@@ -1,8 +1,10 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -26,10 +28,9 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
-	erro = dataStore.UploadGoogleDrive(client)
+	erro = uploadGoogleDrive(dataStore, client)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
-		return
 	}
 	return
 }
@@ -46,10 +47,7 @@ func loadSessionDataGoogleDrive(dto dto.PersistenceDTO, filename string) (file *
 }
 
 func getGoogleRedirectURL(id string) (url string) {
-
-	var config *oauth2.Config
-	config = establishGoogleDriveCreds()
-	log.Println(config)
+	config := establishGoogleDriveCreds()
 	url = getGoogleLinkForDashboardRedirect(id, config)
 	return
 }
@@ -138,5 +136,101 @@ func getGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
 	for _, v := range list.Files {
 		fileList = append(fileList, v.Name)
 	}
+	return
+}
+
+// Google Drive Upload Methods
+
+type FileProps struct {
+	Id          string
+	Name        string
+	Path        string
+	Blob        []byte
+	Md5sum      string
+	ContentType string
+}
+
+// UploadGoogleDrive - Uploads file to Google Drive
+func uploadGoogleDrive(ds *externaldrive.DataStore, client *http.Client) (err error) {
+	data, err := ds.UploadingBlob()
+	if err != nil {
+		return
+	}
+
+	fp := &FileProps{
+		Id:          ds.ID,
+		Name:        model.EnvVariables.DataStore_File_Name, //TODO what should the name of the Blob be in Gdrive???
+		Path:        model.EnvVariables.DataStore_Folder_Name,
+		Blob:        data,
+		ContentType: "application/octet-stream",
+	}
+	err = sendFile(fp, client)
+	return
+}
+
+func isFolder(file *drive.File) bool {
+	return file.MimeType == "application/vnd.google-apps.folder"
+}
+
+func createGoogleDriveDir(service *drive.Service, name string, parentId string) (file *drive.File, err error) {
+	files, err := service.Files.List().Do()
+	if err != nil {
+		return
+	}
+	for _, f := range files.Files {
+		// service.Files.Delete(f.Id).Do()
+		if f.Name == name && isFolder(f) {
+			log.Println(f.Id)
+			return f, nil
+		}
+	}
+	d := &drive.File{
+		Name:     name,
+		MimeType: "application/vnd.google-apps.folder",
+		Parents:  []string{parentId},
+	}
+
+	file, err = service.Files.Create(d).Do()
+	return
+}
+
+func createGoogleDriveFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (err error) {
+	files, err := service.Files.List().Do()
+	if err != nil {
+		return
+	}
+	f := &drive.File{
+		MimeType: mimeType,
+		Name:     name,
+		Parents:  []string{parentId},
+	}
+	for _, v := range files.Files {
+		if v.Name == name && !isFolder(v) {
+			service.Files.Delete(v.Id).Do()
+		}
+	}
+
+	_, err = service.Files.Create(f).Media(content).Do()
+	return
+}
+
+//SendFile gdrive file given encrypted blob and oauth token
+func sendFile(fileProps *FileProps, client *http.Client) (err error) {
+
+	service, err := drive.New(client)
+	if err != nil {
+		return
+	}
+	// Creates dir if it doesnt already exist
+	dir, err := createGoogleDriveDir(service, fileProps.Path, "root")
+
+	if err != nil {
+		return
+	}
+	err = createGoogleDriveFile(service, fileProps.Name, fileProps.ContentType, bytes.NewReader(fileProps.Blob), dir.Id)
+	if err != nil {
+		return
+	}
+	// md5sum := md5.Sum(fileProps.Blob)
 	return
 }

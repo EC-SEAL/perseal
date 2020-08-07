@@ -2,7 +2,6 @@ package dto
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/model"
@@ -40,15 +39,10 @@ type PersistenceDTO struct {
 	Image string
 }
 
-// Builds Standard Persistence DTO
-func PersistenceBuilder(id string, smResp sm.SessionMngrResponse, method ...string) (dto PersistenceDTO, err *model.HTMLResponse) {
+// Builds Persistence DTO with its initial values
+func PersistenceFactory(id string, smResp sm.SessionMngrResponse, method ...string) (dto PersistenceDTO, err *model.HTMLResponse) {
 
 	client := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr]
-
-	log.Println(client)
-	if client == "" && model.Test {
-		client = model.EnvVariables.TestURLs.APIGW_Endpoint
-	}
 	pds := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.PDS]
 
 	dto = PersistenceDTO{
@@ -56,6 +50,7 @@ func PersistenceBuilder(id string, smResp sm.SessionMngrResponse, method ...stri
 		PDS:                pds,
 		ClientCallbackAddr: client,
 	}
+
 	googleTokenBytes, oneDriveTokenBytes, err := getGoogleAndOneDriveTokens(dto, smResp)
 	if err != nil {
 		return

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"log"
 	"os"
 	"strings"
 )
@@ -44,7 +45,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = false
+var Test = true
 
 var EnvVariables struct {
 	Store_Method      string
@@ -247,5 +248,6 @@ func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
 	if len(erro) > 0 || erro != nil {
 		resp.ErrorMessage = erro[0]
 	}
+	log.Println(resp)
 	return resp
 }

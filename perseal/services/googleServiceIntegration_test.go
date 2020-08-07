@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os/exec"
 	"testing"
-	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -32,7 +31,7 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	http.Get("http://localhost:8082/per/store?msToken=" + msToken)
 
 	//simulate google login redirect
-	sm.UpdateSessionData(id, "store", "CurrentMethod")
+	sm.UpdateSessionData(id, model.EnvVariables.Store_Method, model.EnvVariables.SessionVariables.CurrentMethod)
 	variables := map[string]string{
 		"PDS":       platform,
 		"dataStore": "{\"id\":\"DS_3a342b23-8b46-44ec-bb06-a03042135a5e\",\"encryptedData\":null,\"signature\":\"this is the signature\",\"signatureAlgorithm\":\"this is the signature algorithm\",\"encryptionAlgorithm\":\"this is the encryption algorithm\",\"clearData\":null}",
@@ -44,21 +43,18 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	sessionData.SessionVariables = variables
 	session.SessionData = sessionData
 
-	obj, _ := dto.PersistenceBuilder(id, session)
+	obj, _ := dto.PersistenceFactory(id, session)
 
 	sm.NewAdd(obj.ID, "this is linkRequest", "linkRequest")
 	url := GetRedirectURL(obj)
 	if url != "" {
 		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	}
-
-	//wait to select account and store token in session
-	time.Sleep(5 * time.Second)
 	return obj
 }
 
 func preCloudConfig(obj dto.PersistenceDTO, smResp sm.SessionMngrResponse, password string) dto.PersistenceDTO {
-	obj, _ = dto.PersistenceBuilder(obj.ID, smResp, obj.Method)
+	obj, _ = dto.PersistenceFactory(obj.ID, smResp, obj.Method)
 	obj.Password = password
 	return obj
 }
@@ -66,12 +62,11 @@ func preCloudConfig(obj dto.PersistenceDTO, smResp sm.SessionMngrResponse, passw
 func TestGoogleService(t *testing.T) {
 
 	obj := InitIntegration("googleDrive")
-	log.Println(obj)
+
 	smResp, _ := sm.GetSessionData(obj.ID)
 
 	// Test Correct GoogleDrive Store
 	obj = preCloudConfig(obj, smResp, "qwerty")
-	//	obj.SMResp.SessionData.SessionVariables["dataStore"] = "{\"id\":\"DS_3a342b23-8b46-44ec-bb06-a03042135a5e\",\"encryptedData\":null,\"signature\":\"this is the signature\",\"signatureAlgorithm\":\"this is the signature algorithm\",\"encryptionAlgorithm\":\"this is the encryption algorithm\",\"clearData\":null}"
 	ds, err := storeCloudData(obj)
 	log.Println(ds)
 	if err != nil {
@@ -88,6 +83,7 @@ func TestGoogleService(t *testing.T) {
 	}
 
 	obj = preCloudConfig(obj, smResp, "qwerty")
+
 	// Test Correct Load GoogleDrive Store
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
