@@ -57,10 +57,11 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 	if err != nil {
 		return
 	}
-	log.Println("Stored DataStore")
-
-	err = validateSignAndDecryptDataStore(ds, dto)
 	b, _ := json.MarshalIndent(ds, "", "\t")
+
+	log.Println("Stored DataStore", string(b))
+	err = validateSignAndDecryptDataStore(ds, dto)
+	b, _ = json.MarshalIndent(ds, "", "\t")
 	log.Println("Decrypted DataStore: ", string(b))
 	if err != nil {
 		return
@@ -125,6 +126,8 @@ func validateSignature(encrypted string, sigToValidate string) bool {
 	if err != nil {
 		return false
 	}
+	log.Println(sig)
+	log.Println(sigToValidate)
 	if sig != sigToValidate {
 		return false
 	}
@@ -140,6 +143,7 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	}
 
 	erro := dataStore.Decrypt(dto.Password)
+	tmp := dataStore.EncryptedData
 	dataStore.EncryptedData = ""
 	if erro != nil {
 		err = model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidPassword, erro.Error())
@@ -150,6 +154,7 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	log.Println(dataStore)
 	sm.NewDelete(dto.ID)
 	sm.NewAdd(dto.ID, dataStore.ClearData.(string), "dataSet")
+	dataStore.EncryptedData = tmp
 	return
 }
 

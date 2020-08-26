@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -21,6 +22,7 @@ func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse
 		}
 		response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
 	}
+	log.Println(response)
 	return
 
 }

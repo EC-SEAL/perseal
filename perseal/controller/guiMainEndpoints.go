@@ -18,7 +18,6 @@ import (
 
 // Main Entry Point For Front-Channel Operations
 func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
-	log.Println(utils.HashSUM256("qwerty"))
 	log.Println(r.RequestURI)
 
 	method := mux.Vars(r)["method"]
@@ -147,7 +146,15 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeBackChannelResponse(dto, w, err.Code, err.Message)
 	} else {
+		if response.Code == http.StatusOK {
+			rmURL := smResp.SessionData.SessionVariables["RMURL"]
+			log.Println("RMURL: ", rmURL)
+			if rmURL != "" {
+				http.Redirect(w, r, rmURL, http.StatusFound)
+			}
+		}
 		writeBackChannelResponse(dto, w, response.Code, response.DataStore)
+
 	}
 	return
 }
