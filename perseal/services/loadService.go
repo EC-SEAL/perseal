@@ -143,7 +143,7 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	}
 
 	erro := dataStore.Decrypt(dto.Password)
-	//added
+
 	tmp := dataStore.EncryptedData
 	dataStore.EncryptedData = ""
 	if erro != nil {
