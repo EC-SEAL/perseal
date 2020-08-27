@@ -13,3 +13,4 @@ perseal/profile
 *.pub
 *.p12
 *.crt
+ewp-gui/*

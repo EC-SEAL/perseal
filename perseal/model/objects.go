@@ -84,6 +84,9 @@ var EnvVariables struct {
 		APIGW_Endpoint string
 	}
 
+	//NEW ENV
+	Perseal_RM_UCs_Callback string
+
 	OneDriveURLs struct {
 		Auth          string
 		Create_Folder string
@@ -164,6 +167,7 @@ func SetEnvVariables() {
 	EnvVariables.Perseal_Sender_Receiver = os.Getenv("PERSEAL_SENDER_RECEIVER")
 
 	EnvVariables.Project_SEAL_Email = os.Getenv("PROJECT_SEAL_EMAIL")
+	EnvVariables.Perseal_RM_UCs_Callback = os.Getenv("PERSEAL_RM_UCs_CALLBACK")
 
 	EnvVariables.OneDriveURLs.Auth = os.Getenv("AUTH_URL")
 	EnvVariables.OneDriveURLs.Create_Folder = os.Getenv("CREATE_FOLDER_URL")

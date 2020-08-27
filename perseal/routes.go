@@ -92,6 +92,13 @@ var perRoutes = routes{
 	},
 
 	route{
+		"Redirects to ClientCallbackAddr",
+		"GET",
+		"/rmredirect",
+		controller.RMRedirect,
+	},
+
+	route{
 		"Generates QR code",
 		"GET",
 		"/{method}/QRcode",

@@ -31,8 +31,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(err.Code)
 			w.Write([]byte(err.Message))
 			return
-		}
-		if err != nil {
+		} else {
 			dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
 			writeResponseMessage(w, dto, *err)
 			return
@@ -142,17 +141,19 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
-	log.Println(response)
+	log.Println("Response: ", response)
+	dto.Response = *response
 	if err != nil {
 		writeBackChannelResponse(dto, w, err.Code, err.Message)
 	} else {
-		if response.Code == http.StatusOK {
-			rmURL := smResp.SessionData.SessionVariables["RMURL"]
-			log.Println("RMURL: ", rmURL)
-			if rmURL != "" {
-				http.Redirect(w, r, rmURL, http.StatusFound)
-			}
-		}
+		/*
+			if response.Code == http.StatusOK {
+				rmURL := smResp.SessionData.SessionVariables["RMURL"]
+				log.Println("RMURL: ", rmURL)
+				if rmURL != "" {
+					http.Redirect(w, r, rmURL, http.StatusFound)
+				}
+			}*/
 		writeBackChannelResponse(dto, w, response.Code, response.DataStore)
 
 	}
@@ -169,6 +170,7 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 	}
 
 	response, err := services.BackChannelStorage(obj)
+	obj.Response = *response
 	if err != nil {
 		writeBackChannelResponse(obj, w, err.Code, err.Message)
 	} else {
@@ -209,6 +211,27 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
+
+func RMRedirect(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.RequestURI)
+
+	token := getQueryParameter(r, "msToken")
+
+	smResp, err := sm.ValidateToken(token)
+	id := smResp.SessionData.SessionID
+	if err != nil {
+		dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
+		writeResponseMessage(w, dto, *err)
+		return
+	}
+
+	smResp, err = sm.GetSessionData(id)
+
+	cca := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr]
+	log.Println(cca)
+	http.Redirect(w, r, cca, http.StatusFound)
+	return
 }
 
 func GenerateQRCode(w http.ResponseWriter, r *http.Request) {

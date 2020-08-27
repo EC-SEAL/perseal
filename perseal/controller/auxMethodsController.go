@@ -178,13 +178,15 @@ func getSessionData(id string, w http.ResponseWriter) (smResp sm.SessionMngrResp
 func mobileQRCode(obj dto.PersistenceDTO, w http.ResponseWriter) {
 
 	type QRVariables struct {
-		SessionId string `json:"sessionId"`
-		Method    string `json:"method"`
+		SessionId       string `json:"sessionId"`
+		Method          string `json:"method"`
+		PersealCallback string `json:"persealCallback"`
 	}
 
 	variables := QRVariables{
-		SessionId: obj.ID,
-		Method:    obj.Method,
+		SessionId:       obj.ID,
+		Method:          obj.Method,
+		PersealCallback: model.EnvVariables.Perseal_RM_UCs_Callback,
 	}
 	qrCodeContents, _ := json.Marshal(variables)
 
