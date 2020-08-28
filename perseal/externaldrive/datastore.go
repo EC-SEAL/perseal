@@ -156,7 +156,6 @@ func (ds *DataStore) MarshalWithoutClearText() (res []byte, err error) {
 
 // Upload the DataStore given the user's oauthToken
 func (ds *DataStore) UploadingBlob() (data []byte, err error) {
-	log.Println("Uploading Blob ", ds.ID)
 	if ds.EncryptedData != "" {
 		data, err = ds.MarshalWithoutClearText()
 		log.Println(string(data))
@@ -185,6 +184,7 @@ func StoreSessionData(dto dto.PersistenceDTO) (dataStore *DataStore, err error) 
 		return
 	}
 
-	log.Println("DataStore Signed: ", dataStore)
+	data, err := dataStore.MarshalWithoutClearText()
+	log.Println("DataStore Signed: ", string(data))
 	return
 }

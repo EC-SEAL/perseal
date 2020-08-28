@@ -95,7 +95,6 @@ func getOneDriveItems(token *oauth2.Token) (folderchildren *FolderChildren, err 
 		return
 	}
 
-	log.Println("Token ", token.AccessToken)
 	auth := "Bearer " + token.AccessToken
 	req.Header.Add("Authorization", auth)
 
@@ -109,7 +108,6 @@ func getOneDriveItems(token *oauth2.Token) (folderchildren *FolderChildren, err 
 
 	json.Unmarshal(jsonM, &folderchildren)
 
-	log.Println(v)
 	return
 }
 

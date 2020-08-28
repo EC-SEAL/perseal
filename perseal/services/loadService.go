@@ -15,8 +15,6 @@ import (
 
 // Setup a persistence mechanism and load a secure storage into session.
 func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse) {
-	log.Println("persistanceLoad")
-
 	ds := &externaldrive.DataStore{}
 	// Initialize Variables
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
@@ -86,8 +84,8 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 	if err != nil {
 		return
 	}
-	log.Println("Decrypted DataStore: ", dataStore)
-	data, _ := json.Marshal(dataStore)
+	b, _ := json.MarshalIndent(dataStore, "", "\t")
+	data, _ := json.Marshal(string(b))
 
 	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+dataStore.ID)
 	//response.ClientCallbackAddr = dto.ClientCallbackAddr
@@ -152,7 +150,6 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 		return
 	}
 
-	log.Println(dataStore)
 	sm.NewDelete(dto.ID)
 	sm.NewAdd(dto.ID, dataStore.ClearData.(string), "dataSet")
 	dataStore.EncryptedData = tmp
@@ -161,7 +158,6 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 
 func marshallDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDTO) (jsonM []byte, err *model.HTMLResponse) {
 	jsonM, erro := json.Marshal(dataStore)
-	log.Println(erro)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedParseResponse+"DataStore", erro.Error())
 		json.MarshalIndent(err, "", "\t")

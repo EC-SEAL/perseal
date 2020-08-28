@@ -1,7 +1,6 @@
 package model
 
 import (
-	"log"
 	"os"
 	"strings"
 )
@@ -252,6 +251,5 @@ func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
 	if len(erro) > 0 || erro != nil {
 		resp.ErrorMessage = erro[0]
 	}
-	log.Println(resp)
 	return resp
 }

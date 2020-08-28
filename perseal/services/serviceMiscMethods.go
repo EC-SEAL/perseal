@@ -23,7 +23,6 @@ func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
 func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.PersistenceDTO, err *model.HTMLResponse) {
 	var token *oauth2.Token
 	dtoWithToken = dto
-	log.Println("Current Persistence Object: ", dto)
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
 		token, err = updateNewGoogleDriveTokenFromCode(dto.ID, code)
 		dtoWithToken.GoogleAccessCreds = *token
@@ -31,8 +30,6 @@ func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.
 		token, err = updateNewOneDriveTokenFromCode(dto.ID, code)
 		dtoWithToken.OneDriveToken = *token
 	}
-	log.Println("Current Token: ", token)
-	log.Println(err)
 	return
 }
 
@@ -61,7 +58,7 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 		for _, v := range resp.Values {
 			files = append(files, v.Name)
 		}
-		log.Println(resp.Values)
+		log.Println("Files Found: ", resp.Values)
 	}
 	return
 }

@@ -2,6 +2,7 @@ package dto
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/model"
@@ -54,6 +55,17 @@ func PersistenceFactory(id string, smResp sm.SessionMngrResponse, method ...stri
 	googleTokenBytes, oneDriveTokenBytes, err := getGoogleAndOneDriveTokens(dto, smResp)
 	if err != nil {
 		return
+	}
+	if string(googleTokenBytes) != "null" {
+		log.Println("Found Google Token in Session")
+	} else {
+		log.Println("Not Found Google Token in Session")
+	}
+
+	if string(oneDriveTokenBytes) != "null" {
+		log.Println("Found OneDrive Token in Session")
+	} else {
+		log.Println("Not Found OneDrive Token in Session")
 	}
 
 	json.Unmarshal(googleTokenBytes, &dto.GoogleAccessCreds)

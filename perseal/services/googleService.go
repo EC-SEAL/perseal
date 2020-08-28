@@ -22,7 +22,6 @@ import (
 //Attempts to Store the Session Data On Google Drive
 func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	client := getGoogleDriveClient(dto.GoogleAccessCreds)
-	log.Println("Current Google Client: ", client)
 	dataStore, erro := externaldrive.StoreSessionData(dto)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())

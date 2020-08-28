@@ -18,7 +18,7 @@ import (
 
 // Main Entry Point For Front-Channel Operations
 func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
 	cipherPassword := getQueryParameter(r, "cipherPassword")
@@ -39,8 +39,6 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	}
 
 	smResp = getSessionData(id, w)
-	log.Println("Current Session Id: " + id)
-
 	// EXCEPTION: Mobile Storage can be enable if cipherPassword is sent immediatly in the GET request
 	if cipherPassword != "" {
 		backChannelStoring(w, id, cipherPassword, method, smResp)
@@ -62,7 +60,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 
 //Handles DataStore operation (store or load) after password insertion
 func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
 	dto, err := recieveSessionIdAndPassword(w, r, method)
@@ -105,7 +103,7 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 
 //Back-Channel request to Decrypt and Load User's Data
 func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
 	msToken := r.FormValue("msToken")
@@ -127,7 +125,14 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dto, err := dto.PersistenceFactory(id, smResp, method)
+	log.Println("Current Persistence Object: ", dto)
 	dto.Password = cipherPassword
+	if dto.Password != "" {
+		err := model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
+		dto.Response = *err
+		writeBackChannelResponse(dto, w)
+		return
+	}
 	if err != nil {
 		dto.Response = *err
 		writeBackChannelResponse(dto, w)
@@ -143,7 +148,6 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
-	log.Println("Response: ", response)
 	if err != nil {
 		dto.Response = *err
 		writeBackChannelResponse(dto, w)
@@ -166,6 +170,8 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 // Back-Channel Request to Encrypt User's Data
 func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string, smResp sm.SessionMngrResponse) {
 	obj, err := dto.PersistenceFactory(id, smResp, method)
+	log.Println("Current Persistence Object: ", obj)
+
 	obj.Password = cipherPassword
 	if err != nil {
 		obj.Response = *err
@@ -185,7 +191,7 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 }
 
 func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
 	token := getQueryParameter(r, "msToken")
@@ -219,7 +225,7 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 }
 
 func RMRedirect(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	token := getQueryParameter(r, "msToken")
 
@@ -233,18 +239,18 @@ func RMRedirect(w http.ResponseWriter, r *http.Request) {
 
 	smResp, err = sm.GetSessionData(id)
 	dto, err := dto.PersistenceFactory(id, smResp)
+	log.Println("Current Persistence Object: ", dto)
 	if err != nil {
 		dto.Response = *err
 		writeBackChannelResponse(dto, w)
 	}
 
-	cca := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr]
-	log.Println(cca)
+	writeBackChannelResponse(dto, w)
 	return
 }
 
 func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
 	token := getQueryParameter(r, "msToken")
@@ -255,6 +261,7 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 	smResp = getSessionData(id, w)
 
 	dto, err := dto.PersistenceFactory(id, smResp, method)
+	log.Println("Current Persistence Object: ", dto)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
@@ -267,13 +274,14 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 // Creates Token with the Code and Stores it into Session
 // Opens Insert Password
 func RetrieveCode(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.RequestURI)
+	log.Println(r.URL.Path)
 
 	id := getQueryParameter(r, "state")
 	code := getQueryParameter(r, "code")
 
 	smResp := getSessionData(id, w)
 	dto, err := dto.PersistenceFactory(id, smResp)
+	log.Println("Current Persistence Object: ", dto)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return

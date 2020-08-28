@@ -70,7 +70,11 @@ func GenerateToken(receiver, sender, sessionId string, data ...string) (tokenRes
 	}
 	req.URL.RawQuery = q.Encode()
 
-	return smRequest(req, url)
+	tokenResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("MSToken Generated")
+	}
+	return
 }
 
 // ValidateToken - SessionManager function where the passed security token’s signature will be validated, as well as the validity as well as other validation measuresResponds by code: OK,
@@ -90,6 +94,11 @@ func ValidateToken(token string) (smResp SessionMngrResponse, err *model.HTMLRes
 	req.URL.RawQuery = q.Encode()
 
 	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("Valid MSToken")
+	} else {
+		log.Println("Invalid MSToken")
+	}
 	return smResp, err
 }
 
@@ -109,7 +118,11 @@ func GetSessionData(sessionID string) (smResp SessionMngrResponse, err *model.HT
 		return
 	}
 
-	return smRequest(req, url)
+	smResp, err = smRequest(req, url)
+	if err != nil {
+		log.Println("Invalid ID. Could not fetch SessionData")
+	}
+	return
 }
 
 //Updates a Session Variable, by providind the sessionID, the new value of the variable and the the variable name
@@ -141,9 +154,10 @@ func UpdateSessionData(sessionId string, dataObject string, variableName string)
 	req.Header.Set("Accept", "application/json")
 
 	resp, erro := client.Do(req)
-	log.Println(resp)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedExecuteRequest, erro.Error())
+	} else {
+		log.Println("Updated Session Variable ", up.VariableName)
 	}
 
 	err = retryIfInternalServerError(req, resp)
@@ -189,7 +203,11 @@ func NewAdd(sessionId, data, objType string, id ...string) (smResp SessionMngrRe
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-	return smRequest(req, url)
+	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("Added Entry to DataStore")
+	}
+	return
 
 }
 
@@ -223,8 +241,11 @@ func NewDelete(sessionId string, id ...string) (smResp SessionMngrResponse, err 
 	}
 
 	req.Header.Add("Content-Type", "application/json")
-
-	return smRequest(req, url)
+	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("Delete Operation Successful")
+	}
+	return
 }
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
@@ -247,8 +268,11 @@ func NewSearch(sessionId string, variableName ...string) (smResp SessionMngrResp
 		q.Add("type", variableName[0])
 	}
 	req.URL.RawQuery = q.Encode()
-
-	return smRequest(req, url)
+	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("Search Operation Successful")
+	}
+	return
 }
 
 func smRequest(req *http.Request, url string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
