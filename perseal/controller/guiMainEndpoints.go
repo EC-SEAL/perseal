@@ -129,22 +129,24 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	dto, err := dto.PersistenceFactory(id, smResp, method)
 	dto.Password = cipherPassword
 	if err != nil {
-		writeBackChannelResponse(dto, w, err.Code, err.Message)
+		dto.Response = *err
+		writeBackChannelResponse(dto, w)
 		return
 	}
 
 	dataSstr := r.PostFormValue("dataStore")
 	if dataSstr == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.FailedFoundDataStore)
-		writeBackChannelResponse(dto, w, err.Code, err.Message)
+		dto.Response = *err
+		writeBackChannelResponse(dto, w)
 		return
 	}
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
 	log.Println("Response: ", response)
-	dto.Response = *response
 	if err != nil {
-		writeBackChannelResponse(dto, w, err.Code, err.Message)
+		dto.Response = *err
+		writeBackChannelResponse(dto, w)
 	} else {
 		/*
 			if response.Code == http.StatusOK {
@@ -154,7 +156,8 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 					http.Redirect(w, r, rmURL, http.StatusFound)
 				}
 			}*/
-		writeBackChannelResponse(dto, w, response.Code, response.DataStore)
+		dto.Response = *response
+		writeBackChannelResponse(dto, w)
 
 	}
 	return
@@ -165,16 +168,18 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 	obj, err := dto.PersistenceFactory(id, smResp, method)
 	obj.Password = cipherPassword
 	if err != nil {
-		writeBackChannelResponse(obj, w, err.Code, err.Message)
+		obj.Response = *err
+		writeBackChannelResponse(obj, w)
 		return
 	}
 
 	response, err := services.BackChannelStorage(obj)
-	obj.Response = *response
 	if err != nil {
-		writeBackChannelResponse(obj, w, err.Code, err.Message)
+		obj.Response = *err
+		writeBackChannelResponse(obj, w)
 	} else {
-		writeBackChannelResponse(obj, w, response.Code, response.DataStore)
+		obj.Response = *response
+		writeBackChannelResponse(obj, w)
 	}
 	return
 }
@@ -227,10 +232,14 @@ func RMRedirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	smResp, err = sm.GetSessionData(id)
+	dto, err := dto.PersistenceFactory(id, smResp)
+	if err != nil {
+		dto.Response = *err
+		writeBackChannelResponse(dto, w)
+	}
 
 	cca := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.ClientCallbackAddr]
 	log.Println(cca)
-	http.Redirect(w, r, cca, http.StatusFound)
 	return
 }
 

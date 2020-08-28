@@ -80,5 +80,28 @@ func TestStoreService(t *testing.T) {
 	if err != nil {
 		t.Error("Thrown Error: ", err)
 	}
+	if response.Code != 200 {
+		t.Error("Bad Response")
+	}
 
+	obj = preCloudConfig(obj, smResp, sha)
+	obj.LocalFileBytes = []byte(`"{\"id\":\"ea0f1b47-dad6-446c-8969-1353602a97b1\",\"encryptedData\":\"rwOQtGwIeUTLWAKsURoLWFWV0IE=\",\"signature\":\"EKq9SDnKEZijD9IGZGxS8EP5uqTZQ-aY_rLp1iiQUDhSYy9MzUstCyI0ryOuUgHrYDrhpR73ZWV7tJsZ8fxJKqXpbGLx1_i-pX6AeyAwPIBGizQl4sbBqN2OMNKSVvVztnzbjdWzAnqIM2IXgmWobnR8BoYZupGremLx25t_nzoNp8EGpwNk_DlmkyFLJTCBIJLyoJ_6-WG49V2A--32WcBXpVq939Q0r44zxGrCBMLH742vCQe8lRAn8YeQinYo0U7Kuc7sIS02zdCoPiRLsVcP6d7N9iNBOxT_iEsGj57y16ACHgbcooQCWhBQlv1wdphsBFVYr0xq71_1XISGhQ==\",\"signatureAlgorithm\":\"rsa-sha256\",\"encryptionAlgorithm\":\"aes-cfb\",\"clearData\":\"[]\"}"`)
+	response, err = BackChannelDecryption(obj, string(obj.LocalFileBytes))
+	log.Println(response)
+	log.Println(err)
+	if err != nil {
+		t.Error("Thrown Error: ", err)
+	}
+	if response.Code != 200 {
+		t.Error("Bad Response")
+	}
+
+	obj = preCloudConfig(obj, smResp, sha+"12")
+	obj.LocalFileBytes = []byte(`"{\"id\":\"ea0f1b47-dad6-446c-8969-1353602a97b1\",\"encryptedData\":\"rwOQtGwIeUTLWAKsURoLWFWV0IE=\",\"signature\":\"EKq9SDnKEZijD9IGZGxS8EP5uqTZQ-aY_rLp1iiQUDhSYy9MzUstCyI0ryOuUgHrYDrhpR73ZWV7tJsZ8fxJKqXpbGLx1_i-pX6AeyAwPIBGizQl4sbBqN2OMNKSVvVztnzbjdWzAnqIM2IXgmWobnR8BoYZupGremLx25t_nzoNp8EGpwNk_DlmkyFLJTCBIJLyoJ_6-WG49V2A--32WcBXpVq939Q0r44zxGrCBMLH742vCQe8lRAn8YeQinYo0U7Kuc7sIS02zdCoPiRLsVcP6d7N9iNBOxT_iEsGj57y16ACHgbcooQCWhBQlv1wdphsBFVYr0xq71_1XISGhQ==\",\"signatureAlgorithm\":\"rsa-sha256\",\"encryptionAlgorithm\":\"aes-cfb\",\"clearData\":\"[]\"}"`)
+	response, err = BackChannelDecryption(obj, string(obj.LocalFileBytes))
+	log.Println(response)
+	log.Println(err)
+	if err == nil {
+		t.Error("Thrown Error: ", err)
+	}
 }

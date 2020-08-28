@@ -64,7 +64,6 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 }
 
 func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	log.Println("ref: ", dto.Response)
 	if dto.PDS == model.EnvVariables.Browser_PDS {
 		tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
 		dto.Response.MSTokenDownload = tok.AdditionalData
@@ -132,9 +131,9 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 	}
 }
 
-func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter, code int, message string) {
-	w.WriteHeader(code)
-	w.Write([]byte(message))
+func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
+	w.WriteHeader(dto.Response.Code)
+	w.Write([]byte(dto.Response.Message))
 
 	var tok string
 	if dto.Response.Code == http.StatusOK {
