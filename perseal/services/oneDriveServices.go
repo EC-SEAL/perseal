@@ -68,7 +68,6 @@ func updateNewOneDriveTokenFromCode(id string, code string) (oauthToken *oauth2.
 
 	var erro error
 	oauthToken, erro = requestToken(code, creds.OneDriveClientID)
-	log.Println(oauthToken)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetToken+model.EnvVariables.One_Drive_PDS, erro.Error())
 		return
@@ -325,7 +324,6 @@ func requestToken(code string, clientID string) (token *oauth2.Token, err error)
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	log.Println(req.Body)
 	token, err = tokenRequest(req)
 	return
 }

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"log"
+	"fmt"
 	"testing"
 
 	"github.com/EC-SEAL/perseal/sm"
@@ -9,79 +9,95 @@ import (
 
 func TestOneDriveService(t *testing.T) {
 
+	var passed = "=================PASSED==============="
+	var failed = "=================FAILED==============="
+
 	obj := InitIntegration("oneDrive")
 	smResp, _ := sm.GetSessionData(obj.ID)
 
-	// Test OneDrive Store
+	fmt.Println("\n=================Correct OneDrive Store====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
-	ds, err := storeCloudData(obj)
-	log.Println(ds)
-	log.Println(err)
+	_, err := storeCloudData(obj)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Incorrect OneDrive Store
-	log.Println("\n\n\nNEW INCORRECT")
+	fmt.Println("\n=================Incorrect OneDrive Store - Bad Access Token====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
-	log.Println("\n\n", obj.OneDriveToken.AccessToken)
-	ds, err = storeCloudData(obj)
-	log.Println(ds)
-	log.Println(err)
+	_, err = storeCloudData(obj)
 	if err == nil {
+		fmt.Println(failed)
 		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Incorrect OneDrive Store
-	log.Println("\n\n\nNEW INCORRECT")
+	fmt.Println("\n=================Incorrect Fetch Cloud File - Bad Access Token====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
-	log.Println("\n\n", obj.OneDriveToken.AccessToken)
-	ds1, err := fetchCloudDataStore(obj, "datastore.seal")
-	log.Println(ds1)
-	log.Println(err)
+	_, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err == nil {
+		fmt.Println(failed)
 		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Load OneDrive
+	fmt.Println("\n=================Correct Fetch Cloud File====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
-	ds, err = fetchCloudDataStore(obj, "datastore.seal")
+	_, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
-	log.Println(ds)
 
-	// Test Get Cloud Files
+	fmt.Println("\n=================Correct Fetch Cloud Files====================")
 	files, err := GetCloudFileNames(obj)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
 	}
 	if len(files) == 0 {
+		fmt.Println(failed)
 		t.Error("no files found")
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Store====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro := PersistenceStore(obj)
-	log.Println(ds)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceLoad(obj)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Store And Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceStoreAndLoad(obj)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
 }

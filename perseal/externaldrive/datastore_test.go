@@ -1,7 +1,7 @@
 package externaldrive
 
 import (
-	"log"
+	"fmt"
 	"testing"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -36,33 +36,45 @@ func Init(pds string) dto.PersistenceDTO {
 
 func TestDataStore(t *testing.T) {
 
-	//Test Store Session Data With Password (NewDataStore, Encrypt and Sign)
+	var passed = "=================PASSED==============="
+	var failed = "=================FAILED==============="
+
 	obj := Init("googleDrive")
+
+	fmt.Println("\n=================New Store Session Data With Password====================")
 	obj.Password = "qwerty"
 	ds, err := StoreSessionData(obj)
-	log.Println(ds)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Error occurred, got: ", err)
 	}
+	fmt.Println(passed)
 
+	fmt.Println("\n=================Uploading Blob====================")
 	//Test UploadingBlob With EncryptedData
 	_, err = ds.UploadingBlob()
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Error occurred, got: ", err)
 	}
+	fmt.Println(passed)
 
-	//Test UploadingBlob With EncryptedData
+	fmt.Println("\n=================Uploading Blob With Encrypted Data====================")
 	tmp := ds.EncryptedData
 	ds.EncryptedData = ""
 	_, err = ds.UploadingBlob()
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Error occurred, got: ", err)
 	}
+	fmt.Println(passed)
 
-	//Test Decrypt With EncryptedData
+	fmt.Println("\n=================Decrypt With Encrypted Data====================")
 	ds.EncryptedData = tmp
 	err = ds.Decrypt(obj.Password)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Error occurred, got: ", err)
 	}
+	fmt.Println(passed)
 }

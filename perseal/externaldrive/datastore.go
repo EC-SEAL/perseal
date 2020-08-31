@@ -158,7 +158,6 @@ func (ds *DataStore) MarshalWithoutClearText() (res []byte, err error) {
 func (ds *DataStore) UploadingBlob() (data []byte, err error) {
 	if ds.EncryptedData != "" {
 		data, err = ds.MarshalWithoutClearText()
-		log.Println(string(data))
 	} else {
 		log.Println("No Encryption data for this DataStore - storing as plaintext")
 		data, err = json.MarshalIndent(ds, "", "\t")

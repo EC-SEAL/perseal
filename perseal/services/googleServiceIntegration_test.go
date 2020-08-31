@@ -3,10 +3,12 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os/exec"
 	"testing"
+	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -50,6 +52,7 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	if url != "" {
 		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	}
+	time.Sleep(4 * time.Second)
 	return obj
 }
 
@@ -61,77 +64,107 @@ func preCloudConfig(obj dto.PersistenceDTO, smResp sm.SessionMngrResponse, passw
 
 func TestGoogleService(t *testing.T) {
 
+	var passed = "=================PASSED==============="
+	var failed = "=================FAILED==============="
+
 	obj := InitIntegration("googleDrive")
 
 	smResp, _ := sm.GetSessionData(obj.ID)
 
-	// Test Correct GoogleDrive Store
+	fmt.Println("\n=================Correct GoogleDrive Store====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
+	log.Println(obj)
 	ds, err := storeCloudData(obj)
-	log.Println(ds)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Incorrect GoogleDrive Store
+	fmt.Println("\n=================Incorrect GoogleDrive Store - Bad Access Token====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.GoogleAccessCreds.AccessToken += "123"
 	ds, err = storeCloudData(obj)
 	log.Println(ds)
 	if err == nil {
+		fmt.Println(failed)
 		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
 	}
 
 	obj = preCloudConfig(obj, smResp, "qwerty")
 
-	// Test Correct Load GoogleDrive Store
+	fmt.Println("\n=================Correct Load GoogleDrive Store====================")
 	ds, err = fetchCloudDataStore(obj, "datastore.seal")
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
-	log.Println(ds)
 
-	// Test Incorrect Load GoogleDrive Store
+	fmt.Println("\n=================Incorrect Load GoogleDrive Store - Bad Filename====================")
 	ds, err = fetchCloudDataStore(obj, "datastorewrong.seal")
 	if err == nil {
+		fmt.Println(failed)
 		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Get Cloud Files
+	fmt.Println("\n=================Get Cloud Files====================")
 	files, err := GetCloudFileNames(obj)
 	if err != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
 	}
 	if len(files) == 0 {
+		fmt.Println(failed)
 		t.Error("no files found")
+	} else {
+		fmt.Println(passed)
 	}
 
-	// Test Get Cloud Files No GoogleCreds
+	fmt.Println("\n=================Get Cloud Files - No Google Drive Creds====================")
 	obj.GoogleAccessCreds.AccessToken = "1234"
 	files, err = GetCloudFileNames(obj)
 	if err == nil {
+		fmt.Println(failed)
 		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Store====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro := PersistenceStore(obj)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceLoad(obj)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
+	fmt.Println("\n=================Correct Persistence Store And Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	_, erro = PersistenceStoreAndLoad(obj)
-	log.Println(erro)
 	if erro != nil {
+		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
 	}
 
 }

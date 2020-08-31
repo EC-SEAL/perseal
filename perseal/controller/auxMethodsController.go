@@ -68,7 +68,8 @@ func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 		tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
 		dto.Response.MSTokenDownload = tok.AdditionalData
 	}
-	log.Println("Response Object: ", dto.Response)
+	res := model.MarshallResponseToPrint(dto.Response)
+	log.Println("Response Object: ", res)
 	t, _ := template.ParseFiles("ui/message.html")
 	w.WriteHeader(dto.Response.Code)
 	t.Execute(w, dto.Response)

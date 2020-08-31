@@ -36,17 +36,13 @@ func main() {
 	// load systemOpts
 	if model.Test {
 		godotenv.Load(".env")
-		log.Println("testing")
 	}
 
 	model.SetEnvVariables()
-	log.Println(model.EnvVariables)
 
 	r := newRouter()
 
 	addr := model.EnvVariables.Host
-
-	log.Println(addr)
 	tlsConfig := &tls.Config{
 		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,

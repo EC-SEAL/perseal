@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 )
@@ -252,4 +253,22 @@ func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
 		resp.ErrorMessage = erro[0]
 	}
 	return resp
+}
+
+func MarshallResponseToPrint(response HTMLResponse) string {
+
+	type HTMLResponseToPrint struct {
+		Code               int    `json:"code"`
+		Message            string `json:"message"`
+		ErrorMessage       string `json:"error"`
+		ClientCallbackAddr string
+	}
+
+	resBytes, _ := json.MarshalIndent(&HTMLResponseToPrint{
+		Code:               response.Code,
+		ClientCallbackAddr: response.ClientCallbackAddr,
+		Message:            response.Message,
+		ErrorMessage:       response.ErrorMessage,
+	}, "", "\t")
+	return string(resBytes)
 }

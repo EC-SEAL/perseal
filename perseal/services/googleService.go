@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -179,7 +178,6 @@ func createGoogleDriveDir(service *drive.Service, name string, parentId string) 
 	for _, f := range files.Files {
 		// service.Files.Delete(f.Id).Do()
 		if f.Name == name && isFolder(f) {
-			log.Println(f.Id)
 			return f, nil
 		}
 	}

@@ -124,8 +124,6 @@ func validateSignature(encrypted string, sigToValidate string) bool {
 	if err != nil {
 		return false
 	}
-	log.Println(sig)
-	log.Println(sigToValidate)
 	if sig != sigToValidate {
 		return false
 	}
@@ -147,6 +145,7 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	if erro != nil {
 		err = model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidPassword, erro.Error())
 		err.FailedInput = "Password"
+		log.Println("Wrong Password")
 		return
 	}
 
@@ -184,6 +183,7 @@ func readLocalFileDataStore(dataSstr []byte) (dataStore *externaldrive.DataStore
 	if erro != nil {
 		err = model.BuildResponse(http.StatusBadRequest, model.Messages.FileContainsDataStore, erro.Error())
 		err.FailedInput = "File"
+		log.Println("File Does Not Contain Valid DataStore")
 		return
 	}
 	log.Println("DataStore ID found: ", dataStore.ID)
