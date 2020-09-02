@@ -146,6 +146,9 @@ var Messages struct {
 	FailedGetToken               string
 	FailedParseToken             string
 	FailedRefreshToken           string
+
+	IncompleteQRCode string
+	PrintedQRCode    string
 }
 
 func SetEnvVariables() {
@@ -235,9 +238,11 @@ func SetEnvVariables() {
 	Messages.FailedGetToken = "Could not Fetch Access Token - "
 	Messages.FailedParseToken = "Couldn't Parse the Access Token to byte array - "
 	Messages.FailedRefreshToken = "Error in Request to Refresh Token"
+	Messages.IncompleteQRCode = "Incomplete QR Code"
 
 	Messages.StoredDataStore = "Stored DataStore"
 	Messages.LoadedDataStore = "Loaded DataStore "
+	Messages.PrintedQRCode = "Printed Qr Code"
 
 }
 

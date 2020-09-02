@@ -127,7 +127,7 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	dto, err := dto.PersistenceFactory(id, smResp, method)
 	log.Println("Current Persistence Object: ", dto)
 	dto.Password = cipherPassword
-	if dto.Password != "" {
+	if dto.Password == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
 		dto.Response = *err
 		writeBackChannelResponse(dto, w)
@@ -149,8 +149,10 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
 	if err != nil {
+		log.Println(err)
 		dto.Response = *err
 		writeBackChannelResponse(dto, w)
+		return
 	} else {
 		/*
 			if response.Code == http.StatusOK {

@@ -131,8 +131,10 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 }
 
 func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	w.WriteHeader(dto.Response.Code)
-	w.Write([]byte(dto.Response.Message))
+	if dto.MenuOption != "BadQR" {
+		w.WriteHeader(dto.Response.Code)
+		w.Write([]byte(dto.Response.Message))
+	}
 
 	var tok string
 	if dto.Response.Code == http.StatusOK {
@@ -185,16 +187,35 @@ func mobileQRCode(obj dto.PersistenceDTO, w http.ResponseWriter) {
 
 	variables := QRVariables{
 		SessionId:       obj.ID,
-		Method:          obj.Method,
 		PersealCallback: model.EnvVariables.Perseal_RM_UCs_Callback,
 	}
 	qrCodeContents, _ := json.Marshal(variables)
-
 	img, _ := qrcode.Encode(string(qrCodeContents), qrcode.Medium, 380)
 	obj.Image = base64.StdEncoding.EncodeToString(img)
+
+	if containsEmpty(variables.SessionId, variables.Method, variables.PersealCallback) {
+		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode)
+		writeResponseMessage(w, obj, *resp)
+		return
+	} else {
+		resp := model.BuildResponse(http.StatusOK, model.Messages.PrintedQRCode)
+		obj.Response = *resp
+		obj.MenuOption = "BadQR"
+		writeBackChannelResponse(obj, w)
+	}
+
 	t, _ := template.ParseFiles("ui/qr.html")
 	t.Execute(w, obj)
 	return
+}
+
+func containsEmpty(stringArray ...string) bool {
+	for _, s := range stringArray {
+		if s == "" {
+			return true
+		}
+	}
+	return false
 }
 
 func openHTML(obj dto.PersistenceDTO, w http.ResponseWriter, filename string) {
