@@ -1,13 +1,76 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
+	"github.com/EC-SEAL/perseal/sm"
 	"golang.org/x/oauth2"
 )
+
+// Generates MSToken to send to CCA with Success or Failure Data
+func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) (string, string) {
+	dash := &sm.SessionMngrResponse{
+		SessionData: sm.SessionData{
+			SessionID: id,
+		},
+		Code: code,
+	}
+
+	if len(message) > 0 || message != nil {
+		dash.AdditionalData = message[0]
+	}
+	b, _ := json.Marshal(dash)
+	tok1, err := sm.GenerateToken("CLms001", model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
+	if err != nil {
+		return "", ""
+	}
+	log.Println("\n\n", tok1)
+	tok2, err := sm.GenerateToken("CLms001", model.EnvVariables.Perseal_Sender_Receiver, id)
+	if err != nil {
+		return "", ""
+	}
+	return tok1.AdditionalData, tok2.AdditionalData
+}
+
+// Polls msToken to CCA
+func ClientCallbackAddrPost(token, clientCallbackAddr string) {
+	hc := http.Client{}
+	form := url.Values{}
+	form.Add("msToken", token)
+
+	log.Println("POST to: ", clientCallbackAddr)
+	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
+	log.Println("Result from ClientCallbackAddr: ")
+	log.Print(hc.Do(req))
+}
+
+func QRCodePoll(id, op string) (respMethod string, obj dto.PersistenceDTO, err *model.HTMLResponse) {
+	sm.UpdateSessionData(id, "not finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
+
+	smResp, err := sm.GetSessionData(id)
+	if err != nil {
+		return
+	}
+	obj, err = dto.PersistenceFactory(id, smResp)
+	if err != nil {
+		return
+	}
+
+	log.Println("Current Persistence Object: ", obj)
+
+	if op == model.EnvVariables.Load_Method {
+		respMethod = model.Messages.LoadedDataStore
+	} else if op == model.EnvVariables.Store_Method {
+		respMethod = model.Messages.StoredDataStore
+	}
+	return
+}
 
 // Generates URL for user to select cloud account
 func GetRedirectURL(dto dto.PersistenceDTO) (url string) {

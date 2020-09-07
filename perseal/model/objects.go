@@ -45,7 +45,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
@@ -70,14 +70,16 @@ var EnvVariables struct {
 	OneDriveCreds    OneDriveCreds
 
 	SessionVariables struct {
-		CurrentMethod      string
-		ClientCallbackAddr string
-		PDS                string
-		OneDriveToken      string
-		GoogleDriveToken   string
-		DataStore          string
-		MockUserData       string
-		SessionId          string
+		//NEW
+		FinishedPersealBackChannel string
+		CurrentMethod              string
+		ClientCallbackAddr         string
+		PDS                        string
+		OneDriveToken              string
+		GoogleDriveToken           string
+		DataStore                  string
+		MockUserData               string
+		SessionId                  string
 	}
 
 	TestURLs struct {
@@ -202,6 +204,7 @@ func SetEnvVariables() {
 
 	EnvVariables.TestURLs.APIGW_Endpoint = "https://vm.project-seal.eu:9154"
 
+	EnvVariables.SessionVariables.FinishedPersealBackChannel = os.Getenv("FINISHED_PERSEAL_BACK_CHANNEL")
 	EnvVariables.SessionVariables.CurrentMethod = os.Getenv("CURRENT_METHOD_VARIABLE")
 	EnvVariables.SessionVariables.ClientCallbackAddr = os.Getenv("CLIENT_CALLBACK_ADDR_VARIABLE")
 	EnvVariables.SessionVariables.MockUserData = os.Getenv("MOCK_USER_DATA_VARIABLE")

@@ -3,7 +3,7 @@
 <html>
   <head>
     <style>
-    .botLogo {
+      .botLogo {
         height: 25%;
         text-align: center;
       }
@@ -79,26 +79,40 @@
       a {
         font-size: 30px;
       }
-      
     </style>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   </head>
 
   <img class="topLogo" src="/ui/logo.png" height="200px" />
 
   <body>
+    <button
+    id="btn" type="hidden"></button>
+
+  <div id="id" type="hidden">{{ .ID }}</div>
+  <div id="method" type="hidden">{{ .Method }}</div>
+
     {{if (eq .Method "load")}}
     <h1>Load Existing Data</h1>
-    <h2>Scan The Following QR Code using your SEAL Mobile App</h2> 
-    <h2>If you don't have the app instaled, it is recommended that you select the "Local File" Option in order to select a file containing your data from your device</h2>
+    <h2>Scan The Following QR Code using your SEAL Mobile App</h2>
+    <h2>
+      If you don't have the app instaled, it is recommended that you select the
+      "Local File" Option in order to select a file containing your data from
+      your device
+    </h2>
     {{end}} {{if (eq .Method "store")}}
     <h1>Save Your Current Data</h1>
     <h2>Scan The Following QR Code using your SEAL Mobile App</h2>
-    <h2>If you don't have the app instaled, it is recommended that you select the "Local File" Option in order to store your data on a file in your device</h2>
+    <h2>
+      If you don't have the app instaled, it is recommended that you select the
+      "Local File" Option in order to store your data on a file in your device
+    </h2>
     {{end}}
 
     <div
       class="margin-body-log-in-worker"
-      style="display: flex; justify-content: center; align-items: center;"
+      style="display: flex; justify-content: center; align-items: center"
     >
       <div class="row">
         <div class="col-4 col-sm-4 col-md-3 col-xl-2 center">
@@ -111,11 +125,41 @@
       </div>
     </div>
 
+  
+    </div>
+
+    <script>
+      
+    document.getElementById("id").style.display = "none";
+    document.getElementById("method").style.display = "none";
+    document.getElementById("btn").style.display = "none";
+      var fetchNow = function() {
+        
+      var sessionId = document.getElementById("id").innerHTML;
+      var method = document.getElementById("method").innerHTML;
+  
+          const response =  fetch('http://localhost:8082/per/aux/checkQrCodePoll?sessionId='+sessionId, {
+            method: 'get',
+          }).then((response) => {
+            console.log('Fetch - Got response: ', response.status); 
+            if (response.status != 200){
+                var timer = setTimeout(function () {
+                fetchNow();
+                }, 2000);
+            }else{       
+              window.location.href='http://localhost:8082/per/aux/qrCodePoll?sessionId='+sessionId+"&operation="+method
+          } }) 
+      };
+      fetchNow();
+      
+    </script>
+
     <p></p>
     <div class="footer">
       <div class="botLogo">
         <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />
       </div>
     </div>
+   
   </body>
 </html>

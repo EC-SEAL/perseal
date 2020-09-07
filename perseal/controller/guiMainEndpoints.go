@@ -163,6 +163,7 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 				}
 			}*/
 		dto.Response = *response
+		sm.UpdateSessionData(dto.ID, "finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 		writeBackChannelResponse(dto, w)
 
 	}
@@ -186,6 +187,7 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 		obj.Response = *err
 		writeBackChannelResponse(obj, w)
 	} else {
+		sm.UpdateSessionData(obj.ID, "finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 		obj.Response = *response
 		writeBackChannelResponse(obj, w)
 	}
@@ -193,16 +195,19 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 }
 
 func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
-	token := getQueryParameter(r, "msToken")
-	smResp, err := sm.ValidateToken(token)
-	if err != nil {
-		id := smResp.SessionData.SessionID
-		dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
-		writeResponseMessage(w, dto, *err)
-		return
+
+	if method != "checkQrCodePoll" && method != "qrCodePoll" {
+		log.Println(r.URL.Path)
+		token := getQueryParameter(r, "msToken")
+		smResp, err := sm.ValidateToken(token)
+		if err != nil {
+			id := smResp.SessionData.SessionID
+			dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
+			writeResponseMessage(w, dto, *err)
+			return
+		}
 	}
 
 	if method == "save" {
@@ -220,8 +225,36 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 		token := getQueryParameter(r, "token")
 		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
-		clientCallbackAddrPost(token, clientCallbackAddr)
+		services.ClientCallbackAddrPost(token, clientCallbackAddr)
+		return
 
+	} else if method == "checkQrCodePoll" {
+
+		id := getQueryParameter(r, "sessionId")
+		smResp := getSessionData(id, w)
+		finishedPersealBackChannel := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.FinishedPersealBackChannel]
+		if finishedPersealBackChannel == "finished" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(finishedPersealBackChannel))
+		} else if finishedPersealBackChannel == "not finished" {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Operation Not Yet Finished"))
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Session Variable Not Set"))
+		}
+		return
+	} else if method == "qrCodePoll" {
+		id := getQueryParameter(r, "sessionId")
+		op := getQueryParameter(r, "operation")
+
+		respMethod, dto, err := services.QRCodePoll(id, op)
+		if err != nil {
+			writeResponseMessage(w, dto, *err)
+		}
+
+		resp := model.BuildResponse(http.StatusOK, respMethod)
+		writeResponseMessage(w, dto, *resp)
 		return
 	}
 }

@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/skip2/go-qrcode"
 
@@ -63,7 +61,7 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 	return
 }
 
-func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
+func openMessageHTML(dto dto.PersistenceDTO, w http.ResponseWriter) {
 	if dto.PDS == model.EnvVariables.Browser_PDS {
 		tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
 		dto.Response.MSTokenDownload = tok.AdditionalData
@@ -76,27 +74,16 @@ func openResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 
 }
 
-func buildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) (string, string) {
-	dash := &sm.SessionMngrResponse{
-		SessionData: sm.SessionData{
-			SessionID: id,
-		},
-		Code: code,
+func openHTML(obj dto.PersistenceDTO, w http.ResponseWriter, filename string) {
+	token, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, obj.ID)
+	if err != nil {
+		writeResponseMessage(w, obj, *err)
+		return
 	}
 
-	if len(message) > 0 || message != nil {
-		dash.AdditionalData = message[0]
-	}
-	b, _ := json.Marshal(dash)
-	tok1, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
-	if err != nil {
-		return "", ""
-	}
-	tok2, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, id)
-	if err != nil {
-		return "", ""
-	}
-	return tok1.AdditionalData, tok2.AdditionalData
+	obj.MSToken = token.AdditionalData
+	t, _ := template.ParseFiles(filename)
+	t.Execute(w, obj)
 }
 
 //Opens HTML to display event message and makes post request to ClientCallbackAddr
@@ -111,13 +98,13 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 	} else {
 		var tok1, tok2 string
 		if dto.Response.Code == http.StatusOK {
-			tok1, tok2 = buildDataOfMSToken(dto.ID, "OK", dto.Response.ClientCallbackAddr)
+			tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "OK", dto.Response.ClientCallbackAddr)
 			log.Println("Token contains OK message")
 		} else {
 			if dto.Response.ErrorMessage == model.Messages.NoMSTokenErrorMsg {
 				dto.Response.MSToken = ""
 			} else {
-				tok1, tok2 = buildDataOfMSToken(dto.ID, "ERROR", dto.Response.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
+				tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "ERROR", dto.Response.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
 				log.Println("Token contains ERROR message")
 			}
 		}
@@ -126,7 +113,7 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 		if tok1 != "" && tok2 != "" {
 			log.Println("Generated both tokens")
 		}
-		openResponse(dto, w)
+		openMessageHTML(dto, w)
 	}
 }
 
@@ -138,24 +125,13 @@ func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 
 	var tok string
 	if dto.Response.Code == http.StatusOK {
-		tok, _ = buildDataOfMSToken(dto.ID, "OK", dto.Response.ClientCallbackAddr)
+		tok, _ = services.BuildDataOfMSToken(dto.ID, "OK", dto.Response.ClientCallbackAddr)
 		log.Println("Token contains OK message")
 	} else {
-		tok, _ = buildDataOfMSToken(dto.ID, "ERROR", dto.Response.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
+		tok, _ = services.BuildDataOfMSToken(dto.ID, "ERROR", dto.Response.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
 		log.Println("Token contains ERROR message")
 	}
-	clientCallbackAddrPost(tok, dto.ClientCallbackAddr)
-}
-
-func clientCallbackAddrPost(token, clientCallbackAddr string) {
-	hc := http.Client{}
-	form := url.Values{}
-	form.Add("msToken", token)
-
-	log.Println("POST to: ", clientCallbackAddr)
-	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
-	log.Println("Result from ClientCallbackAddr: ")
-	log.Print(hc.Do(req))
+	services.ClientCallbackAddrPost(tok, dto.ClientCallbackAddr)
 }
 
 //Gets Query Parameter with a specific paramName from a Request (r)
@@ -187,6 +163,7 @@ func mobileQRCode(obj dto.PersistenceDTO, w http.ResponseWriter) {
 
 	variables := QRVariables{
 		SessionId:       obj.ID,
+		Method:          obj.Method,
 		PersealCallback: model.EnvVariables.Perseal_RM_UCs_Callback,
 	}
 	qrCodeContents, _ := json.Marshal(variables)
@@ -216,18 +193,6 @@ func containsEmpty(stringArray ...string) bool {
 		}
 	}
 	return false
-}
-
-func openHTML(obj dto.PersistenceDTO, w http.ResponseWriter, filename string) {
-	token, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, obj.ID)
-	if err != nil {
-		writeResponseMessage(w, obj, *err)
-		return
-	}
-
-	obj.MSToken = token.AdditionalData
-	t, _ := template.ParseFiles(filename)
-	t.Execute(w, obj)
 }
 
 // Retrieves Password and SessionID from recieving request
