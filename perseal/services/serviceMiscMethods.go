@@ -6,6 +6,8 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -14,7 +16,7 @@ import (
 )
 
 // Generates MSToken to send to CCA with Success or Failure Data
-func BuildDataOfMSToken(id, code string, message ...string) (string, string) {
+func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) (string, string) {
 	dash := &sm.SessionMngrResponse{
 		SessionData: sm.SessionData{
 			SessionID: id,
@@ -26,12 +28,20 @@ func BuildDataOfMSToken(id, code string, message ...string) (string, string) {
 		dash.AdditionalData = message[0]
 	}
 	b, _ := json.Marshal(dash)
-	tok1, err := sm.GenerateToken(model.EnvVariables.CCA_Sender, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
-	log.Println(tok1.AdditionalData)
+	var sender string
+	if strings.Contains(clientCallbackAddr, "/rm/response") {
+		sender = model.EnvVariables.RM_ID
+	} else {
+		sender = model.EnvVariables.APGW_ID
+	}
+
+	// TODO: Remove unecessary print
+	log.Println("Sender: " + sender)
+	tok1, err := sm.GenerateToken(sender, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
 	if err != nil {
 		return "", ""
 	}
-	tok2, err := sm.GenerateToken(model.EnvVariables.CCA_Sender, model.EnvVariables.Perseal_Sender_Receiver, id)
+	tok2, err := sm.GenerateToken(sender, model.EnvVariables.Perseal_Sender_Receiver, id)
 	if err != nil {
 		return "", ""
 	}
@@ -40,6 +50,27 @@ func BuildDataOfMSToken(id, code string, message ...string) (string, string) {
 
 // Polls msToken to CCA
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
+	if strings.Contains(clientCallbackAddr, "/rm/response") {
+		//TODO: Don't pass the env variable
+		ccaURLEncoded(token, model.EnvVariables.RM_Endpoint)
+	} else {
+		ccaFormData(token, clientCallbackAddr)
+	}
+}
+
+func ccaURLEncoded(token, clientCallbackAddr string) {
+	hc := http.Client{}
+	form := url.Values{}
+	form.Add("msToken", token)
+	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
+	log.Println("POST to: ", clientCallbackAddr)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	log.Println("Request: \n", req)
+	log.Print("Result from ClientCallbackAddr: ")
+	log.Println(hc.Do(req))
+}
+
+func ccaFormData(token, clientCallbackAddr string) {
 	hc := http.Client{}
 	b := bytes.Buffer{} // buffer to write the request payload into
 	fw := multipart.NewWriter(&b)

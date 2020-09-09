@@ -255,17 +255,16 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
 
-	token := getQueryParameter(r, "msToken")
+	msToken := getQueryParameter(r, "msToken")
 	tokinfo := getQueryParameter(r, "tokenInfo")
 
-	smResp, err := sm.ValidateToken(token)
+	smResp, err := sm.ValidateToken(msToken)
 	id := smResp.SessionData.SessionID
 	if err != nil {
 		dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
 		writeResponseMessage(w, dto, *err)
 		return
 	}
-
 	smResp, err = sm.GetSessionData(id)
 	dto, err := dto.PersistenceFactory(id, smResp)
 	log.Println("Current Persistence Object: ", dto)
@@ -274,9 +273,9 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 		writeBackChannelResponse(dto, w)
 	}
 
-	log.Println(tokinfo)
-	log.Println(dto.ClientCallbackAddr)
+	log.Println("Token to be sent in the ClientCallback: " + tokinfo)
 	services.ClientCallbackAddrPost(tokinfo, dto.ClientCallbackAddr)
+
 	return
 }
 
@@ -300,8 +299,9 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		writeResponseMessage(w, dto, *err)
 		return
 	}
+	//TODO
 	/*
-		tok1, tok2 := services.BuildDataOfMSToken(variables.SessionId, "OK")
+		tok1, tok2 := services.BuildDataOfMSToken(variables.SessionId, "OK", dto.ClientCallbackAddr)
 		log.Println(tok1)
 		log.Println("\n\n", tok2)
 	*/

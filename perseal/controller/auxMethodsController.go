@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/skip2/go-qrcode"
 
@@ -23,9 +25,8 @@ var (
 )
 
 type QRVariables struct {
-	SessionId       string `json:"sessionId"`
-	Method          string `json:"method"`
-	PersealCallback string `json:"persealCallback"`
+	SessionId string `json:"sessionId"`
+	Method    string `json:"method"`
 }
 
 //Opens HTML of corresponding operation (store or load | local or cloud)
@@ -39,13 +40,24 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 				openHTML(dto, w, menuHTML)
 			*/
 			contents := QRVariables{
-				Method:          dto.Method,
-				SessionId:       dto.ID,
-				PersealCallback: model.EnvVariables.Perseal_RM_UCs_Callback,
+				Method:    dto.Method,
+				SessionId: dto.ID,
 			}
+
+			log.Println(contents)
 			b, _ := json.Marshal(contents)
-			token, _ := services.BuildDataOfMSToken(dto.ID, "OK", string(b))
-			url = "http://localhost:8082/per/QRcode?msToken=" + token
+			token, _ := services.BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr, string(b))
+			timeout := time.Duration(1 * time.Second)
+			client := http.Client{
+				Timeout: timeout,
+			}
+			url = model.EnvVariables.CustomURL + "?msToken=" + token
+			_, err := client.Get(url)
+			if err != nil {
+				log.Println("Custom URL unreachable")
+				url = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
+			}
+
 			log.Println("Redirecting to: " + url)
 			return
 		}
@@ -116,13 +128,13 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 	} else {
 		var tok1, tok2 string
 		if dto.Response.Code == http.StatusOK {
-			tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "OK")
+			tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr)
 			log.Println("Token contains OK message")
 		} else {
 			if dto.Response.ErrorMessage == model.Messages.NoMSTokenErrorMsg {
 				dto.Response.MSToken = ""
 			} else {
-				tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "ERROR", "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
+				tok1, tok2 = services.BuildDataOfMSToken(dto.ID, "ERROR", dto.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
 				log.Println("Token contains ERROR message")
 			}
 		}
@@ -143,10 +155,10 @@ func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 
 	var tok string
 	if dto.Response.Code == http.StatusOK {
-		tok, _ = services.BuildDataOfMSToken(dto.ID, "OK")
+		tok, _ = services.BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr)
 		log.Println("Token contains OK message")
 	} else {
-		tok, _ = services.BuildDataOfMSToken(dto.ID, "ERROR", "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
+		tok, _ = services.BuildDataOfMSToken(dto.ID, "ERROR", dto.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
 		log.Println("Token contains ERROR message")
 	}
 	services.ClientCallbackAddrPost(tok, dto.ClientCallbackAddr)
@@ -173,12 +185,20 @@ func getSessionData(id string, w http.ResponseWriter) (smResp sm.SessionMngrResp
 // Generates QR code and presents it in HTML
 func mobileQRCode(obj dto.PersistenceDTO, variables QRVariables, w http.ResponseWriter) {
 	b, _ := json.Marshal(variables)
-	tok1, _ := sm.GenerateToken(model.EnvVariables.CCA_Sender, model.EnvVariables.Perseal_Sender_Receiver, obj.ID, string(b))
+	var sender string
+	if strings.Contains(obj.ClientCallbackAddr, "/rm/response") {
+		sender = model.EnvVariables.RM_ID
+	} else {
+		sender = model.EnvVariables.APGW_ID
+	}
+	tok1, _ := sm.GenerateToken(sender, model.EnvVariables.Perseal_Sender_Receiver, obj.ID, string(b))
+
+	//TODO: Contents should have URL, not just the token
 	qrCodeContents, _ := json.Marshal(tok1.AdditionalData)
 	img, _ := qrcode.Encode(string(qrCodeContents), qrcode.Medium, 380)
 	obj.Image = base64.StdEncoding.EncodeToString(img)
 
-	if containsEmpty(variables.SessionId, variables.Method, variables.PersealCallback) {
+	if containsEmpty(variables.SessionId, variables.Method) {
 		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode)
 		writeResponseMessage(w, obj, *resp)
 		return

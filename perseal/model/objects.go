@@ -45,7 +45,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
@@ -61,9 +61,11 @@ var EnvVariables struct {
 	DataStore_File_Name   string
 
 	Redirect_URL            string
+	CustomURL               string
 	Host                    string
 	Perseal_Sender_Receiver string
-	CCA_Sender              string
+	APGW_ID                 string
+	RM_ID                   string
 
 	Project_SEAL_Email string
 
@@ -86,6 +88,8 @@ var EnvVariables struct {
 		APIGW_Endpoint string
 	}
 	Perseal_RM_UCs_Callback string
+	RM_Endpoint             string
+	Perseal_QRCode_Endpoint string
 
 	OneDriveURLs struct {
 		Auth          string
@@ -165,14 +169,18 @@ func SetEnvVariables() {
 	EnvVariables.DataStore_Folder_Name = os.Getenv("DATASTORE_FOLDER_NAME")
 	EnvVariables.DataStore_File_Name = os.Getenv("DATASTORE_FILE_NAME")
 
+	EnvVariables.CustomURL = os.Getenv("CUSTOM_URL")
 	EnvVariables.Redirect_URL = os.Getenv("REDIRECT_URL")
 	EnvVariables.Host = os.Getenv("HOST")
 	EnvVariables.Perseal_Sender_Receiver = os.Getenv("PERSEAL_SENDER_RECEIVER")
 
-	EnvVariables.CCA_Sender = os.Getenv("CCA_SENDER")
+	EnvVariables.APGW_ID = os.Getenv("APGW_ID")
+	EnvVariables.RM_ID = os.Getenv("RM_ID")
 
 	EnvVariables.Project_SEAL_Email = os.Getenv("PROJECT_SEAL_EMAIL")
 	EnvVariables.Perseal_RM_UCs_Callback = os.Getenv("PERSEAL_RM_UCs_CALLBACK")
+	EnvVariables.RM_Endpoint = os.Getenv("RM_ENDPOINT")
+	EnvVariables.Perseal_QRCode_Endpoint = os.Getenv("PERSEAL_QR_CODE_ENDPOINT")
 
 	EnvVariables.OneDriveURLs.Auth = os.Getenv("AUTH_URL")
 	EnvVariables.OneDriveURLs.Create_Folder = os.Getenv("CREATE_FOLDER_URL")

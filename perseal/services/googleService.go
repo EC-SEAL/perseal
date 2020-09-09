@@ -157,7 +157,7 @@ func uploadGoogleDrive(ds *externaldrive.DataStore, client *http.Client) (err er
 
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        model.EnvVariables.DataStore_File_Name, //TODO what should the name of the Blob be in Gdrive???
+		Name:        model.EnvVariables.DataStore_File_Name,
 		Path:        model.EnvVariables.DataStore_Folder_Name,
 		Blob:        data,
 		ContentType: "application/octet-stream",
