@@ -45,7 +45,7 @@ type OneDriveCreds struct {
 }
 
 //Review Env Variables Before Deploy
-var Test = false
+var Test = true
 
 var EnvVariables struct {
 	Store_Method      string
@@ -63,6 +63,7 @@ var EnvVariables struct {
 	Redirect_URL            string
 	Host                    string
 	Perseal_Sender_Receiver string
+	CCA_Sender              string
 
 	Project_SEAL_Email string
 
@@ -70,7 +71,6 @@ var EnvVariables struct {
 	OneDriveCreds    OneDriveCreds
 
 	SessionVariables struct {
-		//NEW
 		FinishedPersealBackChannel string
 		CurrentMethod              string
 		ClientCallbackAddr         string
@@ -85,8 +85,6 @@ var EnvVariables struct {
 	TestURLs struct {
 		APIGW_Endpoint string
 	}
-
-	//NEW ENV
 	Perseal_RM_UCs_Callback string
 
 	OneDriveURLs struct {
@@ -170,6 +168,8 @@ func SetEnvVariables() {
 	EnvVariables.Redirect_URL = os.Getenv("REDIRECT_URL")
 	EnvVariables.Host = os.Getenv("HOST")
 	EnvVariables.Perseal_Sender_Receiver = os.Getenv("PERSEAL_SENDER_RECEIVER")
+
+	EnvVariables.CCA_Sender = os.Getenv("CCA_SENDER")
 
 	EnvVariables.Project_SEAL_Email = os.Getenv("PROJECT_SEAL_EMAIL")
 	EnvVariables.Perseal_RM_UCs_Callback = os.Getenv("PERSEAL_RM_UCs_CALLBACK")

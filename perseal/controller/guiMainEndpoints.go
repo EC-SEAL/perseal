@@ -221,13 +221,6 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 		return
 
-	} else if method == "redirect" {
-
-		token := getQueryParameter(r, "token")
-		clientCallbackAddr := getQueryParameter(r, "clientCallbackAddr")
-		services.ClientCallbackAddrPost(token, clientCallbackAddr)
-		return
-
 	} else if method == "checkQrCodePoll" {
 
 		id := getQueryParameter(r, "sessionId")
@@ -259,10 +252,11 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RMRedirect(w http.ResponseWriter, r *http.Request) {
+func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
 
 	token := getQueryParameter(r, "msToken")
+	tokinfo := getQueryParameter(r, "tokenInfo")
 
 	smResp, err := sm.ValidateToken(token)
 	id := smResp.SessionData.SessionID
@@ -280,29 +274,38 @@ func RMRedirect(w http.ResponseWriter, r *http.Request) {
 		writeBackChannelResponse(dto, w)
 	}
 
-	writeBackChannelResponse(dto, w)
+	log.Println(tokinfo)
+	log.Println(dto.ClientCallbackAddr)
+	services.ClientCallbackAddrPost(tokinfo, dto.ClientCallbackAddr)
 	return
 }
 
 func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
 
-	method := mux.Vars(r)["method"]
 	token := getQueryParameter(r, "msToken")
-
 	smResp, err := sm.ValidateToken(token)
+	tokenContents := smResp.AdditionalData
 	id := smResp.SessionData.SessionID
+
+	json.Unmarshal([]byte(tokenContents), &smResp)
+	var variables QRVariables
+	json.Unmarshal([]byte(smResp.AdditionalData), &variables)
 
 	smResp = getSessionData(id, w)
 
-	dto, err := dto.PersistenceFactory(id, smResp, method)
+	dto, err := dto.PersistenceFactory(id, smResp, variables.Method)
 	log.Println("Current Persistence Object: ", dto)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return
 	}
-
-	mobileQRCode(dto, w)
+	/*
+		tok1, tok2 := services.BuildDataOfMSToken(variables.SessionId, "OK")
+		log.Println(tok1)
+		log.Println("\n\n", tok2)
+	*/
+	mobileQRCode(dto, variables, w)
 }
 
 // Recieves Token and SessionId from Cloud Redirect

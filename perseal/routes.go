@@ -94,14 +94,14 @@ var perRoutes = routes{
 	route{
 		"Redirects to ClientCallbackAddr",
 		"GET",
-		"/rmredirect",
-		controller.RMRedirect,
+		"/pollcca",
+		controller.PollToClientCallback,
 	},
 
 	route{
 		"Generates QR code",
 		"GET",
-		"/{method}/QRcode",
+		"/QRcode",
 		controller.GenerateQRCode,
 	},
 	route{

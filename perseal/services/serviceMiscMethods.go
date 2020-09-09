@@ -1,11 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
+	"mime/multipart"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -14,7 +14,7 @@ import (
 )
 
 // Generates MSToken to send to CCA with Success or Failure Data
-func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) (string, string) {
+func BuildDataOfMSToken(id, code string, message ...string) (string, string) {
 	dash := &sm.SessionMngrResponse{
 		SessionData: sm.SessionData{
 			SessionID: id,
@@ -26,12 +26,12 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 		dash.AdditionalData = message[0]
 	}
 	b, _ := json.Marshal(dash)
-	tok1, err := sm.GenerateToken("CLms001", model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
+	tok1, err := sm.GenerateToken(model.EnvVariables.CCA_Sender, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
+	log.Println(tok1.AdditionalData)
 	if err != nil {
 		return "", ""
 	}
-	log.Println("\n\n", tok1)
-	tok2, err := sm.GenerateToken("CLms001", model.EnvVariables.Perseal_Sender_Receiver, id)
+	tok2, err := sm.GenerateToken(model.EnvVariables.CCA_Sender, model.EnvVariables.Perseal_Sender_Receiver, id)
 	if err != nil {
 		return "", ""
 	}
@@ -41,13 +41,17 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 // Polls msToken to CCA
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	hc := http.Client{}
-	form := url.Values{}
-	form.Add("msToken", token)
-
+	b := bytes.Buffer{} // buffer to write the request payload into
+	fw := multipart.NewWriter(&b)
+	label, _ := fw.CreateFormField("msToken")
+	label.Write([]byte(token))
+	defer fw.Close()
 	log.Println("POST to: ", clientCallbackAddr)
-	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
-	log.Println("Result from ClientCallbackAddr: ")
-	log.Print(hc.Do(req))
+	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, &b)
+	req.Header.Set("Content-Type", fw.FormDataContentType())
+	log.Println("Request: \n", req)
+	log.Print("Result from ClientCallbackAddr: ")
+	log.Println(hc.Do(req))
 }
 
 func QRCodePoll(id, op string) (respMethod string, obj dto.PersistenceDTO, err *model.HTMLResponse) {
