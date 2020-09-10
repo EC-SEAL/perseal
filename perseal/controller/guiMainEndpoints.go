@@ -22,36 +22,14 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 	cipherPassword := getQueryParameter(r, "cipherPassword")
-	token := getQueryParameter(r, "msToken")
+	msToken := getQueryParameter(r, "msToken")
 
-	smResp, err := sm.ValidateToken(token)
-	id := smResp.SessionData.SessionID
+	obj, _, err := initialEPSetup(w, msToken, method, false, cipherPassword)
+	log.Println(obj)
+	log.Println(err)
 	if err != nil {
-		if cipherPassword != "" {
-			w.WriteHeader(err.Code)
-			w.Write([]byte(err.Message))
-			return
-		} else {
-			dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
-			writeResponseMessage(w, dto, *err)
-			return
-		}
-	}
-
-	smResp = getSessionData(id, w)
-	// EXCEPTION: Mobile Storage can be enable if cipherPassword is sent immediatly in the GET request
-	if cipherPassword != "" {
-		backChannelStoring(w, id, cipherPassword, method, smResp)
 		return
 	}
-
-	obj, err := dto.PersistenceFactory(id, smResp, method)
-	if err != nil {
-		writeResponseMessage(w, obj, *err)
-		return
-	}
-
-	log.Println("Current Persistence Object: ", obj)
 	url := redirectToOperation(obj, w)
 	if url != "" {
 		http.Redirect(w, r, url, http.StatusFound)
@@ -63,13 +41,23 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
 
 	method := mux.Vars(r)["method"]
-	dto, err := recieveSessionIdAndPassword(w, r, method)
+	msToken := r.FormValue("msToken")
+
+	dto, _, err := initialEPSetup(w, msToken, method, false)
 	if err != nil {
-		writeResponseMessage(w, dto, *err)
 		return
 	}
 
-	log.Println("Current Persistence Object: ", dto)
+	password := r.FormValue("password")
+	if password == "" {
+		err = model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
+		err.FailedInput = "Password"
+		writeResponseMessage(w, dto, *err)
+		return
+	}
+	sha := utils.HashSUM256(password)
+	dto.Password = sha
+
 	var response *model.HTMLResponse
 	if dto.Method == model.EnvVariables.Store_Method {
 		response, err = services.PersistenceStore(dto)
@@ -107,35 +95,22 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 	msToken := r.FormValue("msToken")
-	smResp, err := sm.ValidateToken(msToken)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(model.Messages.NoMSTokenErrorMsg))
-		return
-	}
-
-	id := smResp.SessionData.SessionID
-	smResp = getSessionData(id, w)
-
 	cipherPassword := getQueryParameter(r, "cipherPassword")
-
 	if model.Test {
 		cipherPassword = utils.HashSUM256(cipherPassword)
 		log.Println(cipherPassword)
 	}
 
-	dto, err := dto.PersistenceFactory(id, smResp, method)
-	log.Println("Current Persistence Object: ", dto)
+	dto, _, err := initialEPSetup(w, msToken, method, true)
+	if err != nil {
+		return
+	}
+
 	dto.Password = cipherPassword
 	if dto.Password == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
-		dto.Response = *err
-		writeBackChannelResponse(dto, w)
-		return
-	}
-	if err != nil {
-		dto.Response = *err
-		writeBackChannelResponse(dto, w)
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
 		return
 	}
 
@@ -143,30 +118,28 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	if dataSstr == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.FailedFoundDataStore)
 		dto.Response = *err
+		sm.UpdateSessionData(dto.ID, err.Message+"!\n"+err.ErrorMessage, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 		writeBackChannelResponse(dto, w)
 		return
 	}
 
 	response, err := services.BackChannelDecryption(dto, dataSstr)
 	if err != nil {
-		log.Println(err)
-		dto.Response = *err
-		writeBackChannelResponse(dto, w)
-		return
-	} else {
-		/*
-			if response.Code == http.StatusOK {
-				rmURL := smResp.SessionData.SessionVariables["RMURL"]
-				log.Println("RMURL: ", rmURL)
-				if rmURL != "" {
-					http.Redirect(w, r, rmURL, http.StatusFound)
-				}
-			}*/
-		dto.Response = *response
-		sm.UpdateSessionData(dto.ID, "finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
-		writeBackChannelResponse(dto, w)
+		if err.FailedInput == "Password" {
+			w.WriteHeader(err.Code)
+			w.Write([]byte(err.Message))
+			return
+		}
 
+		dto.Response = *err
+		sm.UpdateSessionData(dto.ID, err.Message+"!\n"+err.ErrorMessage, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
+
+	} else {
+		dto.Response = *response
+		sm.UpdateSessionData(dto.ID, model.Messages.LoadedDataStore, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 	}
+
+	writeBackChannelResponse(dto, w)
 	return
 }
 
@@ -185,12 +158,13 @@ func backChannelStoring(w http.ResponseWriter, id, cipherPassword, method string
 	response, err := services.BackChannelStorage(obj)
 	if err != nil {
 		obj.Response = *err
-		writeBackChannelResponse(obj, w)
+		sm.UpdateSessionData(obj.ID, err.Message+"!\n"+err.ErrorMessage, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 	} else {
-		sm.UpdateSessionData(obj.ID, "finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 		obj.Response = *response
-		writeBackChannelResponse(obj, w)
+		sm.UpdateSessionData(obj.ID, model.Messages.StoredDataStore, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 	}
+
+	writeBackChannelResponse(obj, w)
 	return
 }
 
@@ -198,7 +172,8 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 
-	if method != "checkQrCodePoll" && method != "qrCodePoll" {
+	if method == "save" {
+
 		log.Println(r.URL.Path)
 		token := getQueryParameter(r, "msToken")
 		smResp, err := sm.ValidateToken(token)
@@ -208,9 +183,7 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 			writeResponseMessage(w, dto, *err)
 			return
 		}
-	}
 
-	if method == "save" {
 		//Downloads File for the localFile System
 		log.Println("save")
 
@@ -225,19 +198,23 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 		id := getQueryParameter(r, "sessionId")
 		smResp := getSessionData(id, w)
+
 		finishedPersealBackChannel := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.FinishedPersealBackChannel]
-		if finishedPersealBackChannel == "finished" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(finishedPersealBackChannel))
-		} else if finishedPersealBackChannel == "not finished" {
-			w.WriteHeader(http.StatusNotFound)
+
+		if finishedPersealBackChannel == "not finished" {
+			w.WriteHeader(http.StatusServiceUnavailable)
 			w.Write([]byte("Operation Not Yet Finished"))
-		} else {
+		} else if finishedPersealBackChannel == "" {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Session Variable Not Set"))
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(finishedPersealBackChannel))
 		}
 		return
+
 	} else if method == "qrCodePoll" {
+
 		id := getQueryParameter(r, "sessionId")
 		op := getQueryParameter(r, "operation")
 
@@ -246,7 +223,13 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 			writeResponseMessage(w, dto, *err)
 		}
 
-		resp := model.BuildResponse(http.StatusOK, respMethod)
+		var resp *model.HTMLResponse
+		if respMethod == model.Messages.LoadedDataStore || respMethod == model.Messages.StoredDataStore {
+			resp = model.BuildResponse(http.StatusOK, respMethod)
+		} else {
+			resp = model.BuildResponse(http.StatusInternalServerError, respMethod)
+		}
+
 		writeResponseMessage(w, dto, *resp)
 		return
 	}
@@ -258,19 +241,9 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 	msToken := getQueryParameter(r, "msToken")
 	tokinfo := getQueryParameter(r, "tokenInfo")
 
-	smResp, err := sm.ValidateToken(msToken)
-	id := smResp.SessionData.SessionID
+	dto, _, err := initialEPSetup(w, msToken, "", false)
 	if err != nil {
-		dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
-		writeResponseMessage(w, dto, *err)
 		return
-	}
-	smResp, err = sm.GetSessionData(id)
-	dto, err := dto.PersistenceFactory(id, smResp)
-	log.Println("Current Persistence Object: ", dto)
-	if err != nil {
-		dto.Response = *err
-		writeBackChannelResponse(dto, w)
 	}
 
 	log.Println("Token to be sent in the ClientCallback: " + tokinfo)
@@ -283,28 +256,18 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
 
 	token := getQueryParameter(r, "msToken")
-	smResp, err := sm.ValidateToken(token)
-	tokenContents := smResp.AdditionalData
-	id := smResp.SessionData.SessionID
 
-	json.Unmarshal([]byte(tokenContents), &smResp)
-	var variables QRVariables
-	json.Unmarshal([]byte(smResp.AdditionalData), &variables)
-
-	smResp = getSessionData(id, w)
-
-	dto, err := dto.PersistenceFactory(id, smResp, variables.Method)
-	log.Println("Current Persistence Object: ", dto)
+	dto, contents, err := initialEPSetup(w, token, "", false)
 	if err != nil {
-		writeResponseMessage(w, dto, *err)
 		return
 	}
-	//TODO
-	/*
-		tok1, tok2 := services.BuildDataOfMSToken(variables.SessionId, "OK", dto.ClientCallbackAddr)
-		log.Println(tok1)
-		log.Println("\n\n", tok2)
-	*/
+
+	var smResp sm.SessionMngrResponse
+	json.Unmarshal([]byte(contents), &smResp)
+	var variables QRVariables
+	json.Unmarshal([]byte(smResp.AdditionalData), &variables)
+	dto.Method = variables.Method
+
 	mobileQRCode(dto, variables, w)
 }
 

@@ -138,7 +138,7 @@
       var sessionId = document.getElementById("id").innerHTML;
       var method = document.getElementById("method").innerHTML;
   
-          const response =  fetch('https://vm.project-seal.eu:8082/per/aux/checkQrCodePoll?sessionId='+sessionId, {
+          const response =  fetch('http://localhost:8082/per/aux/checkQrCodePoll?sessionId='+sessionId, {
             method: 'get',
           }).then((response) => {
             console.log('Fetch - Got response: ', response.status); 
@@ -147,7 +147,7 @@
                 fetchNow();
                 }, 2000);
             }else{       
-              window.location.href='https://vm.project-seal.eu:8082/per/aux/qrCodePoll?sessionId='+sessionId+"&operation="+method
+              window.location.href='http://localhost:8082/per/aux/qrCodePoll?sessionId='+sessionId+"&operation="+method
           } }) 
       };
       fetchNow();

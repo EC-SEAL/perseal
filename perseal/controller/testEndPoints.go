@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -31,6 +32,25 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 	respo, _ := utils.StartSession("")
 	log.Println(respo)
 	model.TestUser = respo.Payload
+
+	type TestStruct struct {
+		SessionId string
+		Desc      string
+	}
+
+	t := TestStruct{
+		SessionId: "123",
+		Desc:      "desc",
+	}
+	t1, _ := json.Marshal(t)
+	log.Println(string(t1))
+	sm.NewAdd(model.TestUser, string(t1), "linkRequest")
+	sm.NewAdd(model.TestUser, "this is yet another linkRequest", "linkRequestButDuplicate")
+	smResp, _ := sm.NewSearch(model.TestUser)
+	cnt := smResp.AdditionalData
+	sm.NewDelete(model.TestUser)
+	sm.NewAdd(model.TestUser, cnt, "dataSet")
+	log.Println(sm.NewSearch(model.TestUser))
 
 	var url string
 	if model.Test {

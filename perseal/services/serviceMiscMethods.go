@@ -28,20 +28,20 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 		dash.AdditionalData = message[0]
 	}
 	b, _ := json.Marshal(dash)
-	var sender string
+	var receiver string
 	if strings.Contains(clientCallbackAddr, "/rm/response") {
-		sender = model.EnvVariables.RM_ID
+		receiver = model.EnvVariables.RM_ID
 	} else {
-		sender = model.EnvVariables.APGW_ID
+		receiver = model.EnvVariables.APGW_ID
 	}
 
 	// TODO: Remove unecessary print
-	log.Println("Sender: " + sender)
-	tok1, err := sm.GenerateToken(sender, model.EnvVariables.Perseal_Sender_Receiver, id, string(b))
+	log.Println("Receiver: " + receiver)
+	tok1, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, receiver, id, string(b))
 	if err != nil {
 		return "", ""
 	}
-	tok2, err := sm.GenerateToken(sender, model.EnvVariables.Perseal_Sender_Receiver, id)
+	tok2, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, receiver, id)
 	if err != nil {
 		return "", ""
 	}
@@ -86,7 +86,6 @@ func ccaFormData(token, clientCallbackAddr string) {
 }
 
 func QRCodePoll(id, op string) (respMethod string, obj dto.PersistenceDTO, err *model.HTMLResponse) {
-	sm.UpdateSessionData(id, "not finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 
 	smResp, err := sm.GetSessionData(id)
 	if err != nil {
@@ -99,11 +98,7 @@ func QRCodePoll(id, op string) (respMethod string, obj dto.PersistenceDTO, err *
 
 	log.Println("Current Persistence Object: ", obj)
 
-	if op == model.EnvVariables.Load_Method {
-		respMethod = model.Messages.LoadedDataStore
-	} else if op == model.EnvVariables.Store_Method {
-		respMethod = model.Messages.StoredDataStore
-	}
+	respMethod = smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.FinishedPersealBackChannel]
 	return
 }
 
