@@ -88,8 +88,10 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 			files, _ := services.GetCloudFileNames(dto)
 			if files == nil || len(files) == 0 {
 				dto.MenuOption = "NoFilesFound"
+				openInternalHTML(dto, w, menuHTML)
+			} else {
+				openInternalHTML(dto, w, insertPasswordHTML)
 			}
-			openInternalHTML(dto, w, menuHTML)
 		} else if dto.Method == model.EnvVariables.Store_Method {
 			openInternalHTML(dto, w, insertPasswordHTML)
 		}
