@@ -46,8 +46,12 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	session.SessionData = sessionData
 
 	obj, _ := dto.PersistenceFactory(id, session)
-
-	sm.NewAdd(obj.ID, "this is linkRequest", "linkRequest")
+	var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+		SessionId: model.TestUser,
+		Type:      "linkRequest",
+		Data:      "this is",
+	}
+	sm.NewAdd(s)
 	url := GetRedirectURL(obj)
 	if url != "" {
 		exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()

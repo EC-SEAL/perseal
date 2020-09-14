@@ -11,7 +11,6 @@ import (
 
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/utils"
-	"github.com/google/uuid"
 )
 
 // SessionMngrResponse is the response to /sm/ValidateToken - it represents the current Users's session
@@ -176,26 +175,15 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse, olderr *model.HTMLR
 
 // NEW API
 
-func NewAdd(sessionId, data, objType string, id ...string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+func NewAdd(s NewUpdateDataRequest) (smResp SessionMngrResponse, err *model.HTMLResponse) {
 	//model.EnvVariables.SMURLs.EndPoint=http://vm.project-seal.eu:9090/sm
 	u, _ := url.ParseRequestURI(model.EnvVariables.SMURLs.EndPoint)
 	u.Path = model.EnvVariables.SMURLs.New_Add
 	url := u.String()
 
-	up := &NewUpdateDataRequest{
-		SessionId: sessionId,
-		Data:      data,
-		Type:      objType,
-	}
-
-	if len(id) > 0 || id != nil {
-		up.ID = id[0]
-	} else {
-		up.ID = uuid.New().String()
-	}
-
 	reqBodyBytes := new(bytes.Buffer)
-	json.NewEncoder(reqBodyBytes).Encode(up)
+	json.NewEncoder(reqBodyBytes).Encode(s)
+	log.Println(reqBodyBytes.String())
 	req, erro := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBodyBytes.Bytes())) // URL-encoded payload
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedGenerateURL+u.Path, erro.Error())

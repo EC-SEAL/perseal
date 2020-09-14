@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -33,25 +32,41 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 	log.Println(respo)
 	model.TestUser = respo.Payload
 
-	type TestStruct struct {
-		SessionId string
-		Desc      string
-	}
+	/*
+		var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+			SessionId: model.TestUser,
+			Type:      "linkRequest",
+			Data:      "this is",
+			ID:        uuid.New().String(),
+		}
+		var s2 sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+			SessionId: model.TestUser,
+			Type:      "linkRequestButDuplicate",
+			Data:      "this is yet another linkRequest",
+			ID:        uuid.New().String(),
+		}
 
-	t := TestStruct{
-		SessionId: "123",
-		Desc:      "desc",
-	}
-	t1, _ := json.Marshal(t)
-	log.Println(string(t1))
-	sm.NewAdd(model.TestUser, string(t1), "linkRequest")
-	sm.NewAdd(model.TestUser, "this is yet another linkRequest", "linkRequestButDuplicate")
-	smResp, _ := sm.NewSearch(model.TestUser)
-	cnt := smResp.AdditionalData
-	sm.NewDelete(model.TestUser)
-	sm.NewAdd(model.TestUser, cnt, "dataSet")
-	log.Println(sm.NewSearch(model.TestUser))
+		sm.NewAdd(s)
+		sm.NewAdd(s2)
+	*/
+	/*
+		var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+			SessionId: model.TestUser,
+			Type:      "ahahachanged",
+			Data:      "this is !!!!!!!!!!!!!!!!!!!",
+			ID:        uuid.New().String(),
+		}
+		sm.NewAdd(s)
+		var s2 sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+			SessionId: model.TestUser,
+			Type:      "new tipo like what?",
+			Data:      "this is smt very coiso",
+			ID:        uuid.New().String(),
+		}
 
+		sm.NewAdd(s2)
+		log.Println(sm.NewSearch(model.TestUser))
+	*/
 	var url string
 	if model.Test {
 		url = "http://localhost:8082"

@@ -46,7 +46,7 @@ type OneDriveCreds struct {
 
 //Review Env Variables Before Deploy
 //IMPORTANT: urls in qr.html
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
