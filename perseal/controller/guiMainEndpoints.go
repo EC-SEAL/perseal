@@ -25,8 +25,6 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	msToken := getQueryParameter(r, "msToken")
 
 	obj, _, err := initialEPSetup(w, msToken, method, false, cipherPassword)
-	log.Println(obj)
-	log.Println(err)
 	if err != nil {
 		return
 	}
@@ -96,9 +94,11 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 	method := mux.Vars(r)["method"]
 	msToken := r.FormValue("msToken")
 	cipherPassword := getQueryParameter(r, "cipherPassword")
+	if cipherPassword == "" {
+		cipherPassword = r.FormValue("cipherPassword")
+	}
 	if model.Test {
 		cipherPassword = utils.HashSUM256(cipherPassword)
-		log.Println(cipherPassword)
 	}
 
 	dto, _, err := initialEPSetup(w, msToken, method, true)
@@ -123,11 +123,20 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dto.ClientCallbackAddr = "https://vm.project-seal.eu:9063/rm/response"
 	response, err := services.BackChannelDecryption(dto, dataSstr)
 	if err != nil {
 		if err.FailedInput == "Password" {
+			err := model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidPassword)
 			w.WriteHeader(err.Code)
 			w.Write([]byte(err.Message))
+
+			// TODO: Does it need to show an iframe to retry the pwd?
+			/*
+				dto.MenuOption = err.FailedInput
+				dto.Response.DataStore = dataSstr
+				openInternalHTML(dto, w, insertPasswordHTML)
+			*/
 			return
 		}
 
@@ -248,7 +257,6 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Token to be sent in the ClientCallback: " + tokinfo)
 	services.ClientCallbackAddrPost(tokinfo, dto.ClientCallbackAddr)
-
 	return
 }
 
@@ -264,7 +272,7 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 
 	var smResp sm.SessionMngrResponse
 	json.Unmarshal([]byte(contents), &smResp)
-	var variables QRVariables
+	var variables model.QRVariables
 	json.Unmarshal([]byte(smResp.AdditionalData), &variables)
 	dto.Method = variables.Method
 

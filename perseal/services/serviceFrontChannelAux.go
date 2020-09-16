@@ -2,16 +2,18 @@ package services
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strings"
+	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
 	"github.com/EC-SEAL/perseal/sm"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/oauth2"
 )
 
@@ -48,6 +50,8 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 	return tok1.AdditionalData, tok2.AdditionalData
 }
 
+// TODO: may not be needed
+/*
 // Polls msToken to CCA
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	if strings.Contains(clientCallbackAddr, "/rm/response") {
@@ -69,8 +73,8 @@ func ccaURLEncoded(token, clientCallbackAddr string) {
 	log.Print("Result from ClientCallbackAddr: ")
 	log.Println(hc.Do(req))
 }
-
-func ccaFormData(token, clientCallbackAddr string) {
+*/
+func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	hc := http.Client{}
 	b := bytes.Buffer{} // buffer to write the request payload into
 	fw := multipart.NewWriter(&b)
@@ -154,4 +158,68 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 		log.Println("Files Found: ", resp.Values)
 	}
 	return
+}
+
+func GenerateCustomURL(dto dto.PersistenceDTO) (url string) {
+	//Defines Contents of QRCode/msToken
+	contents := model.QRVariables{
+		Method:    dto.Method,
+		SessionId: dto.ID,
+	}
+	log.Println("Contents of QRCode/msToken: ", contents)
+
+	// Generate msToken with the variables
+	b, _ := json.Marshal(contents)
+	token, _ := BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr, string(b))
+
+	// Makes request to Custom URL to attempt to open the mobile app.
+	// If unreachable, redirect to EP to generate QRCode
+	timeout := time.Duration(1 * time.Second)
+	client := http.Client{
+		Timeout: timeout,
+	}
+	url = model.EnvVariables.CustomURL + "?msToken=" + token
+	_, err := client.Get(url)
+	if err != nil {
+		log.Println("Custom URL unreachable")
+		url = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
+	}
+
+	// Sets session flag to signify back-channel hasn't finished yet
+	sm.UpdateSessionData(dto.ID, "not finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
+
+	log.Println("Redirecting to: " + url)
+	return
+}
+
+func GenerateQRCode(obj dto.PersistenceDTO, variables model.QRVariables) (dto.PersistenceDTO, *model.HTMLResponse) {
+	if containsEmpty(variables.SessionId, variables.Method) {
+		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode)
+		return obj, resp
+	}
+
+	b, _ := json.Marshal(variables)
+	var receiver string
+	if strings.Contains(obj.ClientCallbackAddr, "/rm/response") {
+		receiver = model.EnvVariables.RM_ID
+	} else {
+		receiver = model.EnvVariables.APGW_ID
+	}
+
+	tok1, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, receiver, obj.ID, string(b))
+
+	//TODO: Contents should have URL, not just the token???
+	qrCodeContents, _ := json.Marshal(tok1.AdditionalData)
+	img, _ := qrcode.Encode(string(qrCodeContents), qrcode.Medium, 380)
+	obj.Image = base64.StdEncoding.EncodeToString(img)
+	return obj, nil
+}
+
+func containsEmpty(stringArray ...string) bool {
+	for _, s := range stringArray {
+		if s == "" {
+			return true
+		}
+	}
+	return false
 }

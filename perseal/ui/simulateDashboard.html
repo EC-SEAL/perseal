@@ -11,7 +11,7 @@
       .footer {
         margin-bottom: 500px;
         overflow: auto;
-        position: fixed;
+        position: relative;
         bottom: 0;
         width: 100%;
         margin: 0;
@@ -148,9 +148,36 @@
         />
       </form>
     </div>
+
+    <div class="center">
+      <form action="/per/load" method="post">
+        <input placeholder="Password" type="password" name="cipherPassword">
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input name="dataStore" type="hidden" value="{{.DataStore}}" />
+        <input
+          type="submit"
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          value="Load Back-Channel"
+        />
+      </form>
+    </div>
+
+    <div class="center">
+      <form action="/per/store" method="get">
+        <input placeholder="Password" type="password" name="cipherPassword">
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          type="submit"
+          class="btn-isolated btn-isolated-primary"
+          style="width: 100%;"
+          value="Store Back-Channel"
+        />
+      </form>
+    </div>
+
     {{end}}
 
-    <p></p>
     <div class="footer">
       <div class="botLogo">
         <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />

@@ -44,6 +44,11 @@ type OneDriveCreds struct {
 	OneDriveRefreshToken string `json:"oneDrivetRefreshToken"`
 }
 
+type QRVariables struct {
+	SessionId string `json:"sessionId"`
+	Method    string `json:"method"`
+}
+
 //Review Env Variables Before Deploy
 //IMPORTANT: urls in qr.html
 var Test = false
@@ -260,6 +265,7 @@ func SetEnvVariables() {
 
 var TestUser string
 var MSToken string
+var DataStore string
 
 func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
 	resp := &HTMLResponse{

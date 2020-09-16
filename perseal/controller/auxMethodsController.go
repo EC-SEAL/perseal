@@ -1,16 +1,10 @@
 package controller
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
-	"time"
-
-	"github.com/skip2/go-qrcode"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -23,11 +17,6 @@ var (
 	insertPasswordHTML = "ui/insertPassword.html"
 )
 
-type QRVariables struct {
-	SessionId string `json:"sessionId"`
-	Method    string `json:"method"`
-}
-
 // ================================== METHODS CALLED AT THE BEGINNING OF THE OPERATIONS ==============================
 
 //Opens HTML of corresponding operation (store or load | local or cloud)
@@ -35,46 +24,16 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url str
 
 	//Mobile UC
 	if dto.PDS == model.EnvVariables.Mobile_PDS {
-		//Defines Contents of QRCode/msToken
-		contents := QRVariables{
-			Method:    dto.Method,
-			SessionId: dto.ID,
-		}
-		log.Println("Contents of QRCode/msToken: ", contents)
-
-		// Generate msToken with the variables
-		b, _ := json.Marshal(contents)
-		token, _ := services.BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr, string(b))
-
-		// Makes request to Custom URL to attempt to open the mobile app.
-		// If unreachable, redirect to EP to generate QRCode
-		timeout := time.Duration(1 * time.Second)
-		client := http.Client{
-			Timeout: timeout,
-		}
-		url = model.EnvVariables.CustomURL + "?msToken=" + token
-		_, err := client.Get(url)
-		if err != nil {
-			log.Println("Custom URL unreachable")
-			url = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
-		}
-
-		// Sets session flag to signify back-channel hasn't finished yet
-		sm.UpdateSessionData(dto.ID, "not finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
-
-		log.Println("Redirecting to: " + url)
+		url = services.GenerateCustomURL(dto)
 		return
-
 		//Local File System UC
 	} else if dto.PDS == model.EnvVariables.Browser_PDS {
-
 		if dto.Method == model.EnvVariables.Load_Method {
 			dto.MenuOption = "BrowserOption"
 			openInternalHTML(dto, w, menuHTML)
 		} else if dto.Method == model.EnvVariables.Store_Method {
 			openInternalHTML(dto, w, insertPasswordHTML)
 		}
-
 		//Cloud UC's
 	} else if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
 		url = services.GetRedirectURL(dto)
@@ -240,55 +199,22 @@ func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
 		w.WriteHeader(dto.Response.Code)
 		w.Write([]byte(dto.Response.Message))
 	}
-
-	var tok string
-	if dto.Response.Code == http.StatusOK {
-		tok, _ = services.BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr)
-		log.Println("Token contains OK message")
-	} else {
-		tok, _ = services.BuildDataOfMSToken(dto.ID, "ERROR", dto.ClientCallbackAddr, "Failure! "+"\n"+dto.Response.Message+"\n"+dto.Response.ErrorMessage)
-		log.Println("Token contains ERROR message")
-	}
-	services.ClientCallbackAddrPost(tok, dto.ClientCallbackAddr)
 }
 
 // ================================== OTHER METHODS ==============================
 
 // Generates QR code and presents it in HTML
-func mobileQRCode(obj dto.PersistenceDTO, variables QRVariables, w http.ResponseWriter) {
-	b, _ := json.Marshal(variables)
-	var receiver string
-	if strings.Contains(obj.ClientCallbackAddr, "/rm/response") {
-		receiver = model.EnvVariables.RM_ID
-	} else {
-		receiver = model.EnvVariables.APGW_ID
-	}
-
-	tok1, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, receiver, obj.ID, string(b))
-
-	//TODO: Contents should have URL, not just the token???
-	qrCodeContents, _ := json.Marshal(tok1.AdditionalData)
-	img, _ := qrcode.Encode(string(qrCodeContents), qrcode.Medium, 380)
-	obj.Image = base64.StdEncoding.EncodeToString(img)
-
-	if containsEmpty(variables.SessionId, variables.Method) {
-		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode)
-		writeResponseMessage(w, obj, *resp)
+func mobileQRCode(obj dto.PersistenceDTO, variables model.QRVariables, w http.ResponseWriter) {
+	var err *model.HTMLResponse
+	obj, err = services.GenerateQRCode(obj, variables)
+	if err != nil {
+		writeResponseMessage(w, obj, *err)
 		return
 	}
 
 	t, _ := template.ParseFiles("ui/qr.html")
 	t.Execute(w, obj)
 	return
-}
-
-func containsEmpty(stringArray ...string) bool {
-	for _, s := range stringArray {
-		if s == "" {
-			return true
-		}
-	}
-	return false
 }
 
 func fetchLocalDataStore(r *http.Request) (body []byte, err *model.HTMLResponse) {

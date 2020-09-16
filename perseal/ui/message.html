@@ -3,7 +3,7 @@
 <html>
   <head>
     <style>
-   .botLogo {
+      .botLogo {
         height: 25%;
         text-align: center;
       }
@@ -23,23 +23,22 @@
         margin: 5 auto;
         margin-left: 5%;
         font-size: 50px;
-        
+
         font-weight: 400;
       }
       h2 {
-        
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
         font-size: 35px;
-        
+
         font-weight: 200;
       }
-      
+
       .center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
     </style>
   </head>
@@ -50,6 +49,7 @@
     {{$code := .Code}}
 
     <div id="ds" type="hidden">{{ .DataStore }}</div>
+    <div id="cca" type="hidden">{{.ClientCallbackAddr}}</div>
 
     {{if (eq $code 200) }}
     <h1>Success!</h1>
@@ -64,7 +64,11 @@
       <input name="msToken" type="hidden" value="{{.MSTokenDownload}}" />
       <input name="token" type="hidden" value="{{.MSTokenRedirect}}" />
       <input name="contents" type="hidden" value="{{.DataStore}}" />
-      <input name="clientCallbackAddr" type="hidden" value="{{.ClientCallbackAddr}}" />
+      <input
+        name="clientCallbackAddr"
+        type="hidden"
+        value="{{.ClientCallbackAddr}}"
+      />
     </form>
     <form id="redirect" action="/per/pollcca" method="get">
       <input name="msToken" type="hidden" value="{{.MSToken}}" />
@@ -79,14 +83,20 @@
 
     <script>
       document.getElementById("ds").style.display = "none";
+      document.getElementById("cca").style.display = "none";
       var ds = document.getElementById("ds").innerHTML;
       if (ds !== "") {
         document.getElementById("form").submit();
       }
       var timer = setTimeout(function () {
-        document.getElementById("redirect").submit();
+        if (
+          document.getElementById("cca").innerHTML.indexOf("/rm/response") != -1
+        ) {
+          document.getElementById("rm").submit();
+        } else  {
+          document.getElementById("redirect").submit();
+        }
       }, 3000);
-      
     </script>
   </body>
 </html>
