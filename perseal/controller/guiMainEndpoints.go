@@ -123,7 +123,6 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto.ClientCallbackAddr = "https://vm.project-seal.eu:9063/rm/response"
 	response, err := services.BackChannelDecryption(dto, dataSstr)
 	if err != nil {
 		if err.FailedInput == "Password" {

@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/externaldrive"
@@ -153,20 +152,13 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	log.Println(sm.NewSearch(dto.ID))
 	sm.NewDelete(dto.ID)
 
-	t := strings.Replace(dataStore.ClearData.(string), "[", "", -1)
-	t = strings.Replace(t, "]", "", -1)
-	t2 := strings.Split(t, "},")
-	for index, element := range t2 {
-		if index != len(t2)-1 {
-			element = element + "}"
-		}
-		var s sm.NewUpdateDataRequest
-		json.Unmarshal([]byte(element), &s)
-		s.SessionId = dto.ID
-		log.Println(s)
-		log.Println("Data: ", s.Data)
-		if s.Data != "" {
-			sm.NewAdd(s)
+	var t2 []sm.NewUpdateDataRequest
+	json.Unmarshal([]byte(dataStore.ClearData.(string)), &t2)
+	for _, element := range t2 {
+		element.SessionId = dto.ID
+		log.Println("Data: ", element.Data)
+		if element.Data != "" {
+			sm.NewAdd(element)
 		}
 	}
 

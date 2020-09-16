@@ -1,7 +1,6 @@
 package services
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -31,7 +30,7 @@ func BackChannelStorage(dto dto.PersistenceDTO) (response, err *model.HTMLRespon
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
-	data, _ := json.Marshal(dataStore)
+	data, _ := dataStore.MarshalWithoutClearText()
 
 	response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
 	response.DataStore = string(data)
