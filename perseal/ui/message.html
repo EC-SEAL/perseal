@@ -74,6 +74,10 @@
       <input name="msToken" type="hidden" value="{{.MSToken}}" />
       <input name="tokenInfo" type="hidden" value="{{.MSTokenRedirect}}" />
     </form>
+    <form id="rm" action="{{.ClientCallbackAddr}}" method="post">
+      <input name="msToken" type="hidden" value="{{.MSTokenRedirect}}" />
+    </form>
+
 
     <div class="footer">
       <div class="botLogo">
