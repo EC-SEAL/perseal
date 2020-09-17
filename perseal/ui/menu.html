@@ -122,6 +122,33 @@
         background-color: #ffcc00;
         border-color: #ffcc00;
       }
+      .tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 500px;
+  background-color: white;
+  color: #003399;
+  text-align: center;
+  border-radius: 8px;
+    border: 1px solid #003399;
+        padding: 0.75rem 0.95rem;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+.size_of_img{
+width:90px}
+      
     </style>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
@@ -175,11 +202,11 @@
       </button>
     </div>
 
-    <div class="center">
-      <button id="exit" class="btn-isolated btn-isolated-primary">
-        <a href="{{.ClientCallbackAddr}}">Exit</a>
-      </button>
-    </div>
+      <form id="exit"action="http://seal.uma.es/seal">
+        <input type="submit"   class="btn outline-primary"
+        style="width: 18.5%; margin-left: 40.75%;" value="Exit" />
+    </form>
+    
 
     <div id="title">
       <h2>
@@ -250,9 +277,8 @@
       <button
         id="goBack"
         style="
-          margin-bottom: 275px;
-          bottom: 0;
-          margin-left: -35%;
+        margin-bottom: -400px;
+        margin-left: -70%;
           position: absolute;
         "
         class="btn-isolated btn-isolated-primary"
@@ -341,11 +367,11 @@
       </button>
     </div>
 
-    <div class="center">
-      <button id="exit" class="btn-isolated btn-isolated-primary">
-        <a href="{{.ClientCallbackAddr}}">Exit</a>
-      </button>
-    </div>
+      <form id="exit" action="http://seal.uma.es/seal">
+        <input type="submit"   class="btn outline-primary"
+        style="width: 18.5%; margin-left: 40.75%;" value="Exit" />
+    </form>
+
 
     <div id="title">
       <h1>Save Your Current Data</h1>
@@ -375,9 +401,8 @@
       <button
         id="goBack"
         style="
-          margin-bottom: 275px;
-          bottom: 0;
-          margin-left: -35%;
+        margin-bottom: -400px;
+        margin-left: -70%;
           position: absolute;
         "
         class="btn-isolated btn-isolated-primary"
@@ -420,22 +445,20 @@
         Load Existing Data
       </button>
     </div>
-
-    <div class="center">
-      <button id="exit" class="btn-isolated btn-isolated-primary">
-        <a href="{{.ClientCallbackAddr}}">Exit</a>
-      </button>
-    </div>
+   
+      <form id="exit"action="http://seal.uma.es/seal">
+        <input type="submit"   class="btn outline-primary"
+          style="width: 18.5%; margin-left: 40.75%;"value="Exit" />
+    </form>
 
     <div id="title">
       <h2>
-        <p>
+        
           A File With Your Data will be downloaded to your Local File System.
-        </p>
-        <p>
-          Check your Browser's definitions if you wish to change your download
-          location.
-        </p>
+          <div class="tooltip"><img class="size_of_img" style="width:20px;height: auto;"src="https://www.iconfinder.com/data/icons/universal-mobile-line-icons-vol-3/48/129-512.png" alt="Image 1" /><span class="tooltiptext">Check your Browser's definitions if you wish to change your download
+            location.</span></div>
+
+      
         <p>
           Insert a Password in order to Encrypt your Data
         </p>
@@ -496,9 +519,8 @@
       <button
         id="goBack"
         style="
-          margin-bottom: 275px;
-          bottom: 0;
-          margin-left: -35%;
+          margin-bottom: -400px;
+          margin-left: -70%;
           position: absolute;
         "
         class="btn-isolated btn-isolated-primary"

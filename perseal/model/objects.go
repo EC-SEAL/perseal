@@ -51,7 +51,7 @@ type QRVariables struct {
 
 //Review Env Variables Before Deploy
 //IMPORTANT: urls in qr.html
-var Test = false
+var Test = true
 
 var EnvVariables struct {
 	Store_Method      string
