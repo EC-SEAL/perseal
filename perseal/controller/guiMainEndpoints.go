@@ -106,20 +106,20 @@ func BackChannelLoading(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dto.Password = cipherPassword
-	if dto.Password == "" {
-		err := model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
-		w.WriteHeader(err.Code)
-		w.Write([]byte(err.Message))
-		return
-	}
-
 	dataSstr := r.PostFormValue("dataStore")
 	if dataSstr == "" {
 		err := model.BuildResponse(http.StatusBadRequest, model.Messages.FailedFoundDataStore)
 		dto.Response = *err
 		sm.UpdateSessionData(dto.ID, err.Message+"!\n"+err.ErrorMessage, model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 		writeBackChannelResponse(dto, w)
+		return
+	}
+
+	dto.Password = cipherPassword
+	if dto.Password == "" {
+		err := model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
+		w.WriteHeader(err.Code)
+		w.Write([]byte(err.Message))
 		return
 	}
 

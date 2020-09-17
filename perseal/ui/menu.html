@@ -555,33 +555,7 @@
       });
     </script>
 
-    {{end}} {{if (eq .MenuOption "GenerateQRCode")}}
-
-    <div class="center">
-      <form action="/per/store/QRcode" method="get">
-        <input name="msToken" type="hidden" value="{{.MSToken}}" />
-        <input
-          type="submit"
-          class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
-          value="Save Your Current Data"
-        />
-      </form>
-    </div>
-
-    <div class="center">
-      <form action="/per/load/QRcode" method="get">
-        <input name="msToken" type="hidden" value="{{.MSToken}}" />
-        <input
-          type="submit"
-          class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
-          value="Load Existing Data"
-        />
-      </form>
-    </div>
     {{end}} 
-
     <div class="footer">
       <div class="botLogo">
         <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />

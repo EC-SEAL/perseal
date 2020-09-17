@@ -34,12 +34,20 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 	log.Println(respo)
 	model.TestUser = respo.Payload
 	/*
+		var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+			SessionId: model.TestUser,
+			Type:      "dataSet",
+			Data:      `{"id":"2d47b5dd-2ea2-4a1d-8fc4-b1756e1ec72a","type":"eduGAIN","categories":null,"issuerId":"This is the user ID.","subjectId":null,"loa":null,"issued":"Wed, 16 Sep 2020 12:59:54 gmt","expiration":null,"attributes":[{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.10","friendlyname":"edupersontargetedid","encoding":null,"language":null,"values":[null]},{"name":"urn:oid:2.5.4.42","friendlyname":"givenname","encoding":null,"language":null,"values":["seal"]},{"name":"urn:oid:0.9.2342.19200300.100.1.3","friendlyname":"mail","encoding":null,"language":null,"values":["seal-test0@example.com"]},{"name":"urn:oid:2.5.4.3","friendlyName":"cn","encoding":null,"language":null,"values":["Tester0 SEAL"]},{"name":"urn:oid:2.5.4.4","friendlyName":"sn","encoding":null,"language":null,"values":["Tester0"]},{"name":"urn:oid:2.16.840.1.113730.3.1.241","friendlyName":"displayName","encoding":null,"language":null,"values":["SEAL tester0"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.6","friendlyname":"edupersonprincipalname","encoding":null,"language":null,"values":["128052@gn-vho.grnet.gr"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.7","friendlyname":"edupersonentitlement","encoding":null,"language":null,"values":["urn:mace:grnet.gr:seal:test"]}],"properties":null}`,
+			ID:        "eIDASeidas.gr/gr/ermis-11076669",
+		}
+
 		var s2 sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
 			SessionId: model.TestUser,
 			Type:      "dataSet",
 			Data:      `{"id":"2d47b5dd-2ea2-4a1d-8fc4-b1756e1ec72a","type":"eduGAIN","categories":null,"issuerId":"This is the user ID.","subjectId":null,"loa":null,"issued":"Wed, 16 Sep 2020 12:59:54 gmt","expiration":null,"attributes":[{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.10","friendlyname":"edupersontargetedid","encoding":null,"language":null,"values":[null]},{"name":"urn:oid:2.5.4.42","friendlyname":"givenname","encoding":null,"language":null,"values":["seal"]},{"name":"urn:oid:0.9.2342.19200300.100.1.3","friendlyname":"mail","encoding":null,"language":null,"values":["seal-test0@example.com"]},{"name":"urn:oid:2.5.4.3","friendlyName":"cn","encoding":null,"language":null,"values":["Tester0 SEAL"]},{"name":"urn:oid:2.5.4.4","friendlyName":"sn","encoding":null,"language":null,"values":["Tester0"]},{"name":"urn:oid:2.16.840.1.113730.3.1.241","friendlyName":"displayName","encoding":null,"language":null,"values":["SEAL tester0"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.6","friendlyname":"edupersonprincipalname","encoding":null,"language":null,"values":["128052@gn-vho.grnet.gr"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.7","friendlyname":"edupersonentitlement","encoding":null,"language":null,"values":["urn:mace:grnet.gr:seal:test"]}],"properties":null}`,
 			ID:        "eduPersonTargetedID",
 		}
+		sm.NewAdd(s)
 		sm.NewAdd(s2)
 	*/
 	/*
