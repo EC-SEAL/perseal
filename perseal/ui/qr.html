@@ -21,7 +21,7 @@
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
-        font-size: 50px;
+        font-size: 35px;
 
         font-weight: 400;
       }
@@ -30,7 +30,7 @@
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
-        font-size: 35px;
+        font-size: 25px;
 
         font-weight: 200;
       }
@@ -79,7 +79,32 @@
       a {
         font-size: 30px;
       }
+
+      
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 500px;
+  background-color: white;
+  color: black;
+  text-align: center;
+  border-radius: 8px;
+    border: 1px solid #003399;
+        padding: 0.75rem 0.95rem;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+.size_of_img{
+width:90px}
     </style>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   </head>
@@ -90,26 +115,29 @@
     <button
     id="btn" type="hidden"></button>
 
-  <div id="id">{{ .ID }}</div>
   <div id="method" type="hidden">{{ .Method }}</div>
 
     {{if (eq .Method "load")}}
     <h1>Load Existing Data</h1>
-    <h2>Scan The Following QR Code using your SEAL Mobile App</h2>
-    <h2>
-      If you don't have the app instaled, it is recommended that you select the
-      "Local File" Option in order to select a file containing your data from
-      your device
-    </h2>
+   
+    <div class="tooltip">
+      <h2>Scan The Following QR Code using your SEAL Mobile App
+      <i class="fa fa-question-circle" style="font-size:24px">
+        <span class="tooltiptext">    If you don't have the app instaled, it is recommended that you select the
+          "Local File" Option in order to select a file containing your data from
+          your device</span></i></h2></div>
+    
     {{end}} {{if (eq .Method "store")}}
     <h1>Save Your Current Data</h1>
-    <h2>Scan The Following QR Code using your SEAL Mobile App</h2>
-    <h2>
-      If you don't have the app instaled, it is recommended that you select the
-      "Local File" Option in order to store your data on a file in your device
-    </h2>
+    <div class="tooltip">
+      
+    <h2>Scan The Following QR Code using your SEAL Mobile App
+      <i class="fa fa-question-circle" style="font-size:24px">
+        <span class="tooltiptext">  If you don't have the app instaled, it is recommended that you select the
+          "Local File" Option in order to store your data on a file in your device.</span></i></h2></div>
+    
     {{end}}
-
+  
     <div
       class="margin-body-log-in-worker"
       style="display: flex; justify-content: center; align-items: center"
@@ -153,10 +181,13 @@
       
     </script>
 
+    
+  <div id="id">{{ .ID }}</div>
+
     <p></p>
     <div class="footer">
       <div class="botLogo">
-        <img src="/ui/en_horizontal_cef_logo_2.png" width="50%" />
+        <img src="/ui/en_horizontal_cef_logo_2.png" width="25%" />
       </div>
     </div>
    
