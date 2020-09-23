@@ -38,6 +38,9 @@ type PersistenceDTO struct {
 	MenuOption string
 	//The QRcode to be shown in the HTML, used in the Mobile implementation
 	Image string
+
+	//The DataStore Filename
+	DataStoreFileName string
 }
 
 // Builds Persistence DTO with its initial values

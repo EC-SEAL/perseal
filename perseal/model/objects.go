@@ -51,7 +51,7 @@ type QRVariables struct {
 
 //Review Env Variables Before Deploy
 //IMPORTANT: urls in qr.html
-var Test = true
+var Test = false
 
 var EnvVariables struct {
 	Store_Method      string
@@ -64,7 +64,7 @@ var EnvVariables struct {
 	Browser_PDS      string
 
 	DataStore_Folder_Name string
-	DataStore_File_Name   string
+	DataStore_File_Ext    string
 
 	Redirect_URL            string
 	CustomURL               string
@@ -173,7 +173,7 @@ func SetEnvVariables() {
 	EnvVariables.Store_Load_Method = os.Getenv("STORE_LOAD_METHOD")
 
 	EnvVariables.DataStore_Folder_Name = os.Getenv("DATASTORE_FOLDER_NAME")
-	EnvVariables.DataStore_File_Name = os.Getenv("DATASTORE_FILE_NAME")
+	EnvVariables.DataStore_File_Ext = os.Getenv("DATASTORE_FILE_EXT")
 
 	EnvVariables.CustomURL = os.Getenv("CUSTOM_URL")
 	EnvVariables.Redirect_URL = os.Getenv("REDIRECT_URL")

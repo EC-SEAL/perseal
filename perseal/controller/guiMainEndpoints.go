@@ -56,6 +56,9 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	sha := utils.HashSUM256(password)
 	dto.Password = sha
 
+	dto.DataStoreFileName = r.FormValue("dataStoreName")
+	sm.UpdateSessionData(dto.ID, dto.DataStoreFileName, "DSFilename")
+
 	var response *model.HTMLResponse
 	if dto.Method == model.EnvVariables.Store_Method {
 		response, err = services.PersistenceStore(dto)
@@ -195,8 +198,9 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		//Downloads File for the localFile System
 		log.Println("save")
 
+		smResp, _ = sm.GetSessionData(smResp.SessionData.SessionID)
 		contents := getQueryParameter(r, "contents")
-		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(model.EnvVariables.DataStore_File_Name))
+		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(smResp.SessionData.SessionVariables["DSFilename"]+model.EnvVariables.DataStore_File_Ext))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		json.NewEncoder(w).Encode(contents)
 

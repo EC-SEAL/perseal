@@ -35,7 +35,7 @@ func storeSessionDataOneDrive(dto dto.PersistenceDTO) (dataStore *externaldrive.
 
 	contents, _ := dataStore.UploadingBlob()
 
-	erro = uploadOneDrive(dataStore, token, contents)
+	erro = uploadOneDrive(dataStore, token, contents, dto.DataStoreFileName)
 
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
@@ -218,7 +218,7 @@ type FolderChildren struct {
 }
 
 // UploadOneDrive - Uploads file to One Drive
-func uploadOneDrive(dataStore *externaldrive.DataStore, oauthToken *oauth2.Token, data []byte) (err error) {
+func uploadOneDrive(dataStore *externaldrive.DataStore, oauthToken *oauth2.Token, data []byte, filename string) (err error) {
 	//if the folder exists, only creats the datastore file
 	fileExists, err := getOneDriveFolder(oauthToken)
 	log.Println(fileExists)
@@ -236,7 +236,7 @@ func uploadOneDrive(dataStore *externaldrive.DataStore, oauthToken *oauth2.Token
 		if err != nil {
 			return
 		}
-		err = createOneDriveFile(oauthToken, folderID, data)
+		err = createOneDriveFile(oauthToken, folderID, filename, data)
 		if err != nil {
 			return
 		}
@@ -245,7 +245,7 @@ func uploadOneDrive(dataStore *externaldrive.DataStore, oauthToken *oauth2.Token
 		if err != nil {
 			return
 		}
-		err = createOneDriveFile(oauthToken, folderID, data)
+		err = createOneDriveFile(oauthToken, folderID, filename, data)
 	}
 	return
 }
@@ -267,8 +267,8 @@ func createOneDriveFolder(token *oauth2.Token) (folderID string, err error) {
 }
 
 // PUT request to create a file in a given folder
-func createOneDriveFile(token *oauth2.Token, folderID string, blob []byte) (err error) {
-	url := model.EnvVariables.OneDriveURLs.Create_File + folderID + ":/" + model.EnvVariables.DataStore_File_Name + ":/content"
+func createOneDriveFile(token *oauth2.Token, folderID, filename string, blob []byte) (err error) {
+	url := model.EnvVariables.OneDriveURLs.Create_File + folderID + ":/" + filename + model.EnvVariables.DataStore_File_Ext + ":/content"
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(blob))
 	if err != nil {
 		return

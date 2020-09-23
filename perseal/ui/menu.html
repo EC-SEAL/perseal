@@ -186,6 +186,7 @@ width:90px}
     <div class="center">
       <form id="normalInsert" action="/per/insertPassword/{{.Method}}" method="post">
         <input placeholder="Password" type="password" name="password">
+        <input placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value={{.MSToken}}>
         <input type="submit" class="btn outline-primary" value="Submit">
       </form>
@@ -229,6 +230,7 @@ width:90px}
     <div class="center">
       <form id="storeForm" action="/per/insertPassword/storeload" method="post">
         <input placeholder="Password" type="password" name="password" />
+        <input placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -279,11 +281,6 @@ width:90px}
     <div class="center">
       <button
         id="goBack"
-        style="
-          margin-bottom: 10%;
-          margin-left: -35%;
-          position: absolute;
-        "
         class="btn-isolated btn-isolated-primary"
       >
         Go Back
@@ -391,6 +388,7 @@ width:90px}
     <div class="center">
       <form id="form" action="/per/insertPassword/storeload" method="post">
         <input placeholder="Password" type="password" name="password" />
+        <input placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -403,11 +401,6 @@ width:90px}
     <div class="center">
       <button
         id="goBack"
-        style="
-          margin-bottom: 10%;
-          margin-left: -35%;
-          position: absolute;
-        "
         class="btn-isolated btn-isolated-primary"
       >
         Go Back
@@ -473,6 +466,7 @@ width:90px}
     <div class="center">
       <form id="storeForm" action="/per/insertPassword/storeload" method="post">
         <input placeholder="Password" type="password" name="password" />
+        <input placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -523,11 +517,6 @@ width:90px}
     <div class="center">
       <button
         id="goBack"
-        style="
-          margin-bottom: 10%;
-          margin-left: -35%;
-          position: absolute;
-        "
         class="btn-isolated btn-isolated-primary"
       >
         Go Back

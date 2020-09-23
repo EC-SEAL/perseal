@@ -26,7 +26,7 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
-	erro = uploadGoogleDrive(dataStore, client)
+	erro = uploadGoogleDrive(dataStore, dto.DataStoreFileName, client)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
 	}
@@ -149,7 +149,7 @@ type FileProps struct {
 }
 
 // UploadGoogleDrive - Uploads file to Google Drive
-func uploadGoogleDrive(ds *externaldrive.DataStore, client *http.Client) (err error) {
+func uploadGoogleDrive(ds *externaldrive.DataStore, filename string, client *http.Client) (err error) {
 	data, err := ds.UploadingBlob()
 	if err != nil {
 		return
@@ -157,7 +157,7 @@ func uploadGoogleDrive(ds *externaldrive.DataStore, client *http.Client) (err er
 
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        model.EnvVariables.DataStore_File_Name,
+		Name:        filename + model.EnvVariables.DataStore_File_Ext,
 		Path:        model.EnvVariables.DataStore_Folder_Name,
 		Blob:        data,
 		ContentType: "application/octet-stream",

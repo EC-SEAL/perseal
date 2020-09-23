@@ -18,7 +18,7 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	ds := &externaldrive.DataStore{}
 	// Initialize Variables
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS || dto.PDS == model.EnvVariables.One_Drive_PDS {
-		ds, err = fetchCloudDataStore(dto, model.EnvVariables.DataStore_File_Name)
+		ds, err = fetchCloudDataStore(dto)
 	} else if dto.PDS == model.EnvVariables.Browser_PDS {
 		ds, err = readLocalFileDataStore(dto.LocalFileBytes)
 	}
@@ -94,16 +94,16 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 }
 
 // Service Method to Fetch the DataStore according to the PDS variable
-func fetchCloudDataStore(dto dto.PersistenceDTO, filename string) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
+func fetchCloudDataStore(dto dto.PersistenceDTO) (dataStore *externaldrive.DataStore, err *model.HTMLResponse) {
 	var file *http.Response
 
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
-		file, err = loadSessionDataGoogleDrive(dto, filename)
+		file, err = loadSessionDataGoogleDrive(dto, dto.DataStoreFileName)
 		if err != nil {
 			return
 		}
 	} else if dto.PDS == model.EnvVariables.One_Drive_PDS {
-		file, err = loadSessionDataOneDrive(dto, filename)
+		file, err = loadSessionDataOneDrive(dto, dto.DataStoreFileName)
 		if err != nil {
 			return
 		}
