@@ -28,7 +28,7 @@ func FrontChannelOperations(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	url := redirectToOperation(obj, w)
+	url := redirectToOperation(obj, w, r)
 	if url != "" {
 		http.Redirect(w, r, url, http.StatusFound)
 	}
@@ -296,7 +296,7 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dto, err = services.UpdateTokenFromCode(dto, code)
-	redirectToOperation(dto, w)
+	redirectToOperation(dto, w, r)
 }
 
 func TestWebDav(w http.ResponseWriter, r *http.Request) {

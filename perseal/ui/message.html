@@ -78,7 +78,6 @@
       <input name="msToken" type="hidden" value="{{.MSTokenRedirect}}" />
     </form>
 
-
     <div class="footer">
       <div class="botLogo">
         <img src="/ui/en_horizontal_cef_logo_2.png" width="25%" />
@@ -97,10 +96,16 @@
           document.getElementById("cca").innerHTML.indexOf("/rm/response") != -1
         ) {
           document.getElementById("rm").submit();
-        } else  {
+        } else {
           document.getElementById("redirect").submit();
         }
       }, 3000);
     </script>
+
+    {{if (eq .Message "Redirecting...")}}
+    <script>
+      window.location =  document.getElementById("cca").innerHTML;  
+    </script>
+    {{end}}
   </body>
 </html>

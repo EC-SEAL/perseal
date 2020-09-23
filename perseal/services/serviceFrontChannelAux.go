@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -160,7 +159,7 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 	return
 }
 
-func GenerateCustomURL(dto dto.PersistenceDTO) (url string) {
+func GenerateCustomURL(dto dto.PersistenceDTO, r *http.Request) (token string) {
 	//Defines Contents of QRCode/msToken
 	contents := model.QRVariables{
 		Method:    dto.Method,
@@ -170,25 +169,17 @@ func GenerateCustomURL(dto dto.PersistenceDTO) (url string) {
 
 	// Generate msToken with the variables
 	b, _ := json.Marshal(contents)
-	token, _ := BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr, string(b))
+	token, _ = BuildDataOfMSToken(dto.ID, "OK", dto.ClientCallbackAddr, string(b))
 
-	// Makes request to Custom URL to attempt to open the mobile app.
-	// If unreachable, redirect to EP to generate QRCode
-	timeout := time.Duration(1 * time.Second)
-	client := http.Client{
-		Timeout: timeout,
-	}
-	url = model.EnvVariables.CustomURL + "?msToken=" + token
-	_, err := client.Get(url)
-	if err != nil {
-		log.Println("Custom URL unreachable")
-		url = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
+	if strings.Contains(r.UserAgent(), "Android") || strings.Contains(r.UserAgent(), "iPhone") || strings.Contains(r.UserAgent(), "iPad") {
+		log.Println("Mobile Device")
+	} else {
+		log.Println("Desktop Device")
 	}
 
 	// Sets session flag to signify back-channel hasn't finished yet
 	sm.UpdateSessionData(dto.ID, "not finished", model.EnvVariables.SessionVariables.FinishedPersealBackChannel)
 
-	log.Println("Redirecting to: " + url)
 	return
 }
 

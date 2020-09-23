@@ -20,12 +20,15 @@ var (
 // ================================== METHODS CALLED AT THE BEGINNING OF THE OPERATIONS ==============================
 
 //Opens HTML of corresponding operation (store or load | local or cloud)
-func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter) (url string) {
+func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter, r *http.Request) (url string) {
 
 	//Mobile UC
 	if dto.PDS == model.EnvVariables.Mobile_PDS {
-		url = services.GenerateCustomURL(dto)
-		return
+		var token string
+		token = services.GenerateCustomURL(dto, r)
+		dto.Response = *model.BuildResponse(http.StatusOK, "Redirecting...")
+		dto.Response.ClientCallbackAddr = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
+		openExternalHTML(dto, w)
 		//Local File System UC
 	} else if dto.PDS == model.EnvVariables.Browser_PDS {
 		if dto.Method == model.EnvVariables.Load_Method {
