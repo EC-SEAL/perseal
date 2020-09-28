@@ -47,11 +47,14 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter, r *http.
 			return
 		}
 		if dto.Method == model.EnvVariables.Load_Method {
-			files, _ := services.GetCloudFileNames(dto)
-			if files == nil || len(files) == 0 {
+			names, times, sizes, _ := services.GetCloudFileNames(dto)
+			if names == nil || len(names) == 0 {
 				dto.MenuOption = "NoFilesFound"
 				openInternalHTML(dto, w, menuHTML)
 			} else {
+				dto.Files.FileList = names
+				dto.Files.SizeList = sizes
+				dto.Files.TimeList = times
 				openInternalHTML(dto, w, insertPasswordHTML)
 			}
 		} else if dto.Method == model.EnvVariables.Store_Method {

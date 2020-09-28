@@ -16,6 +16,13 @@ type HTMLResponse struct {
 	MSTokenDownload    string
 	FailedInput        string
 	ClientCallbackAddr string
+	Files              FilesInfo
+}
+
+type FilesInfo struct {
+	FileList []string
+	TimeList []string
+	SizeList []int64
 }
 
 type TokenResponse struct {

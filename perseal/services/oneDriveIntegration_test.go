@@ -39,7 +39,7 @@ func TestOneDriveService(t *testing.T) {
 	fmt.Println("\n=================Incorrect Fetch Cloud File - Bad Access Token====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
 	obj.OneDriveToken.AccessToken = ""
-	_, err = fetchCloudDataStore(obj, "datastore.seal")
+	_, err = fetchCloudDataStore(obj)
 	if err == nil {
 		fmt.Println(failed)
 		t.Error("Should have thrown error")
@@ -49,7 +49,7 @@ func TestOneDriveService(t *testing.T) {
 
 	fmt.Println("\n=================Correct Fetch Cloud File====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
-	_, err = fetchCloudDataStore(obj, "datastore.seal")
+	_, err = fetchCloudDataStore(obj)
 	if err != nil {
 		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
@@ -58,7 +58,7 @@ func TestOneDriveService(t *testing.T) {
 	}
 
 	fmt.Println("\n=================Correct Fetch Cloud Files====================")
-	files, err := GetCloudFileNames(obj)
+	files, _, _, err := GetCloudFileNames(obj)
 	if err != nil {
 		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)

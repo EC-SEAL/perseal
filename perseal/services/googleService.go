@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/EC-SEAL/perseal/dto"
@@ -26,7 +27,8 @@ func storeSessionDataGoogleDrive(dto dto.PersistenceDTO) (dataStore *externaldri
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedEncryption, erro.Error())
 		return
 	}
-	erro = uploadGoogleDrive(dataStore, dto.DataStoreFileName, client)
+	log.Println(dto.DataStoreFileName + model.EnvVariables.DataStore_File_Ext)
+	erro = uploadGoogleDrive(dataStore, dto.DataStoreFileName+model.EnvVariables.DataStore_File_Ext, client)
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedDataStoreStoringInFile, erro.Error())
 	}
@@ -120,7 +122,7 @@ func getGoogleLinkForDashboardRedirect(id string, config *oauth2.Config) string 
 	return authURL
 }
 
-func getGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
+func getGoogleDriveFiles(client *http.Client) (fileList, timeList []string, sizeList []int64, err error) {
 	service, err := drive.New(client)
 	if err != nil {
 		return
@@ -131,10 +133,16 @@ func getGoogleDriveFiles(client *http.Client) (fileList []string, err error) {
 		return
 	}
 	fileList = make([]string, 0)
+	timeList = make([]string, 0)
+	sizeList = make([]int64, 0)
 	for _, v := range list.Files {
+		log.Println(v)
 		fileList = append(fileList, v.Name)
+		timeList = append(timeList, v.CreatedTime)
+		sizeList = append(sizeList, v.Size)
 	}
 	return
+
 }
 
 // Google Drive Upload Methods
@@ -157,7 +165,7 @@ func uploadGoogleDrive(ds *externaldrive.DataStore, filename string, client *htt
 
 	fp := &FileProps{
 		Id:          ds.ID,
-		Name:        filename + model.EnvVariables.DataStore_File_Ext,
+		Name:        filename,
 		Path:        model.EnvVariables.DataStore_Folder_Name,
 		Blob:        data,
 		ContentType: "application/octet-stream",

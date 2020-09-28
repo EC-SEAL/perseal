@@ -101,7 +101,7 @@ func TestGoogleService(t *testing.T) {
 	obj = preCloudConfig(obj, smResp, "qwerty")
 
 	fmt.Println("\n=================Correct Load GoogleDrive Store====================")
-	ds, err = fetchCloudDataStore(obj, "datastore.seal")
+	ds, err = fetchCloudDataStore(obj)
 	if err != nil {
 		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
@@ -110,7 +110,7 @@ func TestGoogleService(t *testing.T) {
 	}
 
 	fmt.Println("\n=================Incorrect Load GoogleDrive Store - Bad Filename====================")
-	ds, err = fetchCloudDataStore(obj, "datastorewrong.seal")
+	ds, err = fetchCloudDataStore(obj)
 	if err == nil {
 		fmt.Println(failed)
 		t.Error("Should have thrown error")
@@ -119,7 +119,7 @@ func TestGoogleService(t *testing.T) {
 	}
 
 	fmt.Println("\n=================Get Cloud Files====================")
-	files, err := GetCloudFileNames(obj)
+	files, _, _, err := GetCloudFileNames(obj)
 	if err != nil {
 		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
@@ -133,7 +133,7 @@ func TestGoogleService(t *testing.T) {
 
 	fmt.Println("\n=================Get Cloud Files - No Google Drive Creds====================")
 	obj.GoogleAccessCreds.AccessToken = "1234"
-	files, err = GetCloudFileNames(obj)
+	files, _, _, err = GetCloudFileNames(obj)
 	if err == nil {
 		fmt.Println(failed)
 		t.Error("Should have thrown error")

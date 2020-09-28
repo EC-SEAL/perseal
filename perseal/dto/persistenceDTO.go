@@ -41,6 +41,14 @@ type PersistenceDTO struct {
 
 	//The DataStore Filename
 	DataStoreFileName string
+
+	Files FilesInfo
+}
+
+type FilesInfo struct {
+	FileList []string
+	TimeList []string
+	SizeList []int64
 }
 
 // Builds Persistence DTO with its initial values

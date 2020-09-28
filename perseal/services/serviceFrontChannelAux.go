@@ -129,17 +129,25 @@ func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.
 	return
 }
 
-func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLResponse) {
+func GetCloudFileNames(dto dto.PersistenceDTO) (files, times []string, sizes []int64, err *model.HTMLResponse) {
 
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
 		client := getGoogleDriveClient(dto.GoogleAccessCreds)
 		var erro error
-		files, erro = getGoogleDriveFiles(client)
+		filestmp, timestmp, sizestmp, erro := getGoogleDriveFiles(client)
 		if erro != nil {
 			err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFiles+model.EnvVariables.Google_Drive_PDS, erro.Error())
 			return
 		}
+		for i := range filestmp {
+			if filestmp[i] != model.EnvVariables.DataStore_Folder_Name {
+				files = append(files, filestmp[i])
+				times = append(timestmp, timestmp[i])
+				sizes = append(sizestmp, sizestmp[i])
+			}
+		}
 
+		log.Println("Files Found: ", files)
 	} else if dto.PDS == model.EnvVariables.One_Drive_PDS {
 		var token *oauth2.Token
 		token, err = checkOneDriveTokenExpiry(dto.OneDriveToken)
@@ -152,7 +160,9 @@ func GetCloudFileNames(dto dto.PersistenceDTO) (files []string, err *model.HTMLR
 			return
 		}
 		for _, v := range resp.Values {
-			files = append(files, v.Name)
+			if v.Name != model.EnvVariables.DataStore_Folder_Name {
+				files = append(files, v.Name)
+			}
 		}
 		log.Println("Files Found: ", resp.Values)
 	}

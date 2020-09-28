@@ -145,6 +145,12 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	if erro != nil {
 		err = model.BuildResponse(http.StatusBadRequest, model.Messages.InvalidPassword, erro.Error())
 		err.FailedInput = "Password"
+		names, times, sizes, _ := GetCloudFileNames(dto)
+
+		err.Files.FileList = names
+		err.Files.SizeList = sizes
+		err.Files.TimeList = times
+
 		log.Println("Wrong Password")
 		return
 	}

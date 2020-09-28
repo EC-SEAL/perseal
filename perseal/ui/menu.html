@@ -18,6 +18,8 @@
         background-color: #c4c4c4;
       }
       h1 {
+        
+  font: 15px arial, sans-serif;
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
@@ -25,6 +27,8 @@
         font-weight: 400;
       }
       h2 {
+        
+  font: 15px arial, sans-serif;
         text-align: justify;
         margin: 2 auto;
         margin-left: 5%;
@@ -88,6 +92,8 @@
         border-color: #ffcc00;
       }
       .center {
+        
+  font: 15px arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -168,6 +174,31 @@ input[type="text"] {
   border-bottom-width: 2px;
 }
 
+
+table{
+  
+  font: 15px arial, sans-serif;
+  width: 16%;
+  border-collapse: collapse;
+    margin-bottom: 25px;
+    
+}
+
+table, th, td {
+  border: 1px solid black;
+}
+th {
+  background-color: #003399;
+  color: white;
+}
+th, td {
+  padding: 15px;
+  text-align: left;
+}
+
+td:hover, .selected {background-color: #FFCC00;}
+
+
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -201,16 +232,43 @@ input[type="text"] {
     </h2>
     {{end}}
 
+    
+    <div class="center">
+      <table id="table">
+        <tr>
+            <th>Name</th> 
+        </tr>
+          {{ range .Files.FileList}}
+          <tr>  <td>{{ . }}</td> 
+          </tr>
+        {{ end}}
+      </table>
+      </div>
     <div class="center">
       <form id="normalInsert" action="/per/insertPassword/{{.Method}}" method="post">
         <input placeholder="Password" type="password" name="password">
-        <input placeholder="File Name" type="text" name="dataStoreName">
+        
+    <input id="filenameform" placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value={{.MSToken}}>
         <input type="submit" class="btn outline-primary" value="Submit">
       </form>
       </div>
       <h2 style="color: red;"><p>Your Password Is Incorrect</p><p>Please Insert a Valid Password</p></h2>
     {{end}}
+
+
+    <script>
+      
+      $("#normalInsert").hide();
+    document.getElementById("filenameform").style.display = "none";
+    $("#table tr").click(function(){
+     $("#normalInsert").show();
+     $(this).addClass('selected').siblings().removeClass('selected');  
+      var value=$(this).find('td:first').html();
+      console.log(value)    
+      document.getElementById("filenameform").value = value
+    });
+    </script>
 
     {{if (eq .PDS "Browser")}}
     <div class="center">
@@ -245,10 +303,11 @@ input[type="text"] {
       </h2>
     </div>
 
+
+
     <div class="center">
       <form id="storeForm" action="/per/insertPassword/storeload" method="post">
         <input placeholder="Password" type="password" name="password" />
-        <input placeholder="File Name" type="text" name="dataStoreName">
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
@@ -370,6 +429,7 @@ input[type="text"] {
         $("#goBack").hide();
         $("#exit").show();
       });
+
     </script>
     {{end}}
     

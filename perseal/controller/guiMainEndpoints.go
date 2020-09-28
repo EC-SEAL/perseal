@@ -82,6 +82,9 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		dto.Files.FileList = err.Files.FileList
+		dto.Files.SizeList = err.Files.SizeList
+		dto.Files.TimeList = err.Files.TimeList
 		writeResponseMessage(w, dto, *err)
 		return
 	} else if response != nil {
