@@ -43,6 +43,8 @@ type PersistenceDTO struct {
 	DataStoreFileName string
 
 	Files FilesInfo
+
+	UserError string
 }
 
 type FilesInfo struct {

@@ -57,7 +57,7 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 	}
 	b, _ := json.MarshalIndent(ds, "", "\t")
 
-	log.Println("Stored DataStore", string(b))
+	log.Println("Stored DataStore ", string(b))
 	err = validateSignAndDecryptDataStore(ds, dto)
 	b, _ = json.MarshalIndent(ds, "", "\t")
 	log.Println("Decrypted DataStore: ", string(b))
@@ -68,8 +68,11 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID)
 
 	if dto.PDS == model.EnvVariables.Browser_PDS {
-		data, _ := json.Marshal(ds)
-		response.DataStore = string(data)
+		ds.ClearData = ""
+		data2, _ := json.Marshal(ds)
+		response.DataStore = string(data2)
+
+		log.Println("\n\n\n\n", string(response.DataStore))
 	}
 	return
 }

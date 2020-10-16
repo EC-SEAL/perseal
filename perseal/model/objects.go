@@ -264,15 +264,51 @@ func SetEnvVariables() {
 	Messages.FailedRefreshToken = "Error in Request to Refresh Token"
 	Messages.IncompleteQRCode = "Incomplete QR Code"
 
-	Messages.StoredDataStore = "Stored DataStore"
+	Messages.StoredDataStore = "Stored DataStore "
 	Messages.LoadedDataStore = "Loaded DataStore "
 	Messages.PrintedQRCode = "Printed Qr Code"
 
 }
 
+//TODO: Remove this section - SAML SP
+type SEALRetrievedPersonalInformation struct {
+	LoALvl int
+
+	//eIDAS
+	FirstName   string
+	FamilyName  string
+	DateOfBirth string
+
+	//eduGAIN
+	EduPersonAffiliation      string
+	Mail                      string
+	SchacExpiryDate           string
+	Mobile                    string
+	EduPersonPrincipalName    string
+	DisplayName               string
+	Surname                   string
+	GivenName                 string
+	StudyProgram              string
+	EduOrgPostalAddress       string
+	SchacHomeOrganization     string
+	SchacHomeOrganizationType string
+	EduOrgLegalName           string
+	EduOrgLocation            string
+	EduOrgHomePageURI         string
+}
+
+// Client defines if user is logged in or not (from EWP)
+type Client struct {
+	LoggedIn            bool   // True if user is logged in, false otherwise
+	Username            string // Username
+	PersonalInformation SEALRetrievedPersonalInformation
+	Notifications       int // Number of notifications
+}
+
 var TestUser string
 var MSToken string
 var DataStore string
+var PersonalInformation SEALRetrievedPersonalInformation
 
 func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
 	resp := &HTMLResponse{

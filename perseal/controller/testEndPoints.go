@@ -13,15 +13,17 @@ import (
 func SimulateDashboard(w http.ResponseWriter, r *http.Request) {
 
 	type testStruct struct {
-		ID        string
-		MSToken   string
-		DataStore string
+		ID                  string
+		MSToken             string
+		DataStore           string
+		PersonalInformation model.SEALRetrievedPersonalInformation
 	}
 
 	testing := testStruct{
-		ID:        model.TestUser,
-		MSToken:   model.MSToken,
-		DataStore: model.DataStore,
+		ID:                  model.TestUser,
+		MSToken:             model.MSToken,
+		DataStore:           model.DataStore,
+		PersonalInformation: model.PersonalInformation,
 	}
 	t, _ := template.ParseFiles("ui/simulateDashboard.html")
 	t.Execute(w, testing)
@@ -40,16 +42,22 @@ func StartSession(w http.ResponseWriter, r *http.Request) {
 			Data:      `{"id":"2d47b5dd-2ea2-4a1d-8fc4-b1756e1ec72a","type":"eduGAIN","categories":null,"issuerId":"This is the user ID.","subjectId":null,"loa":null,"issued":"Wed, 16 Sep 2020 12:59:54 gmt","expiration":null,"attributes":[{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.10","friendlyname":"edupersontargetedid","encoding":null,"language":null,"values":[null]},{"name":"urn:oid:2.5.4.42","friendlyname":"givenname","encoding":null,"language":null,"values":["seal"]},{"name":"urn:oid:0.9.2342.19200300.100.1.3","friendlyname":"mail","encoding":null,"language":null,"values":["seal-test0@example.com"]},{"name":"urn:oid:2.5.4.3","friendlyName":"cn","encoding":null,"language":null,"values":["Tester0 SEAL"]},{"name":"urn:oid:2.5.4.4","friendlyName":"sn","encoding":null,"language":null,"values":["Tester0"]},{"name":"urn:oid:2.16.840.1.113730.3.1.241","friendlyName":"displayName","encoding":null,"language":null,"values":["SEAL tester0"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.6","friendlyname":"edupersonprincipalname","encoding":null,"language":null,"values":["128052@gn-vho.grnet.gr"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.7","friendlyname":"edupersonentitlement","encoding":null,"language":null,"values":["urn:mace:grnet.gr:seal:test"]}],"properties":null}`,
 			ID:        "eIDASeidas.gr/gr/ermis-11076669",
 		}
-
+	*/ /*
 		var s2 sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
 			SessionId: model.TestUser,
 			Type:      "dataSet",
 			Data:      `{"id":"2d47b5dd-2ea2-4a1d-8fc4-b1756e1ec72a","type":"eduGAIN","categories":null,"issuerId":"This is the user ID.","subjectId":null,"loa":null,"issued":"Wed, 16 Sep 2020 12:59:54 gmt","expiration":null,"attributes":[{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.10","friendlyname":"edupersontargetedid","encoding":null,"language":null,"values":[null]},{"name":"urn:oid:2.5.4.42","friendlyname":"givenname","encoding":null,"language":null,"values":["seal"]},{"name":"urn:oid:0.9.2342.19200300.100.1.3","friendlyname":"mail","encoding":null,"language":null,"values":["seal-test0@example.com"]},{"name":"urn:oid:2.5.4.3","friendlyName":"cn","encoding":null,"language":null,"values":["Tester0 SEAL"]},{"name":"urn:oid:2.5.4.4","friendlyName":"sn","encoding":null,"language":null,"values":["Tester0"]},{"name":"urn:oid:2.16.840.1.113730.3.1.241","friendlyName":"displayName","encoding":null,"language":null,"values":["SEAL tester0"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.6","friendlyname":"edupersonprincipalname","encoding":null,"language":null,"values":["128052@gn-vho.grnet.gr"]},{"name":"urn:oid:1.3.6.1.4.1.5923.1.1.1.7","friendlyname":"edupersonentitlement","encoding":null,"language":null,"values":["urn:mace:grnet.gr:seal:test"]}],"properties":null}`,
 			ID:        "eduPersonTargetedID",
-		}
-		sm.NewAdd(s)
-		sm.NewAdd(s2)
-	*/
+		}*/
+
+	var s3 sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+		SessionId: model.TestUser,
+		Type:      "linkRequest",
+		Data:      `{"id": "_69a510337f266e8d0fbcbd15ab197634114f2d810a","type": "Request","issuer": "project-seal.eu_automatedlink","recipient": null,"inResponseTo": null,"loa": "low","notBefore": "2020-04-16T05:26:29Z","notAfter": "2020-04-16T05:31:29Z", "status": null, "uri":  "urn:mace:project-seal.eu:link:project-seal.eu_automatedlink:low:es/es/53377873w:eidas_es:farago@uji.es:uji.es", "attributes": [ { "name": "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", "friendlyName": "ES/ES/53377873w", "encoding": null, "language": null, "mandatory": true, "values": null }, { "name": "http://eidas.europa.eu/attributes/naturalperson/FirstName", "friendlyName": "FRANCISCO JOSE", "encoding": null, "language": null, "mandatory": true, "values": null }, { "name": "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "friendlyName": "ARAGO MONZONIS", "encoding": null, "language": null, "mandatory": true, "values": null } ], "properties": { "SAML_RelayState": "", "SAML_RemoteSP_RequestId": "_fb9b2627bb634cc7ed98b4f71ee53d93", "SAML_ForceAuthn": true, "SAML_isPassive": false, "SAML_NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified", "SAML_AllowCreate": false, "EIDAS_ProviderName": "AAAAAA_BBBBBB", "EIDAS_IdFormat": null, "EIDAS_SPType": null, "EIDAS_LoA": "http://eidas.europa.eu/LoA/low", "EIDAS_country": null, "NameIDFormat": null, "NameQualifier": null, "NameID": null } }`,
+		ID:        "seal_link_test_bruno",
+	}
+	sm.NewAdd(s3)
+
 	/*
 		var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
 			SessionId: model.TestUser,

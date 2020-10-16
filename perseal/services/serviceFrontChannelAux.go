@@ -32,6 +32,8 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 	var receiver string
 	if strings.Contains(clientCallbackAddr, "/rm/response") {
 		receiver = model.EnvVariables.RM_ID
+	} else if strings.Contains(clientCallbackAddr, "/per/retrieve") {
+		receiver = model.EnvVariables.Perseal_Sender_Receiver
 	} else {
 		receiver = model.EnvVariables.APGW_ID
 	}
@@ -76,6 +78,16 @@ func ccaURLEncoded(token, clientCallbackAddr string) {
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	hc := http.Client{}
 	b := bytes.Buffer{} // buffer to write the request payload into
+
+	//TODO: remove this section - SAML SP
+	if strings.Contains(clientCallbackAddr, "/per/retrieve") {
+		clientCallbackAddr += "?msToken=" + token
+		req, _ := http.NewRequest(http.MethodGet, clientCallbackAddr, nil)
+		log.Println(hc.Do(req))
+
+		return
+	}
+
 	fw := multipart.NewWriter(&b)
 	label, _ := fw.CreateFormField("msToken")
 	label.Write([]byte(token))

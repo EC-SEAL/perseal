@@ -21,6 +21,7 @@ func newRouter() *mux.Router {
 
 	router := mux.NewRouter().StrictSlash(true)
 	rest := router.PathPrefix("/per").Subrouter()
+
 	if model.Test {
 		testRoutes := routes{
 			route{
@@ -42,6 +43,7 @@ func newRouter() *mux.Router {
 				controller.SimulateDashboard,
 			},
 		}
+
 		perRoutes = append(testRoutes, perRoutes...)
 	}
 	for _, route := range perRoutes {
@@ -84,6 +86,35 @@ var perRoutes = routes{
 	},
 
 	//external endpoints
+
+	//TODO: remove this section - SAML SP
+	route{
+		"Recieves Code from Cloud Login to Retrieve the Access Token",
+		"GET",
+		"/testsaml",
+		controller.TestSAML,
+	},
+
+	route{
+		"Recieves Code from Cloud Login to Retrieve the Access Token",
+		"POST",
+		"/testsamlresp",
+		controller.TestSAMLResponse,
+	},
+	route{
+		"Recieves Code from Cloud Login to Retrieve the Access Token",
+		"GET",
+		"/retrieve",
+		controller.RetrieveDSData,
+	},
+
+	route{
+		"Recieves Code from Cloud Login to Retrieve the Access Token",
+		"GET",
+		"/link",
+		controller.Link,
+	},
+
 	route{
 		"Recieves Code from Cloud Login to Retrieve the Access Token",
 		"GET",

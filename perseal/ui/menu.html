@@ -18,8 +18,7 @@
         background-color: #c4c4c4;
       }
       h1 {
-        
-  font: 15px arial, sans-serif;
+        font: 15px arial, sans-serif;
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
@@ -27,8 +26,7 @@
         font-weight: 400;
       }
       h2 {
-        
-  font: 15px arial, sans-serif;
+        font: 15px arial, sans-serif;
         text-align: justify;
         margin: 2 auto;
         margin-left: 5%;
@@ -59,21 +57,19 @@
       }
 
       .btn {
-        text-align: center;
-        margin-top: 25px;
+        border-radius: 25px;
+        padding: 10px;
+        margin-top: 5px;
         margin-bottom: 25px;
         display: block;
         color: #003399;
         text-decoration: none;
         line-height: 1.5;
-        border-radius: 0.25rem;
         background-color: transparent;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-
-        padding: 0.75rem 0.95rem;
         font-weight: 400;
         transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
           border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -92,26 +88,33 @@
         border-color: #ffcc00;
       }
       .center {
-        
-  font: 15px arial, sans-serif;
+        font: 15px arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .right {
+        margin-left: 70%;
+        font: 15px arial, sans-serif;
         display: flex;
         justify-content: center;
         align-items: center;
       }
       .btn-isolated {
+        border-radius: 25px;
+        padding: 10px;
         margin-top: auto;
         margin-bottom: 25px;
         display: block;
         color: #003399;
         text-decoration: none;
         line-height: 1.5;
-        border-radius: 0.25rem;
         background-color: transparent;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        padding: 0.75rem 0.95rem;
         font-weight: 400;
         transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
           border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
@@ -129,79 +132,123 @@
         border-color: #ffcc00;
       }
       .tooltip {
-  position: relative;
-  display: inline-block;
-}
+        position: relative;
+        display: inline-block;
+      }
 
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 500px;
-  background-color: white;
-  color: black;
-  text-align: center;
-  border-radius: 8px;
-    border: 1px solid #003399;
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 500px;
+        background-color: white;
+        color: black;
+        text-align: center;
+        border-radius: 8px;
+        border: 1px solid #003399;
         padding: 0.75rem 0.95rem;
 
         text-decoration: none;
-  /* Position the tooltip */
-  position: absolute;
-  z-index: 1;
-}
+        /* Position the tooltip */
+        position: absolute;
+        z-index: 1;
+      }
 
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-}
-.size_of_img{
-width:90px}
-      
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+      }
+      .size_of_img {
+        width: 90px;
+      }
 
-input[type="text"] {
-  background:transparent;
-  color: mix(#003399, #424242, 70%);
-  font-size: 18px;
-  padding: 10px 10px 10px 0;
-  display: block;
-  border: 2px solid blue;
-  border-radius: 10;
-  -webkit-appearance: none;
-  outline: none;
-  position: relative;
-  border-style: solid;
-  border-top-style: none;
-  border-right-style: none;
-  border-left-style: none;
-  border-bottom-width: 2px;
-}
+      input[type="text"] {
+        background: transparent;
+        color: mix(#003399, #424242, 70%);
+        font-size: 18px;
+        padding: 10px 10px 10px 0;
+        display: block;
+        border: 2px solid blue;
+        border-radius: 10;
+        -webkit-appearance: none;
+        outline: none;
+        position: relative;
+        border-style: solid;
+        border-top-style: none;
+        border-right-style: none;
+        border-left-style: none;
+        border-bottom-width: 2px;
+      }
 
+      table {
+        font: 15px arial, sans-serif;
+        width: 16%;
+        border-collapse: collapse;
+        margin-bottom: 25px;
+      }
 
-table{
-  
-  font: 15px arial, sans-serif;
-  width: 16%;
-  border-collapse: collapse;
-    margin-bottom: 25px;
-    
-}
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+      th {
+        background-color: #003399;
+        color: white;
+      }
+      th,
+      td {
+        padding: 15px;
+        text-align: left;
+      }
 
-table, th, td {
-  border: 1px solid black;
-}
-th {
-  background-color: #003399;
-  color: white;
-}
-th, td {
-  padding: 15px;
-  text-align: left;
-}
+      td:hover,
+      .selected {
+        background-color: #ffcc00;
+      }
 
-td:hover, .selected {background-color: #FFCC00;}
+      .collapsible:after {
+        content: "\002B";
+        color: #003399;
+        font-weight: bold;
+        float: left;
+        margin-left: 5px;
+      }
 
+      .active:after {
+        content: "\2212";
+      }
+      .collapsible {
+        border-radius: 25px;
+        padding: 20px;
+        font-size: 20px;
+        margin-left: 4%;
+        background-color: #ffffff;
+        color: #003399;
+        cursor: pointer;
+        padding: 18px;
+        width: 25%;
+        border: none;
+        text-align: left;
+        outline: none;
+      }
 
+      .active,
+      .collapsible:hover {
+        background-color: #ffcc00;
+      }
+
+      .content {
+        padding: 0 18px;
+        margin-left: 2.9%;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.2s ease-out;
+        background-color: #fff;
+      }
     </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+    />
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   </head>
@@ -209,447 +256,181 @@ td:hover, .selected {background-color: #FFCC00;}
   <body>
     <img class="topLogo" src="/ui/logo.png" height="200px" />
 
-    {{$id := .ID}}
+    {{$id := .ID}} {{if (eq .MenuOption "NoFilesFound")}}
 
-    <div id="choose"><h1>Choose an operation</h1></div>
-
+     
+    {{if (eq .UserError "File")}}
+    <h2 style="color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
+    {{end}} 
     
-{{if or (eq .MenuOption "Password") (eq .MenuOption "File")}}
-    {{if or (eq .PDS "googleDrive") (eq .PDS "oneDrive")}}
-    {{if (eq .Method "load")}}
-    <h1>Load Current Data From a Cloud File</h1>
+    {{if (eq .UserError "Password")}}
+    <h2 style="color: red"><p>Your Password Is Incorrect!</p></h2>
+    {{else}}
+    <h2></h2>
     {{end}}
-    
-    {{if (eq .Method "store")}}
-    <h1>Save Your Current Data</h1>
-    <h2>
-      <p>
-        A File With Your Data will be added to your Cloud Storage.
-      </p>
-      <p>
-       Insert a Password in order to Encrypt your Data
-      </p>
-    </h2>
-    {{end}}
-
-    
-    <div class="center">
-      <table id="table">
-        <tr>
-            <th>Name</th> 
-        </tr>
-          {{ range .Files.FileList}}
-          <tr>  <td>{{ . }}</td> 
-          </tr>
-        {{ end}}
-      </table>
-      </div>
-    <div class="center">
-      <form id="normalInsert" action="/per/insertPassword/{{.Method}}" method="post">
-        <input placeholder="Password" type="password" name="password">
-        
-    <input id="filenameform" placeholder="File Name" type="text" name="dataStoreName">
-        <input name="msToken" type="hidden" value={{.MSToken}}>
-        <input type="submit" class="btn outline-primary" value="Submit">
-      </form>
-      </div>
-      <h2 style="color: red;"><p>Your Password Is Incorrect</p><p>Please Insert a Valid Password</p></h2>
-    {{end}}
-
-
-    <script>
-      
-      $("#normalInsert").hide();
-    document.getElementById("filenameform").style.display = "none";
-    $("#table tr").click(function(){
-     $("#normalInsert").show();
-     $(this).addClass('selected').siblings().removeClass('selected');  
-      var value=$(this).find('td:first').html();
-      console.log(value)    
-      document.getElementById("filenameform").value = value
-    });
-    </script>
-
-    {{if (eq .PDS "Browser")}}
-    <div class="center">
-      <button id="storeAndLoad" class="btn-isolated btn-isolated-primary">
-        Save Your Current Data
-      </button>
+    <div
+      class="center"
+      style="margin-left: 50%; margin-top: -10%; margin-bottom: 5%"
+    >
+      <h1>No Files Found!</h1>
     </div>
-    <div class="center">
-      <button id="loadBrowser" class="btn-isolated btn-isolated-primary">
-        Load Existing Data
-      </button>
-    </div>
-
-      <form id="exit"action="http://seal.uma.es/seal">
-        <input type="submit"   class="btn outline-primary"
-        style="width: 18.5%; margin-left: 40.75%;" value="Exit" />
-    </form>
-    
 
     <div id="title">
-      <h2>
-        <p>
-          A File With Your Data will be downloaded to your Local File System.
-        </p>
-        <p>
-          Check your Browser's definitions if you wish to change your download
-          location.
-        </p>
-        <p>
-          Insert a Password in order to Encrypt your Data
-        </p>
-      </h2>
-    </div>
-
-
-
-    <div class="center">
-      <form id="storeForm" action="/per/insertPassword/storeload" method="post">
-        <input placeholder="Password" type="password" name="password" />
-        <input name="msToken" type="hidden" value="{{.MSToken}}" />
-        <input
-          type="submit"
-          class="btn outline-primary"
-          style="width: 100%;"
-          value="Confirm"
-        />
-      </form>
-    </div>
-
-    <div id="instruction">
-      <h2>
-        <p>Loading User's Data From a Local File</p>
-        <p>Click the following button to select your desired file</p>
-      </h2>
-    </div>
-
-    <div class="center">
-      <form
-        id="loadForm"
-        enctype="multipart/form-data"
-        action="/per/insertPassword/{{.Method}}"
-        method="post"
-      >
-        <label
-          class="btn outline-primary"
-          style="border: 2px solid #003399;"
-          for="file"
-          >Upload</label
-        >
-        <input id="file" type="file" name="file" style="display: none;" />
-        <input
-          id="pass"
-          placeholder="Password"
-          type="password"
-          name="password"
-        />
-        <input name="msToken" type="hidden" value="{{.MSToken}}" />
-        <input
-          id="submit"
-          type="submit"
-          class="btn outline-primary"
-          style="width: 100%;"
-          value="Confirm"
-        />
-      </form>
-    </div>
-    <div class="center">
-      <button
-        id="goBack"
-        class="btn-isolated btn-isolated-primary"
-      >
-        Go Back
-      </button>
-    </div>
-    {{if (eq .MenuOption "File")}}
-    <h2 style="color: red;"><p>Your File Does Not Contain Valid Data!</p></h2>
-    {{end}}
-    
-
-    {{if (eq .MenuOption "Password")}}
-    <h2 style="color: red;"><p>Your Password Is Incorrect!</p></h2>
-    {{end}}
-    <script>
-      $("#storeForm").hide();
-      $("#loadForm").show();
-      $("#title").hide();
-      $("#goBack").show();
-      $("#instruction").show();
-      $("#storeAndLoad").hide();
-      $("#loadBrowser").hide();
-      $("#exit").hide();
-      $("#pass").hide();
-      $("#submit").hide();
-      $("#file").on("change", function () {
-        $("#pass").show();
-        $("#submit").show();
-        var i = $(this).prev("label").clone();
-          var file = $("#file")[0].files[0].name;
-          $(this).prev("label").text(file);
-      });
-      $("#storeAndLoad").on("click", function () {
-        $("#exit").hide();
-        $("#goBack").show();
-        $("#choose").hide();
-        $("#storeAndLoad").hide();
-        $("#loadBrowser").hide();
-        $("#title").show();
-        $("#storeForm").show();
-      });
-      $("#loadBrowser").on("click", function () {
-        $("#instruction").show();
-        $("#exit").hide();
-        $("#goBack").show();
-        $("#choose").hide();
-        $("#storeAndLoad").hide();
-        $("#loadBrowser").hide();
-        $("#loadForm").show();
-        console.log($("#file").val());
-        $("#pass").hide();
-        $("#submit").hide();
-        $("#file").on("change", function () {
-          $("#pass").show();
-          $("#submit").show();
-          console.log($("#file").val());
-          var i = $(this).prev("label").clone();
-          var file = $("#file")[0].files[0].name;
-          $(this).prev("label").text(file);
-        });
-      });
-      $("#goBack").on("click", function () {
-        $("#instruction").hide();
-        $("#storeForm").hide();
-        $("#loadForm").hide();
-        $("#title").hide();
-        $("#choose").show();
-        $("#storeAndLoad").show();
-        $("#loadBrowser").show();
-        $("#goBack").hide();
-        $("#exit").show();
-      });
-
-    </script>
-    {{end}}
-    
-    <script>
-      $("#choose").hide();
-    </script>
-{{end}}
-
-{{if (eq .MenuOption "NoFilesFound")}}
-    <div class="center">
-      <button id="storeAndLoad" class="btn-isolated btn-isolated-primary">
-        Save Your Current Data
-      </button>
-    </div>
-
-      <form id="exit" action="http://seal.uma.es/seal">
-        <input type="submit"   class="btn outline-primary"
-        style="width: 18.5%; margin-left: 40.75%;" value="Exit" />
-    </form>
-
-
-    <div id="title">
-      <h1>Save Your Current Data</h1>
-      <h2>
-        <p>
-          A File With Your Data will be downloaded to your Cloud Storage and Loaded into Your Current Session.
-        </p>
-        <p>
-          Insert a Password in order to Encrypt your Data
-        </p>
-      </h2>
+      <h2>A new file will be downloaded to your Cloud Storage.</h2>
     </div>
 
     <div class="center">
       <form id="form" action="/per/insertPassword/storeload" method="post">
+        <input placeholder="File Name" type="text" name="dataStoreName" />
         <input placeholder="Password" type="password" name="password" />
-        <input placeholder="File Name" type="text" name="dataStoreName">
+
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
           class="btn outline-primary"
-          style="width: 100%;"
+          style="width: 100%"
           value="Submit"
         />
       </form>
     </div>
-    <div class="center">
-      <button
-        id="goBack"
-        class="btn-isolated btn-isolated-primary"
-      >
-        Go Back
-      </button>
-    </div>
 
-    <script>
-      $("#form").hide();
-      $("#title").hide();
-      $("#goBack").hide();
-      $("#storeAndLoad").on("click", function () {
-        $("#choose").hide();
-        $("#storeAndLoad").hide();
-        $("#exit").hide();
-        $("#title").show();
-        $("#form").show();
-        $("#goBack").show();
-      });
-      $("#goBack").on("click", function () {
-        $("#goBack").hide();
-        $("#choose").show();
-        $("#storeAndLoad").show();
-        $("#exit").show();
-        $("#title").hide();
-        $("#form").hide();
-      });
-    </script>
-
-    {{end}} {{if (eq .MenuOption "BrowserOption")}}
-
-    <div class="center">
-      <button id="storeAndLoad" class="btn-isolated btn-isolated-primary">
-        Save Your Current Data
-      </button>
-    </div>
-    <div class="center">
-      <button id="loadBrowser" class="btn-isolated btn-isolated-primary">
-        Load Existing Data
-      </button>
-    </div>
-   
-      <form id="exit"action="http://seal.uma.es/seal">
-        <input type="submit"   class="btn outline-primary"
-          style="width: 18.5%; margin-left: 40.75%;"value="Exit" />
+    <form
+      id="exit"
+      action="http://seal.uma.es/seal"
+      style="margin-top: 5%; margin-bottom: 10%"
+    >
+      <input
+        type="submit"
+        class="btn outline-primary"
+        style="width: 18.5%; margin-left: 4%; color: red; border-color: red"
+        value="Exit to Dashboard"
+      />
     </form>
 
-    <div id="title">
-      <h2>
-        
-          A File With Your Data will be downloaded to your Local File System.
-          <div class="tooltip">
-            <i class="fa fa-question-circle" style="font-size:24px">
-              <span class="tooltiptext">Check your Browser's definitions if you wish to change your download
-                location.</span></i></div>
+    {{end}} 
+    {{if (eq .MenuOption "BrowserOption")}} 
+    
+    {{if (eq .UserError "File")}}
+    <h2 style="color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
+    {{end}} 
+    
+    {{if (eq .UserError "Password")}}
+    <h2 style="color: red"><p>Your Password Is Incorrect!</p></h2>
+    {{else}}
+    <h2></h2>
+    {{end}}
 
-      
-        <p>
-          Insert a Password in order to Encrypt your Data
-        </p>
-      </h2>
-    </div>
-
-    <div class="center">
-      <form id="storeForm" action="/per/insertPassword/storeload" method="post">
-        <input placeholder="Password" type="password" name="password" />
-        <input placeholder="File Name" type="text" name="dataStoreName">
-        <input name="msToken" type="hidden" value="{{.MSToken}}" />
-        <input
-          type="submit"
-          class="btn outline-primary"
-          style="width: 100%;"
-          value="Confirm"
-        />
-      </form>
-    </div>
-
-    <div id="instruction">
+    <button class="collapsible" style="width: 20%">Load Existing Data</button>
+    <div class="content">
       <h2>
         <p>Loading User's Data From a Local File</p>
         <p>Click the following button to select your desired file</p>
       </h2>
-    </div>
-
-    <div class="center">
       <form
         id="loadForm"
         enctype="multipart/form-data"
         action="/per/insertPassword/{{.Method}}"
         method="post"
+        style="height: 200px;"
       >
         <label
+          id="labelForFile"
           class="btn outline-primary"
-          style="border: 2px solid #003399;"
+          style="border: 2px solid #003399; width: 20%; text-align: center"
           for="file"
           >Upload</label
         >
-        <input id="file" type="file" name="file" style="display: none;" />
+        <input id="file" type="file" name="file" style="display: none" />
         <input
-          id="pass"
+          id="passLoad"
           placeholder="Password"
           type="password"
           name="password"
+          style="margin-left: 1%"
         />
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           id="submit"
           type="submit"
           class="btn outline-primary"
-          style="width: 100%;"
+          style="width: 20%"
           value="Confirm"
         />
       </form>
     </div>
-    <div class="center">
-      <button
-        id="goBack"
-        class="btn-isolated btn-isolated-primary"
-      >
-        Go Back
-      </button>
+
+    <button class="collapsible" style="width: 20%">Create New File</button>
+    <div class="content">
+      <h2 style="margin-left: 0.5%">
+        A File With Your Data will be downloaded to your Local File System.
+        <div class="tooltip">
+          <i class="fa fa-question-circle" style="font-size: 24px">
+            <span class="tooltiptext"
+              >Check your Browser's definitions if you wish to change your
+              download location.</span
+            ></i
+          >
+        </div>
+      </h2>
+      <form id="storeForm" action="/per/insertPassword/storeload" method="post">
+        <input placeholder="File Name" type="text" name="dataStoreName" />
+        <input placeholder="Password" type="password" name="password" />
+        <input name="msToken" type="hidden" value="{{.MSToken}}" />
+        <input
+          type="submit"
+          class="btn outline-primary"
+          style="width: 20%"
+          value="Confirm"
+        />
+      </form>
     </div>
 
+    <form
+      id="exit"
+      action="http://seal.uma.es/seal"
+      style="margin-top: 5%; margin-bottom: 10%"
+    >
+      <input
+        type="submit"
+        class="btn outline-primary"
+        style="width: 18.5%; margin-left: 4%; color: red; border-color: red"
+        value="Exit to Dashboard"
+      />
+    </form>
+
     <script>
-      $("#storeForm").hide();
-      $("#loadForm").hide();
-      $("#title").hide();
-      $("#goBack").hide();
-      $("#instruction").hide();
-      $("#storeAndLoad").on("click", function () {
-        $("#exit").hide();
-        $("#goBack").show();
-        $("#choose").hide();
-        $("#storeAndLoad").hide();
-        $("#loadBrowser").hide();
-        $("#title").show();
-        $("#storeForm").show();
-      });
-      $("#loadBrowser").on("click", function () {
-        $("#instruction").show();
-        $("#exit").hide();
-        $("#goBack").show();
-        $("#choose").hide();
-        $("#storeAndLoad").hide();
-        $("#loadBrowser").hide();
-        $("#loadForm").show();
-        console.log($("#file").val());
-        $("#pass").hide();
-        $("#submit").hide();
-        $("#file").on("change", function () {
-          $("#pass").show();
-          $("#submit").show();
-          console.log($("#file").val());
-          var i = $(this).prev("label").clone();
-          var file = $("#file")[0].files[0].name;
-          $(this).prev("label").text(file);
+      var coll = document.getElementsByClassName("collapsible");
+      var i;
+
+      for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function () {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.maxHeight) {
+            content.style.maxHeight = null;
+          } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+          }
         });
-      });
-      $("#goBack").on("click", function () {
-        $("#instruction").hide();
-        $("#storeForm").hide();
-        $("#loadForm").hide();
-        $("#title").hide();
-        $("#choose").show();
-        $("#storeAndLoad").show();
-        $("#loadBrowser").show();
-        $("#goBack").hide();
-        $("#exit").show();
+      }
+    </script>
+
+    <script>
+      $("#passLoad").hide();
+      $("#submit").hide();
+      console.log($("#file").val());
+
+      $("#file").on("change", function () {
+        $("#passLoad").show();
+        $("#submit").show ();
+        console.log($("#file").val());
+        var i = $(this).prev("label").clone();
+        var file = $("#file")[0].files[0].name;
+        $(this).prev("label").text(file);
       });
     </script>
 
-    {{end}} 
+    {{end}}
     <div class="footer">
       <div class="botLogo">
         <img src="/ui/en_horizontal_cef_logo_2.png" width="25%" />

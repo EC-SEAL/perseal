@@ -50,6 +50,7 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter, r *http.
 			names, times, sizes, _ := services.GetCloudFileNames(dto)
 			if names == nil || len(names) == 0 {
 				dto.MenuOption = "NoFilesFound"
+				dto.Files.FileList = names
 				openInternalHTML(dto, w, menuHTML)
 			} else {
 				dto.Files.FileList = names
@@ -162,12 +163,14 @@ func openInternalHTML(obj dto.PersistenceDTO, w http.ResponseWriter, filename st
 //Opens HTML to display event message and makes post request to ClientCallbackAddr
 func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, response model.HTMLResponse) {
 	dto.Response = response
-	dto.MenuOption = response.FailedInput
+	dto.UserError = response.FailedInput
 	dto.Response.ClientCallbackAddr = dto.ClientCallbackAddr
 
 	// If the error that caused the operation can be corrected by the user (wrong password, wrong file, etc), it will reload the HTML
-	if dto.MenuOption != "" {
+	if dto.UserError != "" && dto.PDS == model.EnvVariables.Browser_PDS {
 		openInternalHTML(dto, w, menuHTML)
+	} else if dto.UserError != "" && dto.PDS != model.EnvVariables.Browser_PDS {
+		openInternalHTML(dto, w, insertPasswordHTML)
 	} else {
 		// tok1 contains msToken with info about the perseal operation
 		// tok2 is msToken for the perseal ClientCallbackAddr redirection EP, as a security measure
@@ -201,7 +204,7 @@ func writeResponseMessage(w http.ResponseWriter, dto dto.PersistenceDTO, respons
 
 // Response for the Back-Channel Operations. Generates Token with information of the operation and polls to ClientCallbackAddr
 func writeBackChannelResponse(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	if dto.MenuOption != "BadQR" {
+	if dto.UserError != "BadQR" {
 		w.WriteHeader(dto.Response.Code)
 		w.Write([]byte(dto.Response.Message))
 	}

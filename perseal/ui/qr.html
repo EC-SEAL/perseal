@@ -23,7 +23,7 @@
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
-        font-size: 35px;
+        font-size: 50px;
 
         font-weight: 400;
       }
@@ -123,7 +123,10 @@ width:90px}
   <div id="method" type="hidden">{{ .Method }}</div>
 
     {{if (eq .Method "load")}}
-    <h1>Load Existing Data</h1>
+  
+    <div class="center" style="margin-left: 50%; margin-top: -10%; margin-bottom: 5%;">
+      <h1>Load Existing Data</h1>
+    </div>
    
     <div class="tooltip">
       <h2>Scan The Following QR Code using your SEAL Mobile App
@@ -133,7 +136,10 @@ width:90px}
           your device</span></i></h2></div>
     
     {{end}} {{if (eq .Method "store")}}
-    <h1>Save Your Current Data</h1>
+    <div class="center" style="margin-left: 50%; margin-top: -10%; margin-bottom: 5%;">
+  
+      <h1>Save Your Current Data</h1>
+    </div>
     <div class="tooltip">
       
     <h2>Scan The Following QR Code using your SEAL Mobile App

@@ -3,7 +3,7 @@
 <html>
   <head>
     <style>
-     .botLogo {
+      .botLogo {
         height: 25%;
         text-align: center;
       }
@@ -18,13 +18,12 @@
         background-color: #c4c4c4;
       }
       h1 {
-        
-  font: 15px arial, sans-serif;
+        font: 15px arial, sans-serif;
         text-align: justify;
         margin: 5 auto;
         margin-left: 5%;
         font-size: 50px;
-        
+
         font-weight: 400;
       }
 
@@ -50,32 +49,52 @@
         border-bottom-width: 2px;
       }
       .center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
       .btn-isolated {
+        border-radius: 25px;
+        padding: 10px;
+        margin-top: 5px;
+        margin-bottom: 25px;
+        display: block;
+        color: #003399;
+        text-decoration: none;
+        line-height: 1.5;
+        background-color: transparent;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        font-weight: 400;
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      }
+      .btn-coll {
+        border-radius: 25px;
+        padding: 10px;
         margin-top: auto;
         margin-bottom: 25px;
         display: block;
         color: #003399;
         text-decoration: none;
         line-height: 1.5;
-        border-radius: 0.25rem;
         background-color: transparent;
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
-        padding: 0.75rem 0.95rem;
         font-weight: 400;
+
         transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
           border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        border: none;
       }
 
       .btn-isolated-primary {
         width: 18.5%;
-        font-size: 25px;
+        font-size: 18px;
         color: #003399;
         border-color: #003399;
       }
@@ -85,33 +104,158 @@
         background-color: #ffcc00;
         border-color: #ffcc00;
       }
+
+      .collapsible:after {
+        content: "\002B";
+        color: #003399;
+        font-weight: bold;
+        float: left;
+        margin-left: 5px;
+      }
+
+      .active:after {
+        content: "\2212";
+      }
+      .collapsible {
+        border-radius: 25px;
+        padding: 20px;
+        font-size: 20px;
+        margin-left: 1.25%;
+        background-color: #ffffff;
+        color: #003399;
+        cursor: pointer;
+        padding: 18px;
+        width: 25%;
+        border: none;
+        text-align: left;
+        outline: none;
+      }
+
+      .active,
+      .collapsible:hover {
+        background-color: #ffcc00;
+      }
+
+      .content {
+        padding: 0 18px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.2s ease-out;
+        background-color: #fff;
+      }
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
   </head>
 
   <body>
-    <img class="topLogo" src="/ui/logo.png" height="200px" />
+    <img class="topLogo" src="/ui/logo.png" height="160px" />
 
-    <h1>PERSISTENCE MODULE</h1>
-    <div class="center">
+    <div class="center" style="margin-left: 50%; margin-top: -10%">
+      <h1>PERSISTENCE MODULE</h1>
+    </div>
+
+    <div class="center" style="margin-top: 5%">
       <form action="/per/test/session" method="get">
         <input
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           type="submit"
           value="New Session"
         />
       </form>
     </div>
 
+    <button class="collapsible" style="width: 20%">Test SAML SP</button>
+    <div class="content">
+      <form action="/per/testsaml" method="get">
+        <input name="source" type="hidden" value="eIDAS" />
+        <input
+          class="btn-coll btn-isolated-primary"
+          style="width: 20%"
+          type="submit"
+          value="eIDAS"
+        />
+      </form>
+      <form action="/per/testsaml" method="get">
+        <input name="source" type="hidden" value="eduGAIN" />
+        <input
+          class="btn-coll btn-isolated-primary"
+          style="margin-top: -2.1%; width: 20%"
+          type="submit"
+          value=" eduGAIN"
+        />
+      </form> 
+      <form action="/per/link" method="get">
+        <input name="source" type="hidden" value="eIDAS" />
+        <input name="id" type="hidden" value="{{.ID}}" />
+        <input
+          class="btn-coll btn-isolated-primary"
+          style="margin-top: -2.1%; width: 20%"
+          type="submit"
+          value="Link With eIDAS"
+        />
+      </form>
+      <form action="/per/link" method="get">
+        <input name="source" type="hidden" value="eduGAIN" />
+        <input name="id" type="hidden" value="{{.ID}}" />
+        <input
+          class="btn-coll btn-isolated-primary"
+          style="margin-top: -2.1%; width: 20%"
+          type="submit"
+          value="Link With eduGAIN"
+        />
+      </form>
+    </div>
+
+    <script>
+      var coll = document.getElementsByClassName("collapsible");
+      var i;
+
+      for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function () {
+          this.classList.toggle("active");
+          var content = this.nextElementSibling;
+          if (content.style.maxHeight) {
+            content.style.maxHeight = null;
+          } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+          }
+        });
+      }
+    </script>
+
     {{if not (eq .ID "")}}
 
     <h1>Current SessionId {{ .ID }}</h1>
 
+    <p>First Name: {{.PersonalInformation.FirstName}}</p>
+    <p>FamilyName: {{.PersonalInformation.FamilyName}}</p>
+    <p>DateOfBirth:{{.PersonalInformation.DateOfBirth}}</p>
+    <p>EduPersonAffiliation:{{.PersonalInformation.EduPersonAffiliation}}</p>
+    <p>Mail: {{.PersonalInformation.Mail}}</p>
+    <p>SchacExpiryDate: {{.PersonalInformation.SchacExpiryDate}}</p>
+    <p>Mobile: {{.PersonalInformation.Mobile}}</p>
+    <p>
+      EduPersonPrincipalName: {{.PersonalInformation.EduPersonPrincipalName}}
+    </p>
+    <p>DisplayName: {{.PersonalInformation.DisplayName}}</p>
+    <p>Surname: {{.PersonalInformation.Surname}}</p>
+    <p>GivenName: {{.PersonalInformation.GivenName}}</p>
+    <p>StudyProgram: {{.PersonalInformation.StudyProgram}}</p>
+    <p>EduOrgPostalAddress: {{.PersonalInformation.EduOrgPostalAddress}}</p>
+    <p>SchacHomeOrganization: {{.PersonalInformation.SchacHomeOrganization}}</p>
+    <p>
+      SchacHomeOrganizationType:
+      {{.PersonalInformation.SchacHomeOrganizationType}}
+    </p>
+    <p>EduOrgLegalName: {{.PersonalInformation.EduOrgLegalName}}</p>
+    <p>EduOrgLocation: {{.PersonalInformation.EduOrgLocation}}</p>
+    <p>EduOrgHomePageURI: {{.PersonalInformation.EduOrgHomePageURI}}</p>
+
     <div class="center">
       <form action="/per/test/token" method="get">
         <label for="method">Choose a method:</label>
-        <select style="margin-bottom: 25px;" name="method" id="method">
+        <select style="margin-bottom: 25px" name="method" id="method">
           <option value="googleDrive">Google Drive</option>
           <option value="oneDrive">OneDrive</option>
           <option value="Browser">Local File System</option>
@@ -119,7 +263,7 @@
         </select>
         <input
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           type="submit"
           value="New Token"
         />
@@ -133,7 +277,7 @@
         <input
           type="submit"
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           value="Store"
         />
       </form>
@@ -145,7 +289,7 @@
         <input
           type="submit"
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           value="Load"
         />
       </form>
@@ -153,13 +297,13 @@
 
     <div class="center">
       <form action="/per/load" method="post">
-        <input placeholder="Password" type="password" name="cipherPassword">
+        <input placeholder="Password" type="password" name="cipherPassword" />
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input name="dataStore" type="hidden" value="{{.DataStore}}" />
         <input
           type="submit"
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           value="Load Back-Channel"
         />
       </form>
@@ -167,12 +311,12 @@
 
     <div class="center">
       <form action="/per/store" method="get">
-        <input placeholder="Password" type="password" name="cipherPassword">
+        <input placeholder="Password" type="password" name="cipherPassword" />
         <input name="msToken" type="hidden" value="{{.MSToken}}" />
         <input
           type="submit"
           class="btn-isolated btn-isolated-primary"
-          style="width: 100%;"
+          style="width: 100%"
           value="Store Back-Channel"
         />
       </form>
