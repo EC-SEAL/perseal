@@ -40,7 +40,8 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 
 	// TODO: Remove unecessary print
 	log.Println("Receiver: " + receiver)
-	tok1, err := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, receiver, id, string(b))
+	tok1, err := sm.GenerateTokenWithPayload(model.EnvVariables.Perseal_Sender_Receiver, receiver, id, string(b))
+	log.Println(tok1)
 	if err != nil {
 		return "", ""
 	}

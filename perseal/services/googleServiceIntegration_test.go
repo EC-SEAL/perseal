@@ -46,7 +46,7 @@ func InitIntegration(platform string) dto.PersistenceDTO {
 	session.SessionData = sessionData
 
 	obj, _ := dto.PersistenceFactory(id, session)
-	var s sm.NewUpdateDataRequest = sm.NewUpdateDataRequest{
+	var s sm.RequestParameters = sm.RequestParameters{
 		SessionId: model.TestUser,
 		Type:      "linkRequest",
 		Data:      "this is",

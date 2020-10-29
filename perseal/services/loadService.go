@@ -159,9 +159,9 @@ func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto
 	}
 
 	log.Println(sm.NewSearch(dto.ID))
-	sm.NewDelete(dto.ID)
+	sm.StartSession(dto.ID)
 
-	var t2 []sm.NewUpdateDataRequest
+	var t2 []sm.RequestParameters
 	json.Unmarshal([]byte(dataStore.ClearData.(string)), &t2)
 	for _, element := range t2 {
 		element.SessionId = dto.ID

@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -40,22 +41,20 @@ func PrepareRequestHeaders(req *http.Request, url string) (*http.Request, error)
 	host := strings.SplitN(strings.SplitN(url, "://", 2)[1], "/", 2)[0]
 
 	var sha256value [32]byte
-	//verifies request method to fomrulate Digest
-	if req.Method == http.MethodPost {
+	b := req.Body
+	log.Println("Body Of Request: ", b)
+	if b == nil {
+		sha256value = sha256.Sum256([]byte{})
+	} else {
 		y, err := req.GetBody()
-
 		if err != nil {
 			return nil, err
 		}
-
 		x, err := ioutil.ReadAll(y)
-
 		if err != nil {
 			return nil, err
 		}
 		sha256value = sha256.Sum256(x)
-	} else if req.Method == http.MethodGet {
-		sha256value = sha256.Sum256([]byte{})
 	}
 
 	slicedSHA := sha256value[:]

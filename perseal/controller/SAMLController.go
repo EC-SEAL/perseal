@@ -40,7 +40,7 @@ func TestSAML(w http.ResponseWriter, r *http.Request) {
 	keyPair, key := loadCertificates()
 
 	// TODO: To switch the SSO url when eIDAS and eduGAIN nodes are configured
-	data, erro := services.MakeSAMLRequest(key, keyPair, SSOUrlTest.String(), source, "")
+	data, erro := services.MakeSAMLRequest(key, keyPair, SSOurl.String(), source, "")
 	if erro != nil {
 		w.WriteHeader(erro.Code)
 		w.Write([]byte(erro.Message))
@@ -133,7 +133,7 @@ func RetrieveDSData(w http.ResponseWriter, r *http.Request) {
 	// parses the contents of the msToken to a id-type-data struct
 	var i interface{}
 	i = services.UnMarshallJson(link.AdditionalData, "data")
-	linkRequestData := i.(sm.NewUpdateDataRequest).Data
+	linkRequestData := i.(sm.RequestParameters).Data
 
 	user, err := services.HandleLinkRequest(keyPair, encodedXML, linkRequestData)
 	if err != nil {

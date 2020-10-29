@@ -310,7 +310,7 @@ func UnMarshallJson(s, t string) interface{} {
 	}
 
 	if t == "data" {
-		var d sm.NewUpdateDataRequest
+		var d sm.RequestParameters
 		json.Unmarshal(jsonM, &d)
 		return d
 	} else if t == "linkRequest" {

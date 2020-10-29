@@ -115,14 +115,16 @@ var EnvVariables struct {
 	}
 
 	SMURLs struct {
-		EndPoint            string
-		Generate_Token      string
-		Validate_Token      string
-		Get_Session_Data    string
-		Update_Session_Data string
-		New_Add             string
-		New_Search          string
-		New_Delete          string
+		EndPoint                    string
+		Generate_Token              string
+		Validate_Token              string
+		Get_Session_Data            string
+		Update_Session_Data         string
+		New_Add                     string
+		New_Search                  string
+		New_Delete                  string
+		Start_Session               string
+		Generate_Token_With_Payload string
 	}
 }
 
@@ -222,6 +224,8 @@ func SetEnvVariables() {
 	EnvVariables.SMURLs.Validate_Token = os.Getenv("VALIDATE_TOKEN")
 	EnvVariables.SMURLs.Get_Session_Data = os.Getenv("GET_SESSION_DATA")
 	EnvVariables.SMURLs.Update_Session_Data = os.Getenv("UPDATE_SESSION_DATA")
+	EnvVariables.SMURLs.Start_Session = os.Getenv("START_SESSION")
+	EnvVariables.SMURLs.Generate_Token_With_Payload = os.Getenv("GENERATE_TOKEN_WITH_PAYLOAD")
 
 	EnvVariables.TestURLs.APIGW_Endpoint = "https://vm.project-seal.eu:9154"
 

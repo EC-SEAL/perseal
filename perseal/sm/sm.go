@@ -31,7 +31,7 @@ type UpdateDataRequest struct {
 	VariableName string `json:"variableName"`
 }
 
-type NewUpdateDataRequest struct {
+type RequestParameters struct {
 	Data      string `json:"data"`
 	SessionId string `json:"sessionId"`
 	Type      string `json:"type"`
@@ -175,7 +175,71 @@ func ValidateSessionMngrResponse(smResp SessionMngrResponse, olderr *model.HTMLR
 
 // NEW API
 
-func NewAdd(s NewUpdateDataRequest) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+func GenerateTokenWithPayload(receiver, sender, sessionId, data string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+	//model.EnvVariables.SMURLs.EndPoint=http://vm.project-seal.eu:9090/sm
+	u, _ := url.ParseRequestURI(model.EnvVariables.SMURLs.EndPoint)
+	u.Path = model.EnvVariables.SMURLs.Generate_Token_With_Payload
+	url := u.String()
+
+	up := &RequestParameters{
+		SessionId: sessionId,
+		Data:      data,
+	}
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(up)
+
+	req, erro := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBodyBytes.Bytes()))
+	if erro != nil {
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedGenerateURL+u.Path, erro.Error())
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	q := req.URL.Query()
+	q.Add("sender", sender)
+	q.Add("receiver", receiver)
+	q.Add("sessionId", sessionId)
+	req.URL.RawQuery = q.Encode()
+
+	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("Generate Token With Payload Operation Successful")
+	}
+	return
+}
+
+func StartSession(sessionId string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+	//model.EnvVariables.SMURLs.EndPoint=http://vm.project-seal.eu:9090/sm
+	u, _ := url.ParseRequestURI(model.EnvVariables.SMURLs.EndPoint)
+	u.Path = model.EnvVariables.SMURLs.Start_Session
+	url := u.String()
+
+	up := &RequestParameters{
+		SessionId: sessionId,
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(up)
+
+	var req *http.Request
+	var erro error
+
+	req, erro = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBodyBytes.Bytes()))
+
+	if erro != nil {
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedGenerateURL+u.Path, erro.Error())
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	smResp, err = smRequest(req, url)
+	if err == nil {
+		log.Println("New Session Operation Successful")
+	}
+	return
+}
+
+func NewAdd(s RequestParameters) (smResp SessionMngrResponse, err *model.HTMLResponse) {
 	//model.EnvVariables.SMURLs.EndPoint=http://vm.project-seal.eu:9090/sm
 	u, _ := url.ParseRequestURI(model.EnvVariables.SMURLs.EndPoint)
 	u.Path = model.EnvVariables.SMURLs.New_Add
@@ -183,7 +247,6 @@ func NewAdd(s NewUpdateDataRequest) (smResp SessionMngrResponse, err *model.HTML
 
 	reqBodyBytes := new(bytes.Buffer)
 	json.NewEncoder(reqBodyBytes).Encode(s)
-	log.Println(reqBodyBytes.String())
 	req, erro := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBodyBytes.Bytes())) // URL-encoded payload
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedGenerateURL+u.Path, erro.Error())
@@ -191,6 +254,7 @@ func NewAdd(s NewUpdateDataRequest) (smResp SessionMngrResponse, err *model.HTML
 	}
 
 	req.Header.Add("Content-Type", "application/json")
+	log.Println(s)
 	smResp, err = smRequest(req, url)
 	if err == nil {
 		log.Println("Added Entry to DataStore")
@@ -198,6 +262,8 @@ func NewAdd(s NewUpdateDataRequest) (smResp SessionMngrResponse, err *model.HTML
 	return
 
 }
+
+/*
 
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
 func NewDelete(sessionId string, id ...string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
@@ -208,7 +274,7 @@ func NewDelete(sessionId string, id ...string) (smResp SessionMngrResponse, err 
 
 	var reqBodyBytes *bytes.Buffer
 	if len(id) > 0 || id != nil {
-		up := &NewUpdateDataRequest{
+		up := &RequestParameters{
 			SessionId: sessionId,
 			ID:        id[0],
 		}
@@ -235,15 +301,27 @@ func NewDelete(sessionId string, id ...string) (smResp SessionMngrResponse, err 
 	}
 	return
 }
-
+*/
 // GetSessionData - SessionManager function where a variable or the whole session object is retrieved. Responds by code:OK, sessionData:{sessionId: the session, sessioVarialbes: map of variables,values}
-func NewSearch(sessionId string, variableName ...string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
+func NewSearch(sessionId string, typeValue ...string) (smResp SessionMngrResponse, err *model.HTMLResponse) {
 	//model.EnvVariables.SMURLs.EndPoint=http://vm.project-seal.eu:9090/sm
 	u, _ := url.ParseRequestURI(model.EnvVariables.SMURLs.EndPoint)
 	u.Path = model.EnvVariables.SMURLs.New_Search
 	url := u.String()
 
-	req, erro := http.NewRequest(http.MethodGet, url, nil) // URL-encoded payload
+	up := &RequestParameters{
+		Type:      "",
+		SessionId: sessionId,
+	}
+	if len(typeValue) > 0 || typeValue != nil {
+		up.Type = typeValue[0]
+	}
+
+	reqBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(reqBodyBytes).Encode(up)
+
+	req, erro := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqBodyBytes.Bytes()))
+	req.Header.Add("Content-Type", "application/json")
 	if erro != nil {
 		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.FailedGenerateURL+u.Path, erro.Error())
 		return
@@ -252,10 +330,8 @@ func NewSearch(sessionId string, variableName ...string) (smResp SessionMngrResp
 	q := req.URL.Query()
 	q.Add(model.EnvVariables.SessionVariables.SessionId, sessionId)
 
-	if len(variableName) > 0 || variableName != nil {
-		q.Add("type", variableName[0])
-	}
 	req.URL.RawQuery = q.Encode()
+
 	smResp, err = smRequest(req, url)
 	if err == nil {
 		log.Println("Search Operation Successful")
