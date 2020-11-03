@@ -231,14 +231,14 @@ func HandleLinkRequest(keyPair tls.Certificate, encodedXML, linkRequestData stri
 	pID := response.GetAttribute("PersonIdentifier")
 	log.Println(pID)
 	if pID != "" && !containseIDAS {
-		err = model.BuildResponse(http.StatusBadRequest, "Link Request does Not Contain a eIDAS link")
+		err = model.BuildResponse(http.StatusBadRequest, "Link Request does Not Contain a eIDAS link", "")
 		return
 	}
 
 	homeOrg := response.GetAttribute("schacHomeOrganization")
 	log.Println(homeOrg)
 	if homeOrg != "" && !containseduGAIN {
-		err = model.BuildResponse(http.StatusBadRequest, "Link Request does Not Contain a eduGAIN link")
+		err = model.BuildResponse(http.StatusBadRequest, "Link Request does Not Contain a eduGAIN link", "")
 		return
 	}
 

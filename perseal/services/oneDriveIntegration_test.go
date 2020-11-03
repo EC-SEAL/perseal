@@ -17,6 +17,7 @@ func TestOneDriveService(t *testing.T) {
 
 	fmt.Println("\n=================Correct OneDrive Store====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
+	obj.DataStoreFileName = "dsTest0"
 	_, err := storeCloudData(obj)
 	if err != nil {
 		fmt.Println(failed)
@@ -49,6 +50,7 @@ func TestOneDriveService(t *testing.T) {
 
 	fmt.Println("\n=================Correct Fetch Cloud File====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
+	obj.DataStoreFileName = "dsTest0.seal"
 	_, err = fetchCloudDataStore(obj)
 	if err != nil {
 		fmt.Println(failed)
@@ -82,6 +84,8 @@ func TestOneDriveService(t *testing.T) {
 
 	fmt.Println("\n=================Correct Persistence Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
+
+	obj.DataStoreFileName = "dsTest0.seal"
 	_, erro = PersistenceLoad(obj)
 	if erro != nil {
 		fmt.Println(failed)

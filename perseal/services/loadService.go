@@ -35,7 +35,7 @@ func PersistenceLoad(dto dto.PersistenceDTO) (response, err *model.HTMLResponse)
 	b, _ := json.MarshalIndent(ds, "", "\t")
 	log.Println("Decrypted DataStore: ", string(b))
 
-	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID)
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID, dto.ID)
 	return
 }
 
@@ -65,7 +65,7 @@ func PersistenceStoreAndLoad(dto dto.PersistenceDTO) (response, err *model.HTMLR
 		return
 	}
 
-	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID)
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+ds.ID, dto.ID)
 
 	if dto.PDS == model.EnvVariables.Browser_PDS {
 		ds.ClearData = ""
@@ -90,7 +90,7 @@ func BackChannelDecryption(dto dto.PersistenceDTO, dataSstr string) (response, e
 	b, _ := json.MarshalIndent(dataStore, "", "\t")
 	data, _ := json.Marshal(string(b))
 
-	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+dataStore.ID)
+	response = model.BuildResponse(http.StatusOK, model.Messages.LoadedDataStore+dataStore.ID, dto.ID)
 	//response.ClientCallbackAddr = dto.ClientCallbackAddr
 	response.DataStore = string(data)
 	return
@@ -137,7 +137,7 @@ func validateSignature(encrypted string, sigToValidate string) bool {
 // Decrypts dataStore and loads it into session
 func validateSignAndDecryptDataStore(dataStore *externaldrive.DataStore, dto dto.PersistenceDTO) (err *model.HTMLResponse) {
 	if !validateSignature(dataStore.EncryptedData, dataStore.Signature) {
-		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.InvalidSignature)
+		err = model.BuildResponse(http.StatusInternalServerError, model.Messages.InvalidSignature, dto.ID)
 		return
 	}
 

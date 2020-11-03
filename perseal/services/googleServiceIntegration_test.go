@@ -98,10 +98,10 @@ func TestGoogleService(t *testing.T) {
 		fmt.Println(passed)
 	}
 
-	obj = preCloudConfig(obj, smResp, "qwerty")
-
 	fmt.Println("\n=================Correct Load GoogleDrive Store====================")
-	ds, err = fetchCloudDataStore(obj)
+	obj = preCloudConfig(obj, smResp, "qwerty")
+	obj.DataStoreFileName = "dsTest0"
+	ds, err = storeCloudData(obj)
 	if err != nil {
 		fmt.Println(failed)
 		t.Error("Thrown error, got: ", err)
@@ -153,6 +153,7 @@ func TestGoogleService(t *testing.T) {
 
 	fmt.Println("\n=================Correct Persistence Load====================")
 	obj = preCloudConfig(obj, smResp, "qwerty")
+	obj.DataStoreFileName = "dsTest0.seal"
 	_, erro = PersistenceLoad(obj)
 	if erro != nil {
 		fmt.Println(failed)

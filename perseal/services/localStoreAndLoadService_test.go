@@ -109,4 +109,33 @@ func TestStoreService(t *testing.T) {
 	} else {
 		fmt.Println(passed)
 	}
+
+	fmt.Println("\n=================Correct Persistence & Store Browser Load====================")
+	sha = utils.HashSUM256("qwerty")
+	obj.Method = "Browser"
+	obj = preCloudConfig(obj, smResp, sha)
+	obj.LocalFileBytes = []byte(`"{\"id\":\"db6a4657-c419-4d97-981c-a2dc6c984c82\",\"encryptedData\":\"R9wD2odntxKInqnFXRH-2_TfHUDi8K9aK5fTkw5U_wqUHkG8Carlx6QNnDqYJQe7MdFfy_d9z-aH28ftqCo2-huT5v2m8kp6vjXQnd5ufd802jxT9LsW_A5Te22bxrgL6yso1zTDODA1IlUPG86_nx2MLxtDCfr9yZq1fnmg0TfsRQ==\",\"signature\":\"H3YAEst4CXSHY9oVlIauhkDKFpm4WJOm_0Yr0py461VCNwr3QvLlROavkkq532WQNhPWyJWXumOsmlHuLqGQuf8lOWz4EXXqaBbYSXefB9z7IhH8FWIeyOqxp_C0kD2mOILQnmvO91i9oCse6XbBcPgh7IwfM_uP6bmMa_pUbxzT7dYT2WV93EshCNEHv4MSO1-8RnhUtFZEkq1lKbwDr3uSkKMu0Tmhgo3K8CkZ3BfgbC3-vLY9MFtq69bVozK07FVSlAxFGgmAW21lR6gNSKObYcQyYttkVMDTd9MrnTg-E7Qhsf41K8WVY6-ea6NXhzWqB4CcYAkRfteSF_hT9Q==\",\"signatureAlgorithm\":\"rsa-sha256\",\"encryptionAlgorithm\":\"aes-cfb\"}"
+	`)
+	_, err = PersistenceStoreAndLoad(obj)
+	if err != nil {
+		fmt.Println(failed)
+		t.Error("Thrown error, got: ", err)
+	} else {
+		fmt.Println(passed)
+	}
+
+	fmt.Println("\n=================Incorrect Persistence Browser Load====================")
+	sha = utils.HashSUM256("qwerty")
+	obj.Method = "Browser"
+	obj = preCloudConfig(obj, smResp, sha)
+	obj.LocalFileBytes = []byte(`"{\"id\":\"db6a4657-c419-4d97-981c-a2dc6cptedData\":\"R9wD2odntxKInqnFXRH-2_TfHUDi8K9aK5fTkw5U_wqUHkG8Carlx6QNnDqYJQe7MdFfy_d9z-aH28ftqCo2-huT5v2m8kp6vjXQnd5ufd802jxT9LsW_A5Te22bxrgL6yso1zTDODA1IlUPG86_nx2MLxtDCfr9yZq1fnmg0TfsRQ==\",\"signature\":\"H3YAEst4CXSHY9oVlIauhkDKFpm4WJOm_0Yr0py461VCNwr3QvLlROavkkq532WQNhPWyJWXumOsmlHuLqGQuf8lOWz4EXXqaBbYSXefB9z7IhH8FWIeyOqxp_C0kD2mOILQnmvO91i9oCse6XbBcPgh7IwfM_uP6bmMa_pUbxzT7dYT2WV93EshCNEHv4MSO1-8RnhUtFZEkq1lKbwDr3uSkKMu0Tmhgo3K8CkZ3BfgbC3-vLY9MFtq69bVozK07FVSlAxFGgmAW21lR6gNSKObYcQyYttkVMDTd9MrnTg-E7Qhsf41K8WVY6-ea6NXhzWqB4CcYAkRfteSF_hT9Q==\",\"signatureAlgorithm\":\"rsa-sha256\",\"encryptionAlgorithm\":\"aes-cfb\"}"
+	`)
+	_, err = PersistenceLoad(obj)
+	if err == nil {
+		fmt.Println(failed)
+		t.Error("Should have thrown error")
+	} else {
+		fmt.Println(passed)
+	}
+
 }

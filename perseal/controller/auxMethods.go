@@ -26,7 +26,7 @@ func redirectToOperation(dto dto.PersistenceDTO, w http.ResponseWriter, r *http.
 	if dto.PDS == model.EnvVariables.Mobile_PDS {
 		var token string
 		token = services.GenerateCustomURL(dto, r)
-		dto.Response = *model.BuildResponse(http.StatusOK, "Redirecting...")
+		dto.Response = *model.BuildResponse(http.StatusOK, "Redirecting...", dto.ID)
 		dto.Response.ClientCallbackAddr = model.EnvVariables.Perseal_QRCode_Endpoint + "?msToken=" + token
 		openExternalHTML(dto, w)
 		//Local File System UC
@@ -132,11 +132,13 @@ func getSessionData(id string, w http.ResponseWriter) (smResp sm.SessionMngrResp
 
 // Opens HTML that displays the message in the screen
 func openExternalHTML(dto dto.PersistenceDTO, w http.ResponseWriter) {
-	if dto.PDS == model.EnvVariables.Browser_PDS {
-		// msToken for the perseal DataStore File Download EP, as a security measure
-		tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
-		dto.Response.MSTokenDownload = tok.AdditionalData
-	}
+	/*
+		if dto.PDS == model.EnvVariables.Browser_PDS {
+			// msToken for the perseal DataStore File Download EP, as a security measure
+			tok, _ := sm.GenerateToken(model.EnvVariables.Perseal_Sender_Receiver, model.EnvVariables.Perseal_Sender_Receiver, dto.ID)
+			dto.Response.MSTokenDownload = tok.AdditionalData
+		}
+	*/
 	res := model.MarshallResponseToPrint(dto.Response)
 	log.Println("Response Object: ", res)
 	t, _ := template.ParseFiles("ui/message.html")

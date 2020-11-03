@@ -18,7 +18,7 @@ func PersistenceStore(dto dto.PersistenceDTO) (response, err *model.HTMLResponse
 		if err != nil {
 			return
 		}
-		response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
+		response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID, dto.ID)
 	}
 	return
 
@@ -32,7 +32,7 @@ func BackChannelStorage(dto dto.PersistenceDTO) (response, err *model.HTMLRespon
 	}
 	data, _ := dataStore.MarshalWithoutClearText()
 
-	response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID)
+	response = model.BuildResponse(http.StatusOK, model.Messages.StoredDataStore+dataStore.ID, dto.ID)
 	response.DataStore = string(data)
 
 	return

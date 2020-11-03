@@ -11,6 +11,7 @@ type HTMLResponse struct {
 	Message            string `json:"message"`
 	ErrorMessage       string `json:"error"`
 	DataStore          string
+	ID                 string
 	MSToken            string
 	MSTokenRedirect    string
 	MSTokenDownload    string
@@ -58,7 +59,7 @@ type QRVariables struct {
 
 //Review Env Variables Before Deploy
 //IMPORTANT: urls in qr.html
-var Test = false
+var Test = true
 
 var EnvVariables struct {
 	Store_Method      string
@@ -314,10 +315,11 @@ var MSToken string
 var DataStore string
 var PersonalInformation SEALRetrievedPersonalInformation
 
-func BuildResponse(code int, message string, erro ...string) *HTMLResponse {
+func BuildResponse(code int, message, id string, erro ...string) *HTMLResponse {
 	resp := &HTMLResponse{
 		Code:    code,
 		Message: message,
+		ID:      id,
 	}
 	if len(erro) > 0 || erro != nil {
 		resp.ErrorMessage = erro[0]

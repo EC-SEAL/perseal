@@ -18,22 +18,15 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	method := mux.Vars(r)["method"]
 
+	id := getQueryParameter(r, "sessionId")
+	smResp := getSessionData(id, w)
+
 	if method == "save" {
 
 		log.Println(r.URL.Path)
-		token := getQueryParameter(r, "msToken")
-		smResp, err := sm.ValidateToken(token)
-		if err != nil {
-			id := smResp.SessionData.SessionID
-			dto, _ := dto.PersistenceFactory(id, sm.SessionMngrResponse{})
-			writeResponseMessage(w, dto, *err)
-			return
-		}
 
 		//Downloads File for the localFile System
 		log.Println("save")
-
-		smResp, _ = sm.GetSessionData(smResp.SessionData.SessionID)
 		contents := getQueryParameter(r, "contents")
 		w.Header().Set("Content-Disposition", "attachment; filename="+strconv.Quote(smResp.SessionData.SessionVariables["DSFilename"]+model.EnvVariables.DataStore_File_Ext))
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -42,9 +35,6 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 		return
 
 	} else if method == "checkQrCodePoll" {
-
-		id := getQueryParameter(r, "sessionId")
-		smResp := getSessionData(id, w)
 
 		finishedPersealBackChannel := smResp.SessionData.SessionVariables[model.EnvVariables.SessionVariables.FinishedPersealBackChannel]
 
@@ -62,7 +52,6 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	} else if method == "qrCodePoll" {
 
-		id := getQueryParameter(r, "sessionId")
 		op := getQueryParameter(r, "operation")
 
 		respMethod, dto, err := services.QRCodePoll(id, op)
@@ -72,9 +61,9 @@ func AuxiliaryEndpoints(w http.ResponseWriter, r *http.Request) {
 
 		var resp *model.HTMLResponse
 		if respMethod == model.Messages.LoadedDataStore || respMethod == model.Messages.StoredDataStore {
-			resp = model.BuildResponse(http.StatusOK, respMethod)
+			resp = model.BuildResponse(http.StatusOK, respMethod, dto.ID)
 		} else {
-			resp = model.BuildResponse(http.StatusInternalServerError, respMethod)
+			resp = model.BuildResponse(http.StatusInternalServerError, respMethod, dto.ID)
 		}
 
 		writeResponseMessage(w, dto, *resp)
@@ -113,12 +102,16 @@ func GenerateQRCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var params sm.RequestParameters
+	json.Unmarshal([]byte(contents), &params)
+	log.Println(params)
 	var smResp sm.SessionMngrResponse
-	json.Unmarshal([]byte(contents), &smResp)
+	json.Unmarshal([]byte(params.Data), &smResp)
 	var variables model.QRVariables
 	json.Unmarshal([]byte(smResp.AdditionalData), &variables)
 	dto.Method = variables.Method
 
+	log.Println(variables)
 	mobileQRCode(dto, variables, w)
 }
 

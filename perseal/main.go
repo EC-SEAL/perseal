@@ -44,7 +44,6 @@ func main() {
 
 	addr := model.EnvVariables.Host
 	tlsConfig := &tls.Config{
-		ClientAuth:         tls.RequestClientCert,
 		InsecureSkipVerify: true,
 		ServerName:         addr,
 	}

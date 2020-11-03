@@ -57,7 +57,7 @@ func loadSessionDataOneDrive(dto dto.PersistenceDTO, filename string) (file *htt
 		return
 	}
 	if file.StatusCode != 200 {
-		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFile+model.EnvVariables.One_Drive_PDS)
+		err = model.BuildResponse(http.StatusNotFound, model.Messages.FailedGetCloudFile+model.EnvVariables.One_Drive_PDS, dto.ID)
 		return
 	}
 	return

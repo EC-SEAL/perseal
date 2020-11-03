@@ -38,12 +38,6 @@ type RequestParameters struct {
 	ID        string `json:"id"`
 }
 
-type OverwriteData struct {
-	Data      string `json:"data"`
-	SessionId string `json:"sessionId"`
-	Type      string `json:"type"`
-}
-
 var (
 	client http.Client
 )

@@ -46,7 +46,7 @@ func DataStoreHandling(w http.ResponseWriter, r *http.Request) {
 
 	password := r.FormValue("password")
 	if password == "" {
-		err = model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword)
+		err = model.BuildResponse(http.StatusBadRequest, model.Messages.NoPassword, dto.ID)
 		err.FailedInput = "Password"
 		writeResponseMessage(w, dto, *err)
 		return

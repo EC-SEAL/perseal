@@ -208,7 +208,7 @@ func GenerateCustomURL(dto dto.PersistenceDTO, r *http.Request) (token string) {
 
 func GenerateQRCode(obj dto.PersistenceDTO, variables model.QRVariables) (dto.PersistenceDTO, *model.HTMLResponse) {
 	if containsEmpty(variables.SessionId, variables.Method) {
-		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode)
+		resp := model.BuildResponse(http.StatusInternalServerError, model.Messages.IncompleteQRCode, obj.ID)
 		return obj, resp
 	}
 
