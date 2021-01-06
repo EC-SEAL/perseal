@@ -87,7 +87,7 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 
 	//TODO: Remove this section - SAML SP
 	if strings.Contains(dto.ClientCallbackAddr, "/per/retrieve") {
-		SimulateDashboard(w, r)
+		ShowDetails(w, r)
 	}
 	return
 }

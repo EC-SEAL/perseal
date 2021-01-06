@@ -25,8 +25,31 @@ func SimulateDashboard(w http.ResponseWriter, r *http.Request) {
 		DataStore:           model.DataStore,
 		PersonalInformation: model.PersonalInformation,
 	}
+
 	t, _ := template.ParseFiles("ui/simulateDashboard.html")
 	t.Execute(w, testing)
+
+}
+
+func ShowDetails(w http.ResponseWriter, r *http.Request) {
+
+	type testStruct struct {
+		ID                  string
+		MSToken             string
+		DataStore           string
+		PersonalInformation model.SEALRetrievedPersonalInformation
+	}
+
+	testing := testStruct{
+		ID:                  model.TestUser,
+		MSToken:             model.MSToken,
+		DataStore:           model.DataStore,
+		PersonalInformation: model.PersonalInformation,
+	}
+
+	t, _ := template.ParseFiles("ui/mobility.html")
+	t.Execute(w, testing)
+
 }
 
 func StartSession(w http.ResponseWriter, r *http.Request) {

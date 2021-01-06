@@ -1,0 +1,85 @@
+
+    <div class="row">
+        <div class="col-md-6"><p class="text-left"><a href="/per/test/simulateDashboard" class="btn btn-default"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span> Back to TestDashboard</a></p></div>
+ </div>
+ <div class="col-md-6">
+  <p>Page Used For Testing Purposes</p>
+</div>
+        <h1>eIDAS Retrieved Attributes</h1>  
+
+
+        {{if not (eq .PersonalInformation.PersonIdentifier "" )}}
+        <p><b>Person Identifier:</b> {{.PersonalInformation.PersonIdentifier}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.FirstName "" )}}
+        <p><b>Given Name: </b>{{.PersonalInformation.FirstName}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.FamilyName "" )}}
+        <p><b>FamilyName: </b>{{.PersonalInformation.FamilyName}}</p>
+        {{end}}
+    <div class="row">
+        <div class="col-md-6">
+            
+        {{if not (eq .PersonalInformation.DateOfBirth "" )}}
+            <p><b>Date Of Birth: </b>{{.PersonalInformation.DateOfBirth}}</p>
+            {{end}}
+        </div>
+
+    </div>
+    <hr />
+    <div class="row">
+      <h1>eduGAIN    Retrieved Attributes</h1>  
+
+      {{if not (eq .PersonalInformation.DisplayName "" )}}
+      <p><h2>DisplayName: {{.PersonalInformation.DisplayName}}</h2></p>
+      {{end}}
+      <div class="col-md-4">
+        <h4>Student Information</h4>
+        
+        {{if not (eq .PersonalInformation.Surname "" )}}
+        <p><b>Surname:</b> {{.PersonalInformation.Surname}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.GivenName "" )}}
+        <p><b>GivenName: </b>{{.PersonalInformation.GivenName}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.EduPersonAffiliation "" )}}
+        <p><b>EduPersonAffiliation: </b>{{.PersonalInformation.EduPersonAffiliation}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.Mail "" )}}
+        <p><b>Mail: </b>{{.PersonalInformation.Mail}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.Mobile "" )}}
+        <p><b>Mobile: </b>{{.PersonalInformation.Mobile}}</p>
+        {{end}}
+      </div>
+      <div class="col-md-4">
+        
+        {{if not (eq .PersonalInformation.EduPersonPrincipalName "" )}}
+        <p><b>EduPersonPrincipalName: </b>{{.PersonalInformation.EduPersonPrincipalName}}</p>  
+        {{end}}
+        {{if not (eq .PersonalInformation.SchacExpiryDate "" )}}
+        <p><b>SchacExpiryDate: </b>{{.PersonalInformation.SchacExpiryDate}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.StudyProgram "" )}}
+        <p><b>StudyProgram: </b>{{.PersonalInformation.StudyProgram}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.EduOrgPostalAddress "" )}}
+        <p><b>EduOrgPostalAddress: </b>{{.PersonalInformation.EduOrgPostalAddress}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.SchacHomeOrganization "" )}}
+        <p><b>SchacHomeOrganization: </b>{{.PersonalInformation.SchacHomeOrganization}}</p> 
+        {{end}}
+        {{if not (eq .PersonalInformation.SchacHomeOrganizationType "" )}}
+        <p><b>SchacHomeOrganizationType: </b>{{.PersonalInformation.SchacHomeOrganizationType}} </p>
+        {{end}}
+        {{if not (eq .PersonalInformation.EduOrgLegalName "" )}}
+        <p><b>EduOrgLegalName: </b>{{.PersonalInformation.EduOrgLegalName}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.EduOrgLocation "" )}}
+        <p><b>EduOrgLocation: </b>{{.PersonalInformation.EduOrgLocation}}</p>
+        {{end}}
+        {{if not (eq .PersonalInformation.EduOrgHomePageURI "" )}}
+        <p><b>EduOrgHomePageURI: </b> {{.PersonalInformation.EduOrgHomePageURI}}</p>
+        {{end}}
+      </div>
+     

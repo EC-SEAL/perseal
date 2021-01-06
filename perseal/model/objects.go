@@ -280,9 +280,10 @@ type SEALRetrievedPersonalInformation struct {
 	LoALvl int
 
 	//eIDAS
-	FirstName   string
-	FamilyName  string
-	DateOfBirth string
+	PersonIdentifier string
+	FirstName        string
+	FamilyName       string
+	DateOfBirth      string
 
 	//eduGAIN
 	EduPersonAffiliation      string
