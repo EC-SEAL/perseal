@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/EC-SEAL/perseal/dto"
 	"github.com/EC-SEAL/perseal/model"
@@ -85,10 +84,6 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 	log.Println("Token to be sent in the ClientCallback: " + tokinfo)
 	services.ClientCallbackAddrPost(tokinfo, dto.ClientCallbackAddr)
 
-	//TODO: Remove this section - SAML SP
-	if strings.Contains(dto.ClientCallbackAddr, "/per/retrieve") {
-		ShowDetails(w, r)
-	}
 	return
 }
 

@@ -141,9 +141,9 @@ func openExternalHTML(dto dto.PersistenceDTO, w http.ResponseWriter) {
 	*/
 	res := model.MarshallResponseToPrint(dto.Response)
 	log.Println("Response Object: ", res)
-	t, _ := template.ParseFiles("ui/message.html")
+	t, _ := template.ParseFiles("ui/template.html", "ui/message.html")
 	w.WriteHeader(dto.Response.Code)
-	t.Execute(w, dto.Response)
+	t.ExecuteTemplate(w, "layout", dto.Response)
 
 }
 
@@ -158,8 +158,8 @@ func openInternalHTML(obj dto.PersistenceDTO, w http.ResponseWriter, filename st
 	}
 
 	obj.MSToken = token.AdditionalData
-	t, _ := template.ParseFiles(filename)
-	t.Execute(w, obj)
+	t, _ := template.ParseFiles("ui/template.html", filename)
+	t.ExecuteTemplate(w, "layout", obj)
 }
 
 //Opens HTML to display event message and makes post request to ClientCallbackAddr
@@ -223,8 +223,8 @@ func mobileQRCode(obj dto.PersistenceDTO, variables model.QRVariables, w http.Re
 		return
 	}
 
-	t, _ := template.ParseFiles("ui/qr.html")
-	t.Execute(w, obj)
+	t, _ := template.ParseFiles("ui/template.html", "ui/qr.html")
+	t.ExecuteTemplate(w, "layout", obj)
 	return
 }
 

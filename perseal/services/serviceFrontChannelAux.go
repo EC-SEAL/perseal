@@ -52,42 +52,9 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 	return tok1.AdditionalData, tok2.AdditionalData
 }
 
-// TODO: may not be needed
-/*
-// Polls msToken to CCA
-func ClientCallbackAddrPost(token, clientCallbackAddr string) {
-	if strings.Contains(clientCallbackAddr, "/rm/response") {
-		//TODO: Don't pass the env variable
-		ccaURLEncoded(token, model.EnvVariables.RM_Endpoint)
-	} else {
-		ccaFormData(token, clientCallbackAddr)
-	}
-}
-
-func ccaURLEncoded(token, clientCallbackAddr string) {
-	hc := http.Client{}
-	form := url.Values{}
-	form.Add("msToken", token)
-	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, strings.NewReader(form.Encode()))
-	log.Println("POST to: ", clientCallbackAddr)
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	log.Println("Request: \n", req)
-	log.Print("Result from ClientCallbackAddr: ")
-	log.Println(hc.Do(req))
-}
-*/
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	hc := http.Client{}
 	b := bytes.Buffer{} // buffer to write the request payload into
-
-	//TODO: remove this section - SAML SP
-	if strings.Contains(clientCallbackAddr, "/per/retrieve") {
-		clientCallbackAddr += "?msToken=" + token
-		req, _ := http.NewRequest(http.MethodGet, clientCallbackAddr, nil)
-		log.Println(hc.Do(req))
-
-		return
-	}
 
 	fw := multipart.NewWriter(&b)
 	label, _ := fw.CreateFormField("msToken")

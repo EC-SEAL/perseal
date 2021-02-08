@@ -13,42 +13,24 @@ import (
 func SimulateDashboard(w http.ResponseWriter, r *http.Request) {
 
 	type testStruct struct {
-		ID                  string
-		MSToken             string
-		DataStore           string
-		PersonalInformation model.SEALRetrievedPersonalInformation
+		ID        string
+		MSToken   string
+		DataStore string
 	}
 
 	testing := testStruct{
-		ID:                  model.TestUser,
-		MSToken:             model.MSToken,
-		DataStore:           model.DataStore,
-		PersonalInformation: model.PersonalInformation,
+		ID:        model.TestUser,
+		MSToken:   model.MSToken,
+		DataStore: model.DataStore,
 	}
 
-	t, _ := template.ParseFiles("ui/simulateDashboard.html")
-	t.Execute(w, testing)
+	/*
 
-}
 
-func ShowDetails(w http.ResponseWriter, r *http.Request) {
+	 */
 
-	type testStruct struct {
-		ID                  string
-		MSToken             string
-		DataStore           string
-		PersonalInformation model.SEALRetrievedPersonalInformation
-	}
-
-	testing := testStruct{
-		ID:                  model.TestUser,
-		MSToken:             model.MSToken,
-		DataStore:           model.DataStore,
-		PersonalInformation: model.PersonalInformation,
-	}
-
-	t, _ := template.ParseFiles("ui/mobility.html")
-	t.Execute(w, testing)
+	t, _ := template.ParseFiles("ui/template.html", "ui/simulateDashboard.html")
+	t.ExecuteTemplate(w, "layout", testing)
 
 }
 

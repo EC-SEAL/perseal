@@ -42,12 +42,6 @@ func newRouter() *mux.Router {
 				"/test/simulateDashboard",
 				controller.SimulateDashboard,
 			},
-			route{
-				"SimulatesShowDetailsBehaviour",
-				"GET",
-				"/test/showdetails",
-				controller.ShowDetails,
-			},
 		}
 
 		perRoutes = append(testRoutes, perRoutes...)
@@ -92,35 +86,6 @@ var perRoutes = routes{
 	},
 
 	//external endpoints
-
-	//TODO: remove this section - SAML SP
-	route{
-		"Recieves Code from Cloud Login to Retrieve the Access Token",
-		"GET",
-		"/testsaml",
-		controller.TestSAML,
-	},
-
-	route{
-		"Recieves Code from Cloud Login to Retrieve the Access Token",
-		"POST",
-		"/testsamlresp",
-		controller.TestSAMLResponse,
-	},
-	/*
-		route{
-			"Recieves Code from Cloud Login to Retrieve the Access Token",
-			"GET",
-			"/retrieve",
-			controller.RetrieveDSData,
-		},
-
-		route{
-			"Recieves Code from Cloud Login to Retrieve the Access Token",
-			"GET",
-			"/link",
-			controller.Link,
-		},*/
 
 	route{
 		"Recieves Code from Cloud Login to Retrieve the Access Token",

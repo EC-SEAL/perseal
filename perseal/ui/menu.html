@@ -1,280 +1,18 @@
-<!DOCTYPE html>
-
-<html>
-  <head>
-    <style>
-      .botLogo {
-        height: 25%;
-        text-align: center;
-      }
-
-      .footer {
-        margin-bottom: 500px;
-        overflow: auto;
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        margin: 0;
-        background-color: #c4c4c4;
-      }
-      h1 {
-        font: 15px arial, sans-serif;
-        text-align: justify;
-        margin: 5 auto;
-        margin-left: 5%;
-        font-size: 50px;
-        font-weight: 400;
-      }
-      h2 {
-        font: 15px arial, sans-serif;
-        text-align: justify;
-        margin: 2 auto;
-        margin-left: 5%;
-        font-size: 28px;
-        font-weight: 200;
-        width: 30em;
-      }
-      input::-webkit-input-placeholder {
-        font-size: 28 px;
-        line-height: 3;
-      }
-      input[type="password"] {
-        background: transparent;
-        color: mix(#003399, #424242, 70%);
-        font-size: 18px;
-        padding: 10px 10px 10px 0;
-        display: block;
-        border: 2px solid blue;
-        border-radius: 10;
-        -webkit-appearance: none;
-        outline: none;
-        position: relative;
-        border-style: solid;
-        border-top-style: none;
-        border-right-style: none;
-        border-left-style: none;
-        border-bottom-width: 2px;
-      }
-
-      .btn {
-        border-radius: 25px;
-        padding: 10px;
-        margin-top: 5px;
-        margin-bottom: 25px;
-        display: block;
-        color: #003399;
-        text-decoration: none;
-        line-height: 1.5;
-        background-color: transparent;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        font-weight: 400;
-        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
-          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-      }
-
-      .outline-primary {
-        width: 90%;
-        font-size: 25px;
-        color: #003399;
-        border-color: #003399;
-      }
-
-      .outline-primary:hover {
-        color: #fff;
-        background-color: #ffcc00;
-        border-color: #ffcc00;
-      }
-      .center {
-        font: 15px arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .right {
-        margin-left: 70%;
-        font: 15px arial, sans-serif;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .btn-isolated {
-        border-radius: 25px;
-        padding: 10px;
-        margin-top: auto;
-        margin-bottom: 25px;
-        display: block;
-        color: #003399;
-        text-decoration: none;
-        line-height: 1.5;
-        background-color: transparent;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        font-weight: 400;
-        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
-          border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-      }
-      .btn-isolated-primary {
-        width: 18.5%;
-        font-size: 25px;
-        color: #003399;
-        border-color: #003399;
-      }
-
-      .btn-isolated-primary:hover {
-        color: #fff;
-        background-color: #ffcc00;
-        border-color: #ffcc00;
-      }
-      .tooltip {
-        position: relative;
-        display: inline-block;
-      }
-
-      .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 500px;
-        background-color: white;
-        color: black;
-        text-align: center;
-        border-radius: 8px;
-        border: 1px solid #003399;
-        padding: 0.75rem 0.95rem;
-
-        text-decoration: none;
-        /* Position the tooltip */
-        position: absolute;
-        z-index: 1;
-      }
-
-      .tooltip:hover .tooltiptext {
-        visibility: visible;
-      }
-      .size_of_img {
-        width: 90px;
-      }
-
-      input[type="text"] {
-        background: transparent;
-        color: mix(#003399, #424242, 70%);
-        font-size: 18px;
-        padding: 10px 10px 10px 0;
-        display: block;
-        border: 2px solid blue;
-        border-radius: 10;
-        -webkit-appearance: none;
-        outline: none;
-        position: relative;
-        border-style: solid;
-        border-top-style: none;
-        border-right-style: none;
-        border-left-style: none;
-        border-bottom-width: 2px;
-      }
-
-      table {
-        font: 15px arial, sans-serif;
-        width: 16%;
-        border-collapse: collapse;
-        margin-bottom: 25px;
-      }
-
-      table,
-      th,
-      td {
-        border: 1px solid black;
-      }
-      th {
-        background-color: #003399;
-        color: white;
-      }
-      th,
-      td {
-        padding: 15px;
-        text-align: left;
-      }
-
-      td:hover,
-      .selected {
-        background-color: #ffcc00;
-      }
-
-      .collapsible:after {
-        content: "\002B";
-        color: #003399;
-        font-weight: bold;
-        float: left;
-        margin-left: 5px;
-      }
-
-      .active:after {
-        content: "\2212";
-      }
-      .collapsible {
-        border-radius: 25px;
-        padding: 20px;
-        font-size: 20px;
-        margin-left: 4%;
-        background-color: #ffffff;
-        color: #003399;
-        cursor: pointer;
-        padding: 18px;
-        width: 25%;
-        border: none;
-        text-align: left;
-        outline: none;
-      }
-
-      .active,
-      .collapsible:hover {
-        background-color: #ffcc00;
-      }
-
-      .content {
-        padding: 0 18px;
-        margin-left: 2.9%;
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.2s ease-out;
-        background-color: #fff;
-      }
-    </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-    />
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-  </head>
-
-  <body>
-    <img class="topLogo" src="/ui/logo.png" height="200px" />
-
+{{define "content"}}
     {{$id := .ID}} {{if (eq .MenuOption "NoFilesFound")}}
 
      
     {{if (eq .UserError "File")}}
-    <h2 style="color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
+    <h2 style="margin-left: 0%; color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
     {{end}} 
     
     {{if (eq .UserError "Password")}}
-    <h2 style="color: red"><p>Your Password Is Incorrect!</p></h2>
+    <h2 style="margin-left: 0%; color: red"><p>Your Password Is Incorrect!</p></h2>
     {{else}}
     <h2></h2>
     {{end}}
-    <div
-      class="center"
-      style="margin-left: 50%; margin-top: -10%; margin-bottom: 5%"
-    >
+ 
       <h1>No Files Found!</h1>
-    </div>
-
     <div id="title">
       <h2>A new file will be downloaded to your Cloud Storage.</h2>
     </div>
@@ -311,18 +49,18 @@
     {{if (eq .MenuOption "BrowserOption")}} 
     
     {{if (eq .UserError "File")}}
-    <h2 style="color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
+    <h2 style="margin-left: 0%; color: red"><p>Your File Does Not Contain Valid Data!</p></h2>
     {{end}} 
     
     {{if (eq .UserError "Password")}}
-    <h2 style="color: red"><p>Your Password Is Incorrect!</p></h2>
+    <h2 style="margin-left: 0%; color: red"><p>Your Password Is Incorrect!</p></h2>
     {{else}}
     <h2></h2>
     {{end}}
 
     <button class="collapsible" style="width: 20%">Load Existing Data</button>
     <div class="content">
-      <h2>
+      <h2 style="margin-left: 0%;">
         <p>Loading User's Data From a Local File</p>
         <p>Click the following button to select your desired file</p>
       </h2>
@@ -431,10 +169,4 @@
     </script>
 
     {{end}}
-    <div class="footer">
-      <div class="botLogo">
-        <img src="/ui/en_horizontal_cef_logo_2.png" width="25%" />
-      </div>
-    </div>
-  </body>
-</html>
+ {{end}}
