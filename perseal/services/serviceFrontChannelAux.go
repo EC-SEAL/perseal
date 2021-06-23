@@ -1,11 +1,9 @@
 package services
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -54,15 +52,14 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 
 func ClientCallbackAddrPost(token, clientCallbackAddr string) {
 	hc := http.Client{}
-	b := bytes.Buffer{} // buffer to write the request payload into
 
-	fw := multipart.NewWriter(&b)
-	label, _ := fw.CreateFormField("msToken")
-	label.Write([]byte(token))
-	defer fw.Close()
-	log.Println("POST to: ", clientCallbackAddr)
-	req, _ := http.NewRequest(http.MethodPost, clientCallbackAddr, &b)
-	req.Header.Set("Content-Type", fw.FormDataContentType())
+	log.Println("GET to: ", clientCallbackAddr)
+	req, _ := http.NewRequest(http.MethodGet, clientCallbackAddr, nil)
+	req.Header.Set("Content-Type", "multipart/form-data")
+	q := req.URL.Query()
+	q.Add("msToken", token)
+	req.URL.RawQuery = q.Encode()
+
 	log.Println("Request: \n", req)
 	log.Print("Result from ClientCallbackAddr: ")
 	log.Println(hc.Do(req))
