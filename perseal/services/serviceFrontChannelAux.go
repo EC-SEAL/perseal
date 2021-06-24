@@ -50,19 +50,16 @@ func BuildDataOfMSToken(id, code, clientCallbackAddr string, message ...string) 
 	return tok1.AdditionalData, tok2.AdditionalData
 }
 
-func ClientCallbackAddrPost(token, clientCallbackAddr string) {
-	hc := http.Client{}
+func ClientCallbackAddrRedirect(token, clientCallbackAddr string) string {
 
-	log.Println("GET to: ", clientCallbackAddr)
 	req, _ := http.NewRequest(http.MethodGet, clientCallbackAddr, nil)
 	req.Header.Set("Content-Type", "multipart/form-data")
 	q := req.URL.Query()
 	q.Add("msToken", token)
 	req.URL.RawQuery = q.Encode()
 
-	log.Println("Request: \n", req)
-	log.Print("Result from ClientCallbackAddr: ")
-	log.Println(hc.Do(req))
+	log.Println("Redirect to: ", req.URL.String())
+	return req.URL.String()
 }
 
 func QRCodePoll(id, op string) (respMethod string, obj dto.PersistenceDTO, err *model.HTMLResponse) {

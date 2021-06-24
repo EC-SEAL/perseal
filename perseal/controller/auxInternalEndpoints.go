@@ -82,7 +82,9 @@ func PollToClientCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Token to be sent in the ClientCallback: " + tokinfo)
-	services.ClientCallbackAddrPost(tokinfo, dto.ClientCallbackAddr)
+
+	url := services.ClientCallbackAddrRedirect(tokinfo, dto.ClientCallbackAddr)
+	http.Redirect(w, r, url, http.StatusFound)
 
 	return
 }
