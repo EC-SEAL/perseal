@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -93,6 +94,7 @@ func GetRedirectURL(dto dto.PersistenceDTO) (url string) {
 func UpdateTokenFromCode(dto dto.PersistenceDTO, code string) (dtoWithToken dto.PersistenceDTO, err *model.HTMLResponse) {
 	var token *oauth2.Token
 	dtoWithToken = dto
+	fmt.Println("PDS: ", dto.PDS)
 	if dto.PDS == model.EnvVariables.Google_Drive_PDS {
 		token, err = updateNewGoogleDriveTokenFromCode(dto.ID, code)
 		dtoWithToken.GoogleAccessCreds = *token

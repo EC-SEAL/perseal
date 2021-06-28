@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -124,6 +125,7 @@ func RetrieveCode(w http.ResponseWriter, r *http.Request) {
 	smResp := getSessionData(id, w)
 	dto, err := dto.PersistenceFactory(id, smResp)
 	log.Println("Current Persistence Object: ", dto)
+	fmt.Println(err)
 	if err != nil {
 		writeResponseMessage(w, dto, *err)
 		return

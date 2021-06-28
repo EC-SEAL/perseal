@@ -2,6 +2,7 @@ package dto
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -66,7 +67,10 @@ func PersistenceFactory(id string, smResp sm.SessionMngrResponse, method ...stri
 	}
 
 	googleTokenBytes, oneDriveTokenBytes, err := getGoogleAndOneDriveTokens(dto, smResp)
+	fmt.Println(string(googleTokenBytes))
+	fmt.Println(string(oneDriveTokenBytes))
 	if err != nil {
+		fmt.Println(err)
 		return
 	}
 	if string(googleTokenBytes) != "null" {
