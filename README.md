@@ -2,12 +2,6 @@
 * Microservice running on **HTTPS port 8082**
 * Endpoint routes referenced in [perseal/routes.go](perseal/routes.go)
 
-## To Do
-* Integrate back channel requests with the mobile application;
-* When PDS is Mobile, then validate if the user is on a mobile device or desktop to either show QRcode or redirect to custom URL;
-* Integration with Dashboard: should the user have to create a PDS everytime he accesses the dashboard operations?;
-* Test the cloud (GoogleDrive | OneDrive) token expiration;
-
 ## Usage
 
 ### Docker
